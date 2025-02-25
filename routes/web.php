@@ -23,10 +23,35 @@ use App\Http\Controllers\Auth\GoogleLoginController;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
-require __DIR__.'/auth.php';
+
 
 // Default route to home controller
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+
+
+Route::middleware('guest')->group(function () {
+    // Login routes
+    Route::get('login', [App\Http\Controllers\AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('login', [App\Http\Controllers\AuthController::class, 'login']);
+    
+    // Registration routes
+    Route::get('register', [App\Http\Controllers\AuthController::class, 'showRegistrationForm'])->name('register');
+    Route::post('register', [App\Http\Controllers\AuthController::class, 'register']);
+    
+    // Password reset routes
+    Route::get('forgot-password', [App\Http\Controllers\AuthController::class, 'forgotPassword'])->name('password.request');
+    Route::post('forgot-password', [App\Http\Controllers\AuthController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('reset-password/{token}', [App\Http\Controllers\AuthController::class, 'showResetForm'])->name('password.reset');
+    Route::post('reset-password', [App\Http\Controllers\AuthController::class, 'resetPassword'])->name('password.store');
+});
+
+// Protected authentication routes
+Route::middleware('auth')->group(function () {
+    Route::post('logout', [App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
+    // You can keep the existing verification routes or implement them in the AuthController
+});
+
 
 // Dashboard route for all authenticated users
 Route::get('/dashboard', [HomeController::class, 'index'])
