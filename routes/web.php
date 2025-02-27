@@ -25,6 +25,7 @@ use App\Http\Controllers\Auth\GoogleLoginController;
 */
 
 
+
 // Default route to home controller
 Route::get('/', [HomeController::class, 'index'])->name('home');
 

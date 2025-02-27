@@ -215,6 +215,7 @@ public function deleteUserDirect($id)
         return view('admin.users', compact('drivers', 'passengers'));
     }
 
+    
     /**
      * Get drivers list (for AJAX)
      *
