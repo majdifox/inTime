@@ -1,0 +1,862 @@
+ Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->string('profile_picture')->nullable();
+            $table->string('phone')->unique();
+            $table->date('birthday')->nullable();
+            $table->enum('gender', ['male', 'female'])->nullable();
+            $table->enum('role', ['driver', 'passenger', 'admin']);
+            $table->boolean('is_online')->default(false);
+            $table->enum('account_status', ['deactivated', 'pending', 'activated', 'suspended', 'deleted'])->default('deactivated');
+            $table->decimal('total_income', 10, 2)->default(0);
+            $table->rememberToken();
+            $table->timestamps();
+        });
+
+
+        Schema::create('passengers', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->decimal('rating', 3, 2)->nullable();
+            $table->integer('total_rides')->default(0);
+            $table->text('preferences')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('drivers', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('license_number')->unique();
+            $table->date('license_expiry');
+            $table->string('license_photo')->nullable();
+            $table->decimal('rating', 3, 2)->nullable();
+            $table->integer('completed_rides')->default(0);
+            $table->decimal('balance', 10, 2)->default(0);
+            $table->boolean('is_verified')->default(false);
+            $table->timestamps();
+        });
+
+        Schema::create('rides', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('passenger_id')->constrained()->onDelete('cascade');
+            $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+            $table->dateTime('reservation_date');
+            $table->enum('reservation_status', ['pending','not_accepted', 'accepted', 'cancelled'])->default('pending');
+            $table->dateTime('pickup_time')->nullable();
+            $table->string('pickup_location');
+            $table->dateTime('dropoff_time')->nullable();
+            $table->string('dropoff_location');
+            $table->enum('ride_status', ['ongoing','completed'])->default('ongoing');
+            $table->decimal('ride_cost', 10, 2)->nullable();
+            $table->boolean('is_reviewed')->default(false);
+            $table->timestamps();
+        });
+
+        Schema::create('reviews', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('ride_id')->constrained()->onDelete('cascade');
+            $table->foreignId('reviewer_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('reviewed_id')->constrained('users')->onDelete('cascade');
+            $table->integer('rating')->nullable(); 
+            $table->text('comment')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('vehicles', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+            $table->string('make');
+            $table->string('model');
+            $table->integer('year');
+            $table->string('color');
+            $table->string('plate_number')->unique();
+            $table->enum('type', ['share', 'comfort', 'Women' ,'Black', 'WAV']);
+            $table->integer('capacity');
+            $table->string('vehicle_photo')->nullable();
+            $table->date('insurance_expiry');
+            $table->date('registration_expiry');
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+
+
+ public function up(): void
+    {
+        Schema::table('rides', function (Blueprint $table) {
+            if (!Schema::hasColumn('rides', 'available_seats')) {
+                $table->integer('available_seats')->nullable();
+            }
+            
+            if (!Schema::hasColumn('rides', 'price')) {
+                $table->decimal('price', 10, 2)->nullable();
+            }
+            
+            if (!Schema::hasColumn('rides', 'notes')) {
+                $table->text('notes')->nullable();
+            }
+            
+            if (!Schema::hasColumn('rides', 'vehicle_id')) {
+                $table->foreignId('vehicle_id')->nullable()->constrained()->onDelete('set null');
+            }
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('rides', function (Blueprint $table) {
+            // Only drop columns that exist
+            if (Schema::hasColumn('rides', 'available_seats')) {
+                $table->dropColumn('available_seats');
+            }
+            
+            if (Schema::hasColumn('rides', 'price')) {
+                $table->dropColumn('price');
+            }
+            
+            if (Schema::hasColumn('rides', 'notes')) {
+                $table->dropColumn('notes');
+            }
+            
+            if (Schema::hasColumn('rides', 'vehicle_id')) {
+                $table->dropColumn('vehicle_id');
+            }
+        });
+    }
+
+
+ public function up(): void
+    {
+        Schema::create('vehicle_features', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('vehicle_id')->constrained()->onDelete('cascade');
+            $table->enum('feature', ['ac', 'wifi', 'child_seat', 'usb_charger', 'pet_friendly', 'luggage_carrier']);
+            $table->timestamps();
+            
+            // Prevent duplicate features for the same vehicle
+            $table->unique(['vehicle_id', 'feature']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('vehicle_features');
+    }
+
+    public function up()
+    {
+        Schema::table('drivers', function (Blueprint $table) {
+            $table->string('insurance_document')->nullable()->after('license_photo');
+            $table->string('good_conduct_certificate')->nullable()->after('insurance_document');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::table('drivers', function (Blueprint $table) {
+            $table->dropColumn(['insurance_document', 'good_conduct_certificate']);
+        });
+    }
+
+ public function up(): void
+    {
+        // Add coordinates to the rides table
+        Schema::table('rides', function (Blueprint $table) {
+            $table->decimal('pickup_latitude', 10, 7)->nullable()->after('pickup_location');
+            $table->decimal('pickup_longitude', 10, 7)->nullable()->after('pickup_latitude');
+            $table->decimal('dropoff_latitude', 10, 7)->nullable()->after('dropoff_location');
+            $table->decimal('dropoff_longitude', 10, 7)->nullable()->after('dropoff_latitude');
+        });
+
+        // Create driver_locations table to track real-time driver positions
+        Schema::create('driver_locations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+            $table->decimal('latitude', 10, 7);
+            $table->decimal('longitude', 10, 7);
+            $table->timestamp('last_updated')->useCurrent();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('rides', function (Blueprint $table) {
+            $table->dropColumn('pickup_latitude');
+            $table->dropColumn('pickup_longitude');
+            $table->dropColumn('dropoff_latitude');
+            $table->dropColumn('dropoff_longitude');
+        });
+
+        Schema::dropIfExists('driver_locations');
+    }
+
+    public function up(): void
+    {
+        Schema::table('rides', function (Blueprint $table) {
+            // Ensure the column doesn't already exist before adding
+            if (!Schema::hasColumn('rides', 'price')) {
+                $table->decimal('price', 10, 2)->nullable()->after('ride_cost');
+            }
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('rides', function (Blueprint $table) {
+            if (Schema::hasColumn('rides', 'price')) {
+                $table->dropColumn('price');
+            }
+        });
+    }
+
+    public function up(): void
+    {
+        Schema::table('rides', function (Blueprint $table) {
+            //
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('rides', function (Blueprint $table) {
+            //
+        });
+    }
+
+    public function up(): void
+    {
+        Schema::table('drivers', function (Blueprint $table) {
+            //
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('drivers', function (Blueprint $table) {
+            //
+        });
+    }
+
+    public function up(): void
+    {
+        Schema::create('fare_settings', function (Blueprint $table) {
+            $table->id();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('fare_settings');
+    }
+
+    public function up(): void
+    {
+        Schema::table('passengers', function (Blueprint $table) {
+            //
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('passengers', function (Blueprint $table) {
+            //
+        });
+    }
+
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            //
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            //
+        });
+    }
+
+    public function up(): void
+    {
+        // First, ensure the enum type exists
+        DB::statement("DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'reservation_status_enum') THEN
+                CREATE TYPE reservation_status_enum AS ENUM('pending', 'matching', 'not_accepted', 'accepted', 'cancelled');
+            END IF;
+        END $$;");
+
+        // If reservation_status column exists, handle its conversion carefully
+        if (Schema::hasColumn('rides', 'reservation_status')) {
+            // Add a new temporary column with the enum type
+            DB::statement("ALTER TABLE rides ADD COLUMN reservation_status_new reservation_status_enum");
+
+            // Update the new column with converted values
+            DB::statement("UPDATE rides 
+                SET reservation_status_new = 
+                    CASE 
+                        WHEN reservation_status = 'pending' THEN 'pending'::reservation_status_enum
+                        WHEN reservation_status = 'matching' THEN 'matching'::reservation_status_enum
+                        WHEN reservation_status = 'not_accepted' THEN 'not_accepted'::reservation_status_enum
+                        WHEN reservation_status = 'accepted' THEN 'accepted'::reservation_status_enum
+                        WHEN reservation_status = 'cancelled' THEN 'cancelled'::reservation_status_enum
+                        ELSE 'pending'::reservation_status_enum
+                    END");
+
+            // Drop the old column
+            DB::statement("ALTER TABLE rides DROP COLUMN reservation_status");
+
+            // Rename the new column
+            DB::statement("ALTER TABLE rides RENAME COLUMN reservation_status_new TO reservation_status");
+        }
+
+        // Add ride_preferences field to passengers table
+        Schema::table('passengers', function (Blueprint $table) {
+            if (!Schema::hasColumn('passengers', 'ride_preferences')) {
+                $table->json('ride_preferences')->nullable()->after('preferences');
+            }
+        });
+
+        // Update the vehicles table with new vehicle types
+        if (Schema::hasColumn('vehicles', 'type')) {
+            // Ensure vehicle_type_enum exists
+            DB::statement("DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vehicle_type_enum') THEN
+                    CREATE TYPE vehicle_type_enum AS ENUM('share', 'comfort', 'women', 'wav', 'black');
+                END IF;
+            END $$;");
+            
+            // Add a new temporary column with the enum type
+            DB::statement("ALTER TABLE vehicles ADD COLUMN type_new vehicle_type_enum");
+
+            // Update the new column with converted values
+            DB::statement("UPDATE vehicles 
+                SET type_new = 
+                    CASE 
+                        WHEN lower(type) = 'share' THEN 'share'::vehicle_type_enum
+                        WHEN lower(type) = 'comfort' THEN 'comfort'::vehicle_type_enum
+                        WHEN lower(type) = 'women' THEN 'women'::vehicle_type_enum
+                        WHEN lower(type) = 'wav' THEN 'wav'::vehicle_type_enum
+                        WHEN lower(type) = 'black' THEN 'black'::vehicle_type_enum
+                        ELSE 'share'::vehicle_type_enum
+                    END");
+
+            // Drop the old column
+            DB::statement("ALTER TABLE vehicles DROP COLUMN type");
+
+            // Rename the new column
+            DB::statement("ALTER TABLE vehicles RENAME COLUMN type_new TO type");
+        }
+
+        // Add base_fare and per_km_price to rides table
+        Schema::table('rides', function (Blueprint $table) {
+            if (!Schema::hasColumn('rides', 'base_fare')) {
+                $table->decimal('base_fare', 10, 2)->nullable()->after('price');
+            }
+            if (!Schema::hasColumn('rides', 'per_km_price')) {
+                $table->decimal('per_km_price', 10, 2)->nullable()->after('base_fare');
+            }
+            if (!Schema::hasColumn('rides', 'distance_in_km')) {
+                $table->decimal('distance_in_km', 10, 2)->nullable()->after('per_km_price');
+            }
+            if (!Schema::hasColumn('rides', 'surge_multiplier')) {
+                $table->decimal('surge_multiplier', 4, 2)->default(1.0)->after('distance_in_km');
+            }
+            if (!Schema::hasColumn('rides', 'wait_time_minutes')) {
+                $table->integer('wait_time_minutes')->default(0)->after('surge_multiplier');
+            }
+            if (!Schema::hasColumn('rides', 'vehicle_type')) {
+                $table->string('vehicle_type')->nullable()->after('wait_time_minutes');
+            }
+        });
+
+        // Add driver_response_time to store how quickly drivers respond
+        Schema::table('drivers', function (Blueprint $table) {
+            if (!Schema::hasColumn('drivers', 'driver_response_time')) {
+                $table->decimal('driver_response_time', 5, 2)->nullable()->after('is_verified');
+            }
+            if (!Schema::hasColumn('drivers', 'women_only_driver')) {
+                $table->boolean('women_only_driver')->default(false)->after('driver_response_time');
+            }
+        });
+
+        // Add gender restrictions to user table
+        Schema::table('users', function (Blueprint $table) {
+            if (!Schema::hasColumn('users', 'women_only_rides')) {
+                $table->boolean('women_only_rides')->default(false)->after('gender');
+            }
+        });
+
+        // Create a ride_requests table to track driver matching attempts
+        if (!Schema::hasTable('ride_requests')) {
+            Schema::create('ride_requests', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('ride_id')->constrained()->onDelete('cascade');
+                $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+                $table->string('status')->default('pending');
+                $table->timestamp('requested_at')->nullable();
+                $table->timestamp('responded_at')->nullable();
+                $table->timestamps();
+            });
+            
+            // Add check constraint for status
+            DB::statement("ALTER TABLE ride_requests ADD CONSTRAINT check_status_validity CHECK (status IN ('pending', 'accepted', 'rejected', 'expired'))");
+        }
+
+        // Create fare_settings table for configurable pricing
+        if (!Schema::hasTable('fare_settings')) {
+            Schema::create('fare_settings', function (Blueprint $table) {
+                $table->id();
+                $table->string('vehicle_type');
+                $table->decimal('base_fare', 10, 2);
+                $table->decimal('per_km_price', 10, 2);
+                $table->decimal('per_minute_price', 10, 2)->default(0);
+                $table->decimal('minimum_fare', 10, 2)->default(0);
+                $table->timestamps();
+            });
+        }
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // Drop additional columns from passengers table
+        Schema::table('passengers', function (Blueprint $table) {
+            if (Schema::hasColumn('passengers', 'ride_preferences')) {
+                $table->dropColumn('ride_preferences');
+            }
+        });
+
+        // Remove added columns from rides table
+        Schema::table('rides', function (Blueprint $table) {
+            if (Schema::hasColumn('rides', 'base_fare')) {
+                $table->dropColumn('base_fare');
+            }
+            if (Schema::hasColumn('rides', 'per_km_price')) {
+                $table->dropColumn('per_km_price');
+            }
+            if (Schema::hasColumn('rides', 'distance_in_km')) {
+                $table->dropColumn('distance_in_km');
+            }
+            if (Schema::hasColumn('rides', 'surge_multiplier')) {
+                $table->dropColumn('surge_multiplier');
+            }
+            if (Schema::hasColumn('rides', 'wait_time_minutes')) {
+                $table->dropColumn('wait_time_minutes');
+            }
+            if (Schema::hasColumn('rides', 'vehicle_type')) {
+                $table->dropColumn('vehicle_type');
+            }
+            
+            // Revert reservation_status to string
+            if (Schema::hasColumn('rides', 'reservation_status')) {
+                DB::statement("ALTER TABLE rides ALTER COLUMN reservation_status TYPE varchar(255)");
+            }
+        });
+
+        // Remove added columns from drivers table
+        Schema::table('drivers', function (Blueprint $table) {
+            if (Schema::hasColumn('drivers', 'driver_response_time')) {
+                $table->dropColumn('driver_response_time');
+            }
+            if (Schema::hasColumn('drivers', 'women_only_driver')) {
+                $table->dropColumn('women_only_driver');
+            }
+        });
+
+        // Remove added columns from users table
+        Schema::table('users', function (Blueprint $table) {
+            if (Schema::hasColumn('users', 'women_only_rides')) {
+                $table->dropColumn('women_only_rides');
+            }
+        });
+
+        // Drop additional tables
+        Schema::dropIfExists('ride_requests');
+        Schema::dropIfExists('fare_settings');
+
+        // Drop custom enum types
+        try {
+            DB::statement("DROP TYPE IF EXISTS vehicle_type_enum CASCADE");
+        } catch (\Exception $e) {
+            // Ignore errors
+        }
+
+        try {
+            DB::statement("DROP TYPE IF EXISTS reservation_status_enum CASCADE");
+        } catch (\Exception $e) {
+            // Ignore errors
+        }
+    }
+
+
+ public function up(): void
+    {
+        // Check if fare_settings table exists
+        if (Schema::hasTable('fare_settings')) {
+            // Check if vehicle_type column doesn't exist
+            if (!Schema::hasColumn('fare_settings', 'vehicle_type')) {
+                Schema::table('fare_settings', function (Blueprint $table) {
+                    $table->string('vehicle_type')->after('id');
+                });
+            }
+        }
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        if (Schema::hasTable('fare_settings') && Schema::hasColumn('fare_settings', 'vehicle_type')) {
+            Schema::table('fare_settings', function (Blueprint $table) {
+                $table->dropColumn('vehicle_type');
+            });
+        }
+    }
+
+ public function up(): void
+    {
+        // Drop the table if it exists
+        Schema::dropIfExists('fare_settings');
+
+        // Create the table from scratch with all required columns
+        Schema::create('fare_settings', function (Blueprint $table) {
+            $table->id();
+            $table->string('vehicle_type');
+            $table->decimal('base_fare', 10, 2);
+            $table->decimal('per_km_price', 10, 2);
+            $table->decimal('per_minute_price', 10, 2)->default(0);
+            $table->decimal('minimum_fare', 10, 2)->default(0);
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('fare_settings');
+    }
+
+
+ public function up(): void
+    {
+        // Drop the table if it exists to ensure a clean slate
+        Schema::dropIfExists('ride_requests');
+        
+        // Create the table with all required columns
+        Schema::create('ride_requests', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('ride_id')->constrained()->onDelete('cascade');
+            $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+            $table->string('status')->default('pending');
+            $table->timestamp('requested_at')->nullable();
+            $table->timestamp('responded_at')->nullable();
+            $table->timestamps();
+        });
+        
+        // Add a check constraint to enforce valid status values
+        DB::statement("ALTER TABLE ride_requests ADD CONSTRAINT check_status_validity CHECK (status IN ('pending', 'accepted', 'rejected', 'expired'))");
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('ride_requests');
+    }
+
+public function up(): void
+    {
+        // Drop the table if it exists to ensure a clean slate
+        Schema::dropIfExists('driver_locations');
+        
+        // Create the table with all required columns
+        Schema::create('driver_locations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+            $table->decimal('latitude', 10, 7);
+            $table->decimal('longitude', 10, 7);
+            $table->timestamp('last_updated')->useCurrent();
+            $table->timestamps();
+            
+            // Each driver should have only one location
+            $table->unique('driver_id');
+        });
+        
+        // Add indexes for faster location queries
+        DB::statement("CREATE INDEX idx_driver_locations_coordinates ON driver_locations USING btree (latitude, longitude)");
+        
+        // Add indexes to rides table for coordinates
+        DB::statement("CREATE INDEX idx_rides_pickup_coordinates ON rides USING btree (pickup_latitude, pickup_longitude)");
+        DB::statement("CREATE INDEX idx_rides_dropoff_coordinates ON rides USING btree (dropoff_latitude, dropoff_longitude)");
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // Drop indexes first
+        DB::statement("DROP INDEX IF EXISTS idx_rides_pickup_coordinates");
+        DB::statement("DROP INDEX IF EXISTS idx_rides_dropoff_coordinates");
+        DB::statement("DROP INDEX IF EXISTS idx_driver_locations_coordinates");
+        
+        // Then drop the table
+        Schema::dropIfExists('driver_locations');
+    }
+
+
+ public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            if (!Schema::hasColumn('users', 'women_only_rides')) {
+                $table->boolean('women_only_rides')->default(false);
+            }
+        });
+        
+        Schema::table('drivers', function (Blueprint $table) {
+            if (!Schema::hasColumn('drivers', 'women_only_driver')) {
+                $table->boolean('women_only_driver')->default(false);
+            }
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users_and_drivers', function (Blueprint $table) {
+            //
+        });
+    }
+
+
+ public function up(): void
+    {
+        Schema::table('rides', function (Blueprint $table) {
+            if (!Schema::hasColumn('rides', 'base_fare')) {
+                $table->decimal('base_fare', 10, 2)->nullable();
+            }
+            if (!Schema::hasColumn('rides', 'per_km_price')) {
+                $table->decimal('per_km_price', 10, 2)->nullable();
+            }
+            if (!Schema::hasColumn('rides', 'distance_in_km')) {
+                $table->decimal('distance_in_km', 10, 2)->nullable();
+            }
+            if (!Schema::hasColumn('rides', 'surge_multiplier')) {
+                $table->decimal('surge_multiplier', 4, 2)->default(1.0);
+            }
+            if (!Schema::hasColumn('rides', 'wait_time_minutes')) {
+                $table->integer('wait_time_minutes')->default(0);
+            }
+            if (!Schema::hasColumn('rides', 'vehicle_type')) {
+                $table->string('vehicle_type')->nullable();
+            }
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('rides', function (Blueprint $table) {
+            //
+        });
+    }
+
+
+ public function up(): void
+    {
+        // Ensure the enum type exists
+        DB::statement("DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vehicle_type_enum') THEN
+                CREATE TYPE vehicle_type_enum AS ENUM('share', 'comfort', 'women', 'wav', 'black');
+            END IF;
+        END $$;");
+
+        // If the vehicles table has a 'type' column
+        if (Schema::hasColumn('vehicles', 'type')) {
+            // Add a new temporary column with the enum type
+            DB::statement("ALTER TABLE vehicles ADD COLUMN type_new vehicle_type_enum");
+
+            // Update the new column with converted values
+            DB::statement("UPDATE vehicles 
+                SET type_new = 
+                    CASE 
+                        WHEN type::text = 'share' THEN 'share'::vehicle_type_enum
+                        WHEN type::text = 'comfort' THEN 'comfort'::vehicle_type_enum
+                        WHEN type::text = 'women' THEN 'women'::vehicle_type_enum
+                        WHEN type::text = 'wav' THEN 'wav'::vehicle_type_enum
+                        WHEN type::text = 'black' THEN 'black'::vehicle_type_enum
+                        ELSE 'share'::vehicle_type_enum
+                    END");
+
+            // Drop the old column
+            DB::statement("ALTER TABLE vehicles DROP COLUMN type");
+
+            // Rename the new column
+            DB::statement("ALTER TABLE vehicles RENAME COLUMN type_new TO type");
+        }
+
+        // Add a check constraint for valid vehicle types
+        try {
+            DB::statement("ALTER TABLE vehicles ADD CONSTRAINT check_vehicle_type CHECK (type IN ('share', 'comfort', 'women', 'wav', 'black'))");
+        } catch (\Exception $e) {
+            // Constraint might already exist
+        }
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // Revert the column to text type
+        if (Schema::hasColumn('vehicles', 'type')) {
+            DB::statement("ALTER TABLE vehicles ALTER COLUMN type TYPE text");
+        }
+
+        // Drop the check constraint
+        try {
+            DB::statement("ALTER TABLE vehicles DROP CONSTRAINT check_vehicle_type");
+        } catch (\Exception $e) {
+            // Constraint might not exist
+        }
+
+        // Drop the enum type
+        try {
+            DB::statement("DROP TYPE vehicle_type_enum CASCADE");
+        } catch (\Exception $e) {
+            // Type might not exist
+        }
+    }
+
+
+ public function up(): void
+    {
+        // Ensure the enum type exists
+        DB::statement("DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vehicle_type_enum') THEN
+                CREATE TYPE vehicle_type_enum AS ENUM('share', 'comfort', 'women', 'wav', 'black');
+            END IF;
+        END $$;");
+
+        // Instead of creating fare_settings table, just truncate and insert new values
+        if (Schema::hasTable('fare_settings')) {
+            // Clear existing fare settings
+            DB::table('fare_settings')->truncate();
+            
+            // Insert updated fare settings
+            DB::table('fare_settings')->insert([
+                ['vehicle_type' => 'share', 'base_fare' => 50.00, 'per_km_price' => 15.00, 'per_minute_price' => 0.00, 'minimum_fare' => 50.00, 'created_at' => now(), 'updated_at' => now()],
+                ['vehicle_type' => 'comfort', 'base_fare' => 80.00, 'per_km_price' => 20.00, 'per_minute_price' => 0.00, 'minimum_fare' => 80.00, 'created_at' => now(), 'updated_at' => now()],
+                ['vehicle_type' => 'women', 'base_fare' => 100.00, 'per_km_price' => 25.00, 'per_minute_price' => 0.00, 'minimum_fare' => 100.00, 'created_at' => now(), 'updated_at' => now()],
+                ['vehicle_type' => 'wav', 'base_fare' => 120.00, 'per_km_price' => 30.00, 'per_minute_price' => 0.00, 'minimum_fare' => 120.00, 'created_at' => now(), 'updated_at' => now()],
+                ['vehicle_type' => 'black', 'base_fare' => 140.00, 'per_km_price' => 35.00, 'per_minute_price' => 0.00, 'minimum_fare' => 140.00, 'created_at' => now(), 'updated_at' => now()]
+            ]);
+        }
+        
+        // For vehicles table, add constraint if not exists
+        if (Schema::hasTable('vehicles')) {
+            // Add a new temporary column with the enum type
+            DB::statement("ALTER TABLE vehicles ADD COLUMN type_new vehicle_type_enum");
+
+            // Update the new column with converted values
+            DB::statement("UPDATE vehicles 
+                SET type_new = 
+                    CASE 
+                        WHEN type::text = 'share' THEN 'share'::vehicle_type_enum
+                        WHEN type::text = 'comfort' THEN 'comfort'::vehicle_type_enum
+                        WHEN type::text = 'women' THEN 'women'::vehicle_type_enum
+                        WHEN type::text = 'wav' THEN 'wav'::vehicle_type_enum
+                        WHEN type::text = 'black' THEN 'black'::vehicle_type_enum
+                        ELSE 'share'::vehicle_type_enum
+                    END");
+
+            // Drop the old column
+            DB::statement("ALTER TABLE vehicles DROP COLUMN type");
+
+            // Rename the new column
+            DB::statement("ALTER TABLE vehicles RENAME COLUMN type_new TO type");
+            
+            // Try to add constraint, but it might already exist
+            try {
+                DB::statement("ALTER TABLE vehicles ADD CONSTRAINT check_vehicle_type CHECK (type IN ('share', 'comfort', 'women', 'wav', 'black'))");
+            } catch (\Exception $e) {
+                // Constraint might already exist, which is fine
+            }
+        }
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // Remove the constraint
+        try {
+            DB::statement("ALTER TABLE vehicles DROP CONSTRAINT check_vehicle_type");
+        } catch (\Exception $e) {
+            // Constraint might not exist
+        }
+
+        // Revert the column type to text
+        if (Schema::hasTable('vehicles')) {
+            DB::statement("ALTER TABLE vehicles ALTER COLUMN type TYPE text");
+        }
+
+        // Drop the enum type
+        try {
+            DB::statement("DROP TYPE vehicle_type_enum CASCADE");
+        } catch (\Exception $e) {
+            // Type might not exist
+        }
+    }
