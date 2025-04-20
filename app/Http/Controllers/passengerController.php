@@ -80,24 +80,45 @@ class PassengerController extends Controller
     /**
      * Show the active ride page
      */
-    public function activeRide()
-    {
-        $passenger = Passenger::where('user_id', Auth::id())->first();
-        
-        // Get active ride
-        $activeRide = Ride::with(['driver.user', 'driver.vehicle', 'driver.driverLocation'])
-            ->where('passenger_id', $passenger->id)
-            ->where('reservation_status', 'accepted')
-            ->where('ride_status', 'ongoing')
-            ->whereNull('dropoff_time')
-            ->first();
-            
-        if (!$activeRide) {
-            return redirect()->route('passenger.dashboard')->with('error', 'No active ride found.');
-        }
-        
-        return view('passenger.activeRide', compact('activeRide', 'passenger'));
+    /**
+ * Show the active ride page
+ */
+public function activeRide()
+{
+    $passenger = Passenger::where('user_id', Auth::id())->first();
+    
+    // Get active ride OR most recently completed rides (within the last hour)
+    // that haven't been rated by the passenger yet
+    $activeRide = Ride::with(['driver.user', 'driver.vehicle', 'driver.driverLocation'])
+        ->where('passenger_id', $passenger->id)
+        ->where(function($query) {
+            $query->where(function($q) {
+                // Currently active ride
+                $q->where('reservation_status', 'accepted')
+                  ->where('ride_status', 'ongoing')
+                  ->whereNull('dropoff_time');
+            })->orWhere(function($q) {
+                // Recently completed ride that needs rating
+                $q->where('ride_status', 'completed')
+                  ->whereNotNull('dropoff_time')
+                  ->where('dropoff_time', '>', now()->subHour())
+                  ->where('is_reviewed', false);
+            });
+        })
+        ->orderBy('dropoff_time', 'desc')
+        ->first();
+    
+    if (!$activeRide) {
+        return redirect()->route('passenger.dashboard')->with('info', 'No active ride found.');
     }
+    
+    // If the ride is completed but not rated, show the rating view
+    if ($activeRide->ride_status === 'completed' && !$activeRide->is_reviewed) {
+        return view('passenger.rateRide', compact('activeRide', 'passenger'));
+    }
+    
+    return view('passenger.activeRide', compact('activeRide', 'passenger'));
+}
     
     /**
      * Show the book ride page
