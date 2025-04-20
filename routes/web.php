@@ -109,6 +109,9 @@ Route::post('/driver/force-location-refresh', [DriverController::class, 'forceLo
   // Toggle women-only mode
   Route::post('/driver/toggle-women-only', [App\Http\Controllers\DriverController::class, 'toggleWomenOnlyMode'])
       ->name('driver.toggle.women.only');
+
+      Route::get('/driver/ride/{ride}/rate', [DriverController::class, 'rateRide'])->name('driver.rate.ride');
+Route::post('/driver/ride/{ride}/submit-rating', [DriverController::class, 'submitRating'])->name('driver.submit.rating');
 });
 
 
