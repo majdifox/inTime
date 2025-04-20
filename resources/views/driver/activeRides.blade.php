@@ -954,52 +954,59 @@
             
             // Complete ride
             function completeRide(rideId, latitude, longitude) {
-                fetch(`{{ url('driver/ride') }}/${rideId}/complete`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        latitude: latitude,
-                        longitude: longitude
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Format the fare information
-                        let fareInfo = '';
-                        if (data.fare) {
-                            fareInfo = `<div class="mt-4 bg-gray-50 p-3 rounded-md text-sm text-left">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>Base fare:</div>
-                                    <div class="text-right">MAD ${data.fare.base_fare.toFixed(2)}</div>
-                                    <div>Distance fare:</div>
-                                    <div class="text-right">MAD ${data.fare.distance_fare.toFixed(2)}</div>
-                                    ${data.fare.waiting_fee > 0 ? `<div>Waiting fee:</div><div class="text-right">MAD ${data.fare.waiting_fee.toFixed(2)}</div>` : ''}
-                                    ${data.fare.surge_multiplier > 1 ? `<div>Surge multiplier:</div><div class="text-right">${data.fare.surge_multiplier}x</div>` : ''}
-                                    <div class="font-bold border-t border-gray-200 pt-2 mt-1">Total fare:</div>
-                                    <div class="font-bold border-t border-gray-200 pt-2 mt-1 text-right">MAD ${data.fare.final_fare.toFixed(2)}</div>
-                                </div>
-                            </div>`;
-                        }
-                        
-                        showResponseModal(true, `Ride completed successfully! ${fareInfo}`);
-                        
-                        // Refresh the page after a delay
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 3000);
-                    } else {
-                        showResponseModal(false, data.message || 'Failed to complete ride.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error completing ride:', error);
-                    showResponseModal(false, 'An error occurred while processing your request.');
-                });
+    fetch(`{{ url('driver/ride') }}/${rideId}/complete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            latitude: latitude,
+            longitude: longitude
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Format the fare information
+            let fareInfo = '';
+            if (data.fare) {
+                fareInfo = `<div class="mt-4 bg-gray-50 p-3 rounded-md text-sm text-left">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>Base fare:</div>
+                        <div class="text-right">MAD ${data.fare.base_fare.toFixed(2)}</div>
+                        <div>Distance fare:</div>
+                        <div class="text-right">MAD ${data.fare.distance_fare.toFixed(2)}</div>
+                        ${data.fare.waiting_fee > 0 ? `<div>Waiting fee:</div><div class="text-right">MAD ${data.fare.waiting_fee.toFixed(2)}</div>` : ''}
+                        ${data.fare.surge_multiplier > 1 ? `<div>Surge multiplier:</div><div class="text-right">${data.fare.surge_multiplier}x</div>` : ''}
+                        <div class="font-bold border-t border-gray-200 pt-2 mt-1">Total fare:</div>
+                        <div class="font-bold border-t border-gray-200 pt-2 mt-1 text-right">MAD ${data.fare.final_fare.toFixed(2)}</div>
+                    </div>
+                </div>`;
             }
+            
+            showResponseModal(true, `Ride completed successfully! ${fareInfo}`);
+            
+            // If a redirect URL is provided, navigate to it after showing the modal
+            if (data.redirect) {
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 2000);
+            } else {
+                // Fallback to refreshing the page if no redirect is provided
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            }
+        } else {
+            showResponseModal(false, data.message || 'Failed to complete ride.');
+        }
+    })
+    .catch(error => {
+        console.error('Error completing ride:', error);
+        showResponseModal(false, 'An error occurred while processing your request.');
+    });
+}
             
             // Check for active rides with coordinates and add to map
             const activeRideElements = document.querySelectorAll('.navigation-btn');
