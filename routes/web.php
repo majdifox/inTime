@@ -185,6 +185,23 @@ Route::middleware(['auth', 'isadmin'])->prefix('admin')->group(function () {
 // Public driver profile routes (accessible to all users)
 Route::get('/driver/{id}/profile', [DriverProfileController::class, 'show'])->name('driver.profile');
 
+// Passenger Profile Routes
+Route::get('/profile/{id}', [App\Http\Controllers\PassengerProfileController::class, 'show'])
+    ->name('passenger.public.profile');
+    
+Route::middleware(['auth', 'ispassenger'])->group(function () {
+    Route::get('/profile', [App\Http\Controllers\PassengerProfileController::class, 'privateProfile'])
+        ->name('passenger.profile.private');
+    
+    Route::post('/profile/preferences', [App\Http\Controllers\PassengerProfileController::class, 'updatePreferences'])
+        ->name('passenger.profile.update.preferences');
+    
+    Route::post('/profile/location/add', [App\Http\Controllers\PassengerProfileController::class, 'addFavoriteLocation'])
+        ->name('passenger.profile.add.location');
+    
+    Route::post('/profile/location/remove', [App\Http\Controllers\PassengerProfileController::class, 'removeFavoriteLocation'])
+        ->name('passenger.profile.remove.location');
+});
 // Google authentication
 Route::get('/auth/google', [GoogleLoginController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleLoginController::class, 'handleGoogleCallback']);
