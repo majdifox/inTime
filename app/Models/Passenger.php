@@ -98,31 +98,31 @@ class Passenger extends Model
      * @param array $locationData The location data to save
      * @return bool Success status
      */
-    public function saveFavoriteLocation(array $locationData)
-    {
-        $preferences = $this->preferences ?: [];
+    // public function saveFavoriteLocation(array $locationData)
+    // {
+    //     $preferences = $this->preferences ?: [];
         
-        if (!isset($preferences['favorite_locations'])) {
-            $preferences['favorite_locations'] = [];
-        }
+    //     if (!isset($preferences['favorite_locations'])) {
+    //         $preferences['favorite_locations'] = [];
+    //     }
         
-        // Check if location with same type already exists (except 'other')
-        $locationExists = false;
-        foreach ($preferences['favorite_locations'] as $key => $location) {
-            if ($location['type'] === $locationData['type'] && $locationData['type'] !== 'other') {
-                $preferences['favorite_locations'][$key] = $locationData;
-                $locationExists = true;
-                break;
-            }
-        }
+    //     // Check if location with same type already exists (except 'other')
+    //     $locationExists = false;
+    //     foreach ($preferences['favorite_locations'] as $key => $location) {
+    //         if ($location['type'] === $locationData['type'] && $locationData['type'] !== 'other') {
+    //             $preferences['favorite_locations'][$key] = $locationData;
+    //             $locationExists = true;
+    //             break;
+    //         }
+    //     }
         
-        if (!$locationExists) {
-            $preferences['favorite_locations'][] = $locationData;
-        }
+    //     if (!$locationExists) {
+    //         $preferences['favorite_locations'][] = $locationData;
+    //     }
         
-        $this->preferences = $preferences;
-        return $this->save();
-    }
+    //     $this->preferences = $preferences;
+    //     return $this->save();
+    // }
     
     /**
      * Calculate the appropriate fare for a ride based on distance and vehicle type
@@ -178,4 +178,89 @@ class Passenger extends Model
     {
         return $this->user && $this->user->women_only_rides;
     }
+
+    /**
+ * Save a favorite location to passenger preferences
+ * 
+ * @param array $locationData The location data
+ * @return bool Success status
+ */
+public function saveFavoriteLocation(array $locationData): bool
+{
+    $preferences = $this->preferences ?? [];
+    
+    // Initialize favorite_locations array if it doesn't exist
+    if (!isset($preferences['favorite_locations'])) {
+        $preferences['favorite_locations'] = [];
+    }
+    
+    // Add a unique ID to the location
+    $locationData['id'] = uniqid('loc_');
+    
+    // Add location to favorites
+    $preferences['favorite_locations'][] = $locationData;
+    
+    // Save preferences
+    $this->preferences = $preferences;
+    
+    return $this->save();
 }
+
+/**
+ * Get a specific saved location by ID
+ * 
+ * @param string $locationId The location ID
+ * @return array|null The location data or null if not found
+ */
+public function getFavoriteLocation(string $locationId): ?array
+{
+    if (!$this->preferences || !isset($this->preferences['favorite_locations'])) {
+        return null;
+    }
+    
+    foreach ($this->preferences['favorite_locations'] as $location) {
+        if (isset($location['id']) && $location['id'] === $locationId) {
+            return $location;
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Get the latest ride for this passenger
+ * 
+ * @return \App\Models\Ride|null The latest ride or null
+ */
+public function getLatestRide()
+{
+    return $this->hasMany(Ride::class)->latest()->first();
+}
+
+/**
+ * Calculate the average rating for this passenger
+ * 
+ * @return float The average rating
+ */
+public function getAverageRating(): float
+{
+    // Get all reviews for this passenger
+    return Review::where('reviewed_id', $this->user_id)->avg('rating') ?? 0;
+}
+
+/**
+ * Get reviews for this passenger
+ * 
+ * @param int $limit Maximum number of reviews to return
+ * @return \Illuminate\Database\Eloquent\Collection Reviews
+ */
+public function getReviews(int $limit = 5)
+{
+    return Review::where('reviewed_id', $this->user_id)
+        ->with('reviewer.passenger', 'reviewer.driver', 'ride')
+        ->latest()
+        ->limit($limit)
+        ->get();
+}
+}
+
