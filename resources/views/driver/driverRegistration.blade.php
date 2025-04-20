@@ -146,11 +146,10 @@
                             <div class="mb-4">
                                 <label for="vehicle_type" class="block text-sm font-medium text-gray-700 mb-1">Vehicle Type</label>
                                 <select id="vehicle_type" name="type" class="block w-full py-3 px-3 border border-gray-300 rounded-md focus:ring-black focus:border-black @error('type') border-red-500 @enderror">
-                                    <option value="share">Share</option>
+                                    <option value="basic">Basic</option>
                                     <option value="comfort">Comfort</option>
-                                    <option value="Women">Women</option>
-                                    <option value="Black">Black (Premium)</option>
-                                    <option value="WAV">WAV (Wheelchair Accessible)</option>
+                                    <option value="black">Black (Premium)</option>
+                                    <option value="wav">WAV (Wheelchair Accessible)</option>
                                 </select>
                                 @error('type')
                                     <div class="text-red-500 mt-1 text-sm">{{ $message }}</div>

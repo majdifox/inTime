@@ -40,9 +40,8 @@ class Vehicle extends Model
      * @var array
      */
     const VEHICLE_TYPES = [
-        'share' => 'Share',
+        'basic' => 'Basic',
         'comfort' => 'Comfort',
-        'women' => 'Women',
         'wav' => 'WAV',
         'black' => 'Black'
     ];
@@ -77,14 +76,6 @@ class Vehicle extends Model
     public function getFeatureListAttribute()
     {
         return $this->features()->pluck('feature')->toArray();
-    }
-    
-    /**
-     * Check if this is a women-only vehicle
-     */
-    public function isWomenOnly()
-    {
-        return $this->type === 'women';
     }
     
     /**
@@ -137,10 +128,14 @@ class Vehicle extends Model
     }
     
     /**
-     * Scope query to include only women vehicles
+     * Check if this vehicle is available for women-only rides
+     * This depends on the driver's settings, not the vehicle type
      */
-    public function scopeWomenOnly($query)
+    public function isAvailableForWomenOnlyRides()
     {
-        return $query->where('type', 'women');
+        return $this->driver && 
+               $this->driver->women_only_driver && 
+               $this->driver->user && 
+               $this->driver->user->gender === 'female';
     }
 }

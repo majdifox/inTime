@@ -88,7 +88,16 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                         <circle cx="10" cy="10" r="8" stroke-width="1" />
                                     </svg>
+                                    
                                 </div>
+
+                                 <!-- Add the locate me button -->
+                                <div class="absolute inset-y-0 right-0 flex items-center">
+                                    <button type="button" id="locate-me-btn" class="h-full px-2 text-gray-500 hover:text-blue-600" title="Use my current location">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
                                 
                                 <!-- Saved Locations Dropdown -->
                                 @if(isset($savedLocations) && count($savedLocations) > 0)
@@ -164,6 +173,39 @@
                         </button>
                     </div>
                 </div>
+                <!-- Vehicle Features Section -->
+<div class="mb-4">
+    <h4 class="text-sm font-medium text-gray-700 mb-2">Vehicle Features Needed:</h4>
+    
+    <div class="grid grid-cols-2 gap-2">
+        <div class="flex items-start">
+            <div class="flex items-center h-5">
+                <input id="feature_ac" name="ride_preferences[vehicle_features][]" type="checkbox" value="ac" 
+                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    {{ isset($passenger->ride_preferences['vehicle_features']) && in_array('ac', $passenger->ride_preferences['vehicle_features']) ? 'checked' : '' }}>
+            </div>
+            <div class="ml-3 text-sm">
+                <label for="feature_ac" class="font-medium text-gray-700">Air Conditioning</label>
+            </div>
+        </div>
+        
+        <!-- Add the other feature options here, similar to above -->
+        
+        <!-- Example for WiFi -->
+        <div class="flex items-start">
+            <div class="flex items-center h-5">
+                <input id="feature_wifi" name="ride_preferences[vehicle_features][]" type="checkbox" value="wifi" 
+                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    {{ isset($passenger->ride_preferences['vehicle_features']) && in_array('wifi', $passenger->ride_preferences['vehicle_features']) ? 'checked' : '' }}>
+            </div>
+            <div class="ml-3 text-sm">
+                <label for="feature_wifi" class="font-medium text-gray-700">WiFi</label>
+            </div>
+        </div>
+        
+        <!-- Continue with other options -->
+    </div>
+</div>
                 
                 <!-- Save Location Card (Hidden by default) -->
                 <div id="save-location-card" class="bg-white rounded-lg shadow-md p-6 hidden">
@@ -383,21 +425,30 @@
                             
                             <!-- Women-Only Preference (visible only to female passengers) -->
                             @if(Auth::user()->gender === 'female')
-                                <div class="mb-4">
-                                    <div class="flex items-start">
-                                        <div class="flex items-center h-5">
-                                            <input id="women_only_rides" name="ride_preferences[women_only_rides]" type="checkbox" 
-                                                class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                                                {{ isset($passenger->ride_preferences['women_only_rides']) && $passenger->ride_preferences['women_only_rides'] ? 'checked' : '' }}
-                                                {{ Auth::user()->women_only_rides ? 'checked' : '' }}>
-                                        </div>
-                                        <div class="ml-3 text-sm">
-                                            <label for="women_only_rides" class="font-medium text-gray-700">Women-Only Rides</label>
-                                            <p class="text-gray-500">When enabled, you'll be matched only with female drivers who have enabled women-only driver mode.</p>
-                                        </div>
+                            <div class="mb-4">
+                                <div class="flex items-start">
+                                    <div class="flex items-center">
+                                        <button type="button" id="women-only-toggle" class="relative inline-flex h-6 w-11 items-center rounded-full {{ Auth::user()->women_only_rides ? 'bg-pink-500' : 'bg-gray-300' }} transition-colors duration-300">
+                                            <span id="women-only-toggle-dot" class="inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 {{ Auth::user()->women_only_rides ? 'translate-x-5' : 'translate-x-1' }}"></span>
+                                        </button>
+                                        <span id="women-only-text" class="ml-2 font-medium">Women-Only Rides {{ Auth::user()->women_only_rides ? 'On' : 'Off' }}</span>
                                     </div>
+                                    
+                                    @if(Auth::user()->women_only_rides)
+                                        <div class="ml-auto px-2 py-1 rounded bg-pink-100 text-pink-800 text-xs">
+                                            Active
+                                        </div>
+                                    @endif
                                 </div>
-                            @endif
+                                <p class="text-sm text-gray-500 mt-1">When enabled, you'll be matched only with female drivers for added safety and comfort.</p>
+                                
+                                <!-- Hidden checkbox that will be submitted with the form -->
+                                <input id="women_only_rides" name="ride_preferences[women_only_rides]" type="checkbox" 
+                                    class="hidden"
+                                    {{ isset($passenger->ride_preferences['women_only_rides']) && $passenger->ride_preferences['women_only_rides'] ? 'checked' : '' }}
+                                    {{ Auth::user()->women_only_rides ? 'checked' : '' }}>
+                            </div>
+                        @endif
                             
                             <!-- Other ride preferences can go here -->
                             <div class="mb-4">
@@ -469,14 +520,21 @@
             }
             
             const selectDriverBtn = document.getElementById('select-driver-btn');
-            if (selectDriverBtn) {
-                selectDriverBtn.addEventListener('click', function() {
-                    // Redirect to driver selection page
-                    if (selectedVehicleType && rideId) {
-                        window.location.href = `{{ url('passenger/available-drivers') }}?vehicle_type=${selectedVehicleType}&ride_id=${rideId}`;
-                    }
-                });
-            }
+if (selectDriverBtn) {
+    selectDriverBtn.addEventListener('click', function() {
+        const vehicleType = document.getElementById('confirm-vehicle-type-input').value;
+        const pickupLat = document.getElementById('pickup_latitude').value;
+        const pickupLng = document.getElementById('pickup_longitude').value;
+        
+        if (!vehicleType || !pickupLat || !pickupLng) {
+            alert('Please complete your ride selection first');
+            return;
+        }
+        
+        // Redirect to the driver selection page with query parameters
+        window.location.href = `/passenger/select-driver?vehicle_type=${vehicleType}&pickup_latitude=${pickupLat}&pickup_longitude=${pickupLng}`;
+    });
+}
             
             // Saved locations dropdowns
             const savedPickupBtn = document.getElementById('saved-pickup-btn');
@@ -737,45 +795,48 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    // Reset button state
-                    document.getElementById('search-rides-btn').disabled = false;
-                    document.getElementById('search-rides-btn').innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                        </svg>
-                        Find Rides
-                    `;
-                    
-                    // Store results
-                    searchResults = data;
-                    
-                    // Display results
-                    displayRideOptions(data.ride_options);
-                    
-                    // Update route info if not already shown
-                    if (document.getElementById('route-info-card').classList.contains('hidden')) {
-                        document.getElementById('distance-value').textContent = data.distance.km + ' km';
-                        document.getElementById('duration-value').textContent = data.duration.text;
-                        document.getElementById('route-pickup-location').textContent = pickupLocation;
-                        document.getElementById('route-dropoff-location').textContent = dropoffLocation;
-                        
-                        document.getElementById('route-info-card').classList.remove('hidden');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error calculating ride options:', error);
-                    
-                    // Reset button state
-                    document.getElementById('search-rides-btn').disabled = false;
-                    document.getElementById('search-rides-btn').innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                        </svg>
-                        Find Rides
-                    `;
-                    
-                    alert('Error calculating ride options. Please try again.');
-                });
+    // Reset button state
+    document.getElementById('search-rides-btn').disabled = false;
+    document.getElementById('search-rides-btn').innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+        </svg>
+        Find Rides
+    `;
+    
+    // Store results
+    searchResults = data;
+    
+    // Display results
+    displayRideOptions(data.ride_options);
+    
+    // Update route info if not already shown
+    if (document.getElementById('route-info-card').classList.contains('hidden')) {
+        document.getElementById('distance-value').textContent = data.distance.km + ' km';
+        document.getElementById('duration-value').textContent = data.duration.text;
+        document.getElementById('route-pickup-location').textContent = pickupLocation;
+        document.getElementById('route-dropoff-location').textContent = dropoffLocation;
+        
+        document.getElementById('route-info-card').classList.remove('hidden');
+    }
+    
+    // Show message about driver selection
+    setTimeout(() => {
+        if (searchResults && Object.keys(searchResults.ride_options).length > 0) {
+            const container = document.getElementById('ride-options-container');
+            if (container && !document.getElementById('driver-availability-message')) {
+                const message = document.createElement('div');
+                message.id = 'driver-availability-message';
+                message.className = 'mt-4 bg-blue-50 p-3 rounded-md text-sm text-blue-700';
+                message.innerHTML = `
+                    <p class="font-medium">Select a vehicle type to view available drivers in your area</p>
+                    <p>You'll be able to choose your preferred driver based on ratings, distance, and more.</p>
+                `;
+                container.appendChild(message);
+            }
+        }
+    }, 500);
+})
             }
             
             // Display available ride options
@@ -877,24 +938,23 @@
                             </div>` : ''}
                     `;
                     
-                    // Add click event to select this vehicle type
                     card.addEventListener('click', function() {
-                        // Set selected type
-                        document.getElementById('selected_vehicle_type').value = option.vehicle_type;
-                        
-                        // Reset all cards
-                        document.querySelectorAll('.vehicle-type-card').forEach(el => {
-                            el.classList.remove('border-blue-500', 'bg-blue-50');
-                            el.querySelector('.vehicle-check').classList.add('hidden');
-                        });
-                        
-                        // Highlight this card
-                        this.classList.add('border-blue-500', 'bg-blue-50');
-                        this.querySelector('.vehicle-check').classList.remove('hidden');
-                        
-                        // Now trigger ride option selection
-                        selectRideOption(option);
-                    });
+    // Set selected type
+    document.getElementById('selected_vehicle_type').value = option.vehicle_type;
+    
+    // Reset all cards
+    document.querySelectorAll('.vehicle-type-card').forEach(el => {
+        el.classList.remove('border-blue-500', 'bg-blue-50');
+        el.querySelector('.vehicle-check').classList.add('hidden');
+    });
+    
+    // Highlight this card
+    this.classList.add('border-blue-500', 'bg-blue-50');
+    this.querySelector('.vehicle-check').classList.remove('hidden');
+    
+    // Now trigger ride option selection
+    selectRideOption(option);
+});
                     
                     vehicleTypesGrid.appendChild(card);
                 });
@@ -909,25 +969,26 @@
                 }
             }
             
-            // Select a ride option and show confirmation modal
-            function selectRideOption(option) {
-                selectedVehicleType = option.vehicle_type;
-                
-                // Update confirmation modal with selected ride details
-                document.getElementById('confirm-vehicle-type').textContent = option.display_name;
-                document.getElementById('confirm-vehicle-details').textContent = `${option.wait_time_minutes} min wait · ${option.distance_km} km`;
-                document.getElementById('confirm-fare').textContent = `MAD ${option.total_fare.toFixed(2)}`;
-                document.getElementById('confirm-surge').textContent = option.is_surge_active ? `Surge pricing x${option.surge_multiplier}` : '';
-                document.getElementById('confirm-pickup-location').textContent = document.getElementById('pickup_location').value;
-                document.getElementById('confirm-dropoff-location').textContent = document.getElementById('dropoff_location').value;
-                document.getElementById('confirm-eta').textContent = `${option.wait_time_minutes} minutes`;
-                
-                // Set vehicle type for form submission
-                document.getElementById('confirm-vehicle-type-input').value = option.vehicle_type;
-                
-                // Show confirmation modal
-                document.getElementById('ride-confirmation-modal').classList.remove('hidden');
-            }
+// Select a ride option and redirect to driver selection
+function selectRideOption(option) {
+    selectedVehicleType = option.vehicle_type;
+    
+    // Update hidden input
+    document.getElementById('confirm-vehicle-type-input').value = option.vehicle_type;
+    
+    // Instead of showing the confirmation modal directly,
+    // redirect to the driver selection page
+    const pickupLat = document.getElementById('pickup_latitude').value;
+    const pickupLng = document.getElementById('pickup_longitude').value;
+    
+    if (!pickupLat || !pickupLng || !selectedVehicleType) {
+        alert('Please complete your ride selection first');
+        return;
+    }
+    
+    // Redirect to the driver selection page with query parameters
+    window.location.href = `/passenger/select-driver?vehicle_type=${selectedVehicleType}&pickup_latitude=${pickupLat}&pickup_longitude=${pickupLng}`;
+}
             
             // Hide ride confirmation modal
             function hideRideConfirmationModal() {
@@ -987,43 +1048,132 @@
  */
 function checkAvailableDrivers(vehicleType) {
     // Only proceed if we have coordinates
+    const pickupLat = document.getElementById('pickup_latitude').value;
+    const pickupLng = document.getElementById('pickup_longitude').value;
+    
     if (!pickupLat || !pickupLng) {
         return;
     }
     
     // Show loading state
-    $('#available-drivers-container').html('<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Searching for drivers...</div>');
+    const container = document.getElementById('available-drivers-container');
+    if (container) {
+        container.innerHTML = '<div class="text-center py-3">Searching for drivers...</div>';
+    }
     
-    // Make AJAX request to get available drivers
-    $.ajax({
-        url: '{{ route("passenger.available.drivers") }}',
+    // Make fetch request to get available drivers
+    fetch(`{{ route('passenger.available.drivers') }}?vehicle_type=${vehicleType}&pickup_latitude=${pickupLat}&pickup_longitude=${pickupLng}`, {
         method: 'GET',
-        data: {
-            vehicle_type: vehicleType,
-            pickup_latitude: pickupLat,
-            pickup_longitude: pickupLng
-        },
-        success: function(response) {
-            if (response.success && response.drivers.length > 0) {
-                // We have drivers, display them
-                renderAvailableDrivers(response.drivers, vehicleType);
-            } else {
-                // No drivers available
-                $('#available-drivers-container').html(
-                    '<div class="alert alert-warning">' +
-                    '<h5><i class="fas fa-exclamation-triangle mr-2"></i> No drivers available</h5>' +
-                    '<p class="mb-0">There are no available drivers in your area right now. Please try again later or choose a different vehicle type.</p>' +
-                    '</div>'
-                );
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(response => {
+        if (response.success && response.drivers && response.drivers.length > 0) {
+            // We have drivers, display them
+            renderAvailableDrivers(response.drivers, vehicleType);
+        } else {
+            // No drivers available
+            if (container) {
+                container.innerHTML = `
+                    <div class="bg-yellow-100 p-4 rounded-md">
+                        <h5 class="font-medium">No drivers available</h5>
+                        <p class="mb-0">There are no available drivers in your area right now. Please try again later or choose a different vehicle type.</p>
+                    </div>
+                `;
             }
-        },
-        error: function() {
-            $('#available-drivers-container').html(
-                '<div class="alert alert-danger">' +
-                '<h5><i class="fas fa-times-circle mr-2"></i> Error</h5>' +
-                '<p class="mb-0">There was an error checking for available drivers. Please try again.</p>' +
-                '</div>'
+        }
+    })
+    .catch(error => {
+        if (container) {
+            container.innerHTML = `
+                <div class="bg-red-100 p-4 rounded-md">
+                    <h5 class="font-medium">Error</h5>
+                    <p class="mb-0">There was an error checking for available drivers. Please try again.</p>
+                </div>
+            `;
+        }
+    });
+}
+
+// Locate Me button functionality
+const locateMeBtn = document.getElementById('locate-me-btn');
+if (locateMeBtn) {
+    locateMeBtn.addEventListener('click', function() {
+        if (navigator.geolocation) {
+            // Show loading indicator
+            locateMeBtn.innerHTML = `
+                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            `;
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    // Get coordinates
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    // Update hidden inputs
+                    document.getElementById('pickup_latitude').value = lat;
+                    document.getElementById('pickup_longitude').value = lng;
+                    
+                    // Reverse geocode to get address
+                    reverseGeocode(lat, lng, 'pickup');
+                    
+                    // Update map
+                    if (pickupMarker) {
+                        map.removeLayer(pickupMarker);
+                    }
+                    
+                    pickupMarker = L.marker([lat, lng]).addTo(map);
+                    pickupMarker.bindPopup('Your Current Location').openPopup();
+                    
+                    map.setView([lat, lng], 15);
+                    
+                    // Reset button
+                    locateMeBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </svg>
+                    `;
+                    
+                    // If both markers are set, calculate route
+                    if (pickupMarker && dropoffMarker) {
+                        calculateRoute();
+                    }
+                },
+                function(error) {
+                    // Reset button
+                    locateMeBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </svg>
+                    `;
+                    
+                    // Show error message
+                    let message = 'Could not get your location.';
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = 'Location access denied. Please allow location access in your browser settings.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = 'Location information is unavailable.';
+                            break;
+                        case error.TIMEOUT:
+                            message = 'Location request timed out.';
+                            break;
+                    }
+                    
+                    alert(message);
+                }
             );
+        } else {
+            alert('Geolocation is not supported by your browser.');
         }
     });
 }
@@ -1179,6 +1329,276 @@ document.getElementById('select-driver-btn').addEventListener('click', function(
     
     // Redirect to the driver selection page with query parameters
     window.location.href = `{{ route('passenger.select.driver') }}?vehicle_type=${vehicleType}&pickup_latitude=${pickupLat}&pickup_longitude=${pickupLng}`;
+});
+// Add this to your existing document.addEventListener('DOMContentLoaded', function() {...}) section
+// This will restore locations from URL parameters
+function getUrlParameter(name) {
+    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+    var results = regex.exec(location.search);
+    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+}
+
+// Check for location parameters in URL
+const pickupLocation = getUrlParameter('pickup_location');
+const pickupLatitude = getUrlParameter('pickup_latitude');
+const pickupLongitude = getUrlParameter('pickup_longitude');
+const dropoffLocation = getUrlParameter('dropoff_location');
+const dropoffLatitude = getUrlParameter('dropoff_latitude');
+const dropoffLongitude = getUrlParameter('dropoff_longitude');
+const vehicleType = getUrlParameter('vehicle_type');
+
+// If we have location data in the URL, restore it
+if (pickupLocation && pickupLatitude && pickupLongitude && 
+    dropoffLocation && dropoffLatitude && dropoffLongitude) {
+    
+    // Restore pickup location
+    document.getElementById('pickup_location').value = pickupLocation;
+    document.getElementById('pickup_latitude').value = pickupLatitude;
+    document.getElementById('pickup_longitude').value = pickupLongitude;
+    
+    // Restore dropoff location
+    document.getElementById('dropoff_location').value = dropoffLocation;
+    document.getElementById('dropoff_latitude').value = dropoffLatitude;
+    document.getElementById('dropoff_longitude').value = dropoffLongitude;
+    
+    // Wait a moment for the map to initialize
+    setTimeout(function() {
+        // Add pickup marker
+        if (map) {
+            if (pickupMarker) {
+                map.removeLayer(pickupMarker);
+            }
+            
+            pickupMarker = L.marker([pickupLatitude, pickupLongitude]).addTo(map);
+            pickupMarker.bindPopup('Pickup: ' + pickupLocation);
+            
+            // Add dropoff marker
+            if (dropoffMarker) {
+                map.removeLayer(dropoffMarker);
+            }
+            
+            dropoffMarker = L.marker([dropoffLatitude, dropoffLongitude]).addTo(map);
+            dropoffMarker.bindPopup('Destination: ' + dropoffLocation);
+            
+            // If both markers are set, calculate route
+            if (pickupMarker && dropoffMarker) {
+                calculateRoute();
+                
+                // Center map to show both markers
+                const bounds = L.latLngBounds([
+                    [pickupLatitude, pickupLongitude],
+                    [dropoffLatitude, dropoffLongitude]
+                ]);
+                map.fitBounds(bounds, { padding: [50, 50] });
+                
+                // Automatically search for rides again
+                searchRides();
+            }
+        }
+    }, 500); // 500ms delay to ensure map is fully loaded
+    
+    // Remove the URL parameters without refreshing the page
+    if (history.pushState) {
+        var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.pushState({path:newurl},'',newurl);
+    }
+}
+// Check if we have URL parameters for ride details
+const urlParams = new URLSearchParams(window.location.search);
+const fromDriverSelection = urlParams.get('from_driver_selection');
+
+if (fromDriverSelection === 'true') {
+    // Get the location values from URL parameters
+    const pickupLocation = urlParams.get('pickup_location');
+    const pickupLatitude = urlParams.get('pickup_latitude');
+    const pickupLongitude = urlParams.get('pickup_longitude');
+    const dropoffLocation = urlParams.get('dropoff_location');
+    const dropoffLatitude = urlParams.get('dropoff_latitude');
+    const dropoffLongitude = urlParams.get('dropoff_longitude');
+    const vehicleType = urlParams.get('vehicle_type');
+    
+    console.log('Restoring data from URL parameters');
+    console.log('Pickup:', pickupLocation, pickupLatitude, pickupLongitude);
+    console.log('Dropoff:', dropoffLocation, dropoffLatitude, dropoffLongitude);
+    
+    if (pickupLocation && pickupLatitude && pickupLongitude && 
+        dropoffLocation && dropoffLatitude && dropoffLongitude) {
+        
+        // Save parameters so they're available after map initialization
+        window.rideDataToRestore = {
+            pickupLocation,
+            pickupLatitude, 
+            pickupLongitude,
+            dropoffLocation,
+            dropoffLatitude,
+            dropoffLongitude,
+            vehicleType
+        };
+        
+        // Clear URL parameters without reloading
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
+// Restore saved ride data after map and controls are initialized
+setTimeout(() => {
+    if (window.rideDataToRestore) {
+        console.log('Restoring ride data after map init');
+        const data = window.rideDataToRestore;
+        
+        // Set form values
+        document.getElementById('pickup_location').value = data.pickupLocation;
+        document.getElementById('pickup_latitude').value = data.pickupLatitude;
+        document.getElementById('pickup_longitude').value = data.pickupLongitude;
+        document.getElementById('dropoff_location').value = data.dropoffLocation;
+        document.getElementById('dropoff_latitude').value = data.dropoffLatitude;
+        document.getElementById('dropoff_longitude').value = data.dropoffLongitude;
+        
+        // Add pickup marker
+        if (map) {
+            if (pickupMarker) {
+                map.removeLayer(pickupMarker);
+            }
+            
+            pickupMarker = L.marker([data.pickupLatitude, data.pickupLongitude]).addTo(map);
+            pickupMarker.bindPopup('Pickup: ' + data.pickupLocation);
+            
+            // Add dropoff marker
+            if (dropoffMarker) {
+                map.removeLayer(dropoffMarker);
+            }
+            
+            dropoffMarker = L.marker([data.dropoffLatitude, data.dropoffLongitude]).addTo(map);
+            dropoffMarker.bindPopup('Destination: ' + data.dropoffLocation);
+            
+            // Calculate route
+            calculateRoute();
+            
+            // Center map to show both markers
+            const bounds = L.latLngBounds([
+                [data.pickupLatitude, data.pickupLongitude],
+                [data.dropoffLatitude, data.dropoffLongitude]
+            ]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+            
+            // Automatically search for rides
+            searchRides();
+        }
+    }
+}, 1000); // Give the map 1 second to fully initialize
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Find the women-only toggle elements
+    const toggleButton = document.getElementById('women-only-toggle');
+    const toggleDot = document.getElementById('women-only-toggle-dot');
+    const toggleText = document.getElementById('women-only-text');
+    const checkboxInput = document.getElementById('women_only_rides');
+    
+    if (!toggleButton || !checkboxInput) return;
+    
+    // Get CSRF token for AJAX requests
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // Initial state
+    let isEnabled = checkboxInput.checked;
+    
+    // Add event listener to toggle button
+    toggleButton.addEventListener('click', function() {
+        // Update UI state
+        isEnabled = !isEnabled;
+        updateToggleUI();
+        
+        // Update hidden checkbox value
+        checkboxInput.checked = isEnabled;
+        
+        // Save preference via AJAX
+        savePreference(isEnabled);
+    });
+    
+    // Function to update toggle UI
+    function updateToggleUI() {
+        if (isEnabled) {
+            toggleButton.classList.remove('bg-gray-300');
+            toggleButton.classList.add('bg-pink-500');
+            toggleDot.classList.remove('translate-x-1');
+            toggleDot.classList.add('translate-x-5');
+            toggleText.textContent = 'Women-Only Rides On';
+            
+            // Add active badge if it doesn't exist
+            if (!toggleButton.parentNode.parentNode.querySelector('.bg-pink-100')) {
+                const badge = document.createElement('div');
+                badge.className = 'ml-auto px-2 py-1 rounded bg-pink-100 text-pink-800 text-xs';
+                badge.textContent = 'Active';
+                toggleButton.parentNode.parentNode.appendChild(badge);
+            }
+        } else {
+            toggleButton.classList.remove('bg-pink-500');
+            toggleButton.classList.add('bg-gray-300');
+            toggleDot.classList.remove('translate-x-5');
+            toggleDot.classList.add('translate-x-1');
+            toggleText.textContent = 'Women-Only Rides Off';
+            
+            // Remove active badge if it exists
+            const badge = toggleButton.parentNode.parentNode.querySelector('.bg-pink-100');
+            if (badge) {
+                badge.remove();
+            }
+        }
+    }
+    
+    // Function to save preference
+    function savePreference(enabled) {
+        fetch('/passenger/preferences/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({
+                preferences: {
+                    women_only_rides: enabled
+                }
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Failed to update preference:', data.message);
+                // Revert toggle if error
+                isEnabled = !isEnabled;
+                updateToggleUI();
+                checkboxInput.checked = isEnabled;
+                
+                // Show error message
+                showNotification('Error updating preference', 'error');
+            } else {
+                showNotification('Preference updated successfully', 'success');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Revert toggle if error
+            isEnabled = !isEnabled;
+            updateToggleUI();
+            checkboxInput.checked = isEnabled;
+            
+            // Show error message
+            showNotification('Network error. Please try again.', 'error');
+        });
+    }
+    
+    // Function to show notification
+    function showNotification(message, type = 'success') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} z-50`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
 });
     </script>
 </body>

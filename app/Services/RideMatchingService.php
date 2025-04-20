@@ -23,106 +23,97 @@ class RideMatchingService
      * @return array Array of potential drivers
      */
     public function findDriversForRide(Ride $ride, int $maxDrivers = 5): array
-    {
-        // Get vehicle type from the ride
-        $vehicleType = $ride->vehicle_type ?? 'share';
+{
+    // Get vehicle type from the ride
+    $vehicleType = $ride->vehicle_type ?? 'basic';
+    
+    // Get passenger details
+    $passenger = $ride->passenger;
+    $passengerUser = $passenger->user;
+    
+    // Calculate the distance formula as a string for reuse
+    $distanceFormula = "
+        (6371 * acos(
+            cos(radians({$ride->pickup_latitude})) * 
+            cos(radians(driver_locations.latitude)) * 
+            cos(radians(driver_locations.longitude) - radians({$ride->pickup_longitude})) + 
+            sin(radians({$ride->pickup_latitude})) * 
+            sin(radians(driver_locations.latitude))
+        ))";
+    
+    // Start building the query for available drivers
+    $query = DB::table('drivers')
+        ->join('users', 'drivers.user_id', '=', 'users.id')
+        ->join('vehicles', 'drivers.id', '=', 'vehicles.driver_id')
+        ->join('driver_locations', 'drivers.id', '=', 'driver_locations.driver_id')
+        ->select(
+            'drivers.id', 
+            'users.id as user_id',
+            'users.name', 
+            'users.profile_picture',
+            'users.gender',
+            'drivers.rating',
+            'drivers.completed_rides',
+            'drivers.women_only_driver',
+            'vehicles.type as vehicle_type',
+            'vehicles.make',
+            'vehicles.model',
+            'vehicles.color',
+            'vehicles.plate_number',
+            'vehicles.id as vehicle_id',
+            'driver_locations.latitude',
+            'driver_locations.longitude',
+            'driver_locations.last_updated',
+            DB::raw("$distanceFormula AS distance_km")
+        )
+        ->where('users.is_online', true)
+        ->where('users.account_status', 'activated')
+        ->where('drivers.is_verified', true)
+        ->where('vehicles.is_active', true)
+        // Only select drivers who have updated their location in the last 5 minutes
+        ->where('driver_locations.last_updated', '>', now()->subMinutes(5));
         
-        // Get passenger details
-        $passenger = $ride->passenger;
-        $passengerUser = $passenger->user;
-        
-        // Calculate the distance formula as a string for reuse
-        $distanceFormula = "
-            (6371 * acos(
-                cos(radians({$ride->pickup_latitude})) * 
-                cos(radians(driver_locations.latitude)) * 
-                cos(radians(driver_locations.longitude) - radians({$ride->pickup_longitude})) + 
-                sin(radians({$ride->pickup_latitude})) * 
-                sin(radians(driver_locations.latitude))
-            ))";
-        
-        // Start building the query for available drivers
-        $query = DB::table('drivers')
-            ->join('users', 'drivers.user_id', '=', 'users.id')
-            ->join('vehicles', 'drivers.id', '=', 'vehicles.driver_id')
-            ->join('driver_locations', 'drivers.id', '=', 'driver_locations.driver_id')
-            ->select(
-                'drivers.id', 
-                'users.id as user_id',
-                'users.name', 
-                'users.profile_picture',
-                'users.gender',
-                'drivers.rating',
-                'drivers.completed_rides',
-                'drivers.women_only_driver',
-                'vehicles.type as vehicle_type',
-                'vehicles.make',
-                'vehicles.model',
-                'vehicles.color',
-                'vehicles.plate_number',
-                'vehicles.id as vehicle_id',
-                'driver_locations.latitude',
-                'driver_locations.longitude',
-                'driver_locations.last_updated',
-                DB::raw("$distanceFormula AS distance_km")
-            )
-            ->where('users.is_online', true)
-            ->where('users.account_status', 'activated')
-            ->where('drivers.is_verified', true)
-            ->where('vehicles.is_active', true)
-            // Only select drivers who have updated their location in the last 5 minutes
-            ->where('driver_locations.last_updated', '>', now()->subMinutes(5));
+    // Filter by vehicle type
+    $query->where('vehicles.type', $vehicleType);
+    
+    // Gender filtering for women-only service
+    if ($passengerUser->gender === 'female' && $passengerUser->women_only_rides) {
+        // Only female drivers with women_only_driver flag can serve women-only passengers
+        $query->where('drivers.women_only_driver', true)
+              ->where('users.gender', 'female');
+    }
+    
+    // Filter out women-only drivers if they only want female passengers
+    // and passenger is not female
+    if ($passengerUser->gender !== 'female') {
+        $query->where(function($q) {
+            $q->where('drivers.women_only_driver', false)
+              ->orWhere('users.gender', '!=', 'female');
+        });
+    }
+    
+    // ADDED: Filter by vehicle features if passenger has preferences
+    if (!empty($passenger->ride_preferences['vehicle_features'])) {
+        // For each required feature, join with vehicle_features table and add a where condition
+        foreach ($passenger->ride_preferences['vehicle_features'] as $index => $feature) {
+            $tableAlias = "vf{$index}";
             
-        // Filter by vehicle type
-        $query->where('vehicles.type', $vehicleType);
-        
-        // Gender filtering for women-only service
-        if ($vehicleType === 'women') {
-            // Only female passengers can request 'women' type
-            if ($passengerUser->gender !== 'female') {
-                return []; // No drivers for non-female passengers requesting women type
-            }
-            
-            // Only women drivers with women_only_driver flag can serve women rides
-            $query->where('drivers.women_only_driver', true)
-                  ->where('users.gender', 'female');
-        }
-        
-        // If passenger is female and has women_only_rides preference
-        if ($passengerUser->gender === 'female' && $passengerUser->women_only_rides) {
-            // Filter to only include female drivers with women_only_driver flag
-            $query->where('users.gender', 'female')
-                  ->where('drivers.women_only_driver', true);
-        }
-        
-        // Filter out women-only drivers if they only want female passengers
-        // and passenger is not female
-        if ($passengerUser->gender !== 'female') {
-            $query->where(function($q) {
-                $q->where('drivers.women_only_driver', false)
-                  ->orWhere('users.gender', '!=', 'female');
+            $query->join("vehicle_features as {$tableAlias}", function($join) use ($tableAlias, $feature) {
+                $join->on('vehicles.id', '=', "{$tableAlias}.vehicle_id")
+                     ->where("{$tableAlias}.feature", '=', $feature);
             });
         }
-        
-        // Check if drivers are currently on an active ride
-        // $query->whereNotExists(function ($query) {
-        //     $query->select(DB::raw(1))
-        //         ->from('rides')
-        //         ->whereColumn('rides.driver_id', 'drivers.id')
-        //         ->where('ride_status', 'ongoing')
-        //         ->whereNull('dropoff_time');
-        // });
-        
-        // Get drivers within reasonable distance (10km), ordered by proximity
-        // Use WHERE instead of HAVING to avoid the column alias issue
-        $query->whereRaw("$distanceFormula < ?", [1000000000])
-              ->orderBy('distance_km')
-              ->limit($maxDrivers);
-        
-        $drivers = $query->get();
-            
-        return $drivers->toArray();
     }
+    
+    // Get drivers within reasonable distance (10km), ordered by proximity
+    $query->whereRaw("$distanceFormula < ?", [10])
+          ->orderBy('distance_km')
+          ->limit($maxDrivers);
+    
+    $drivers = $query->get();
+        
+    return $drivers->toArray();
+}
     
     /**
      * Calculate the fare for a ride
@@ -146,16 +137,15 @@ class RideMatchingService
         } else {
             // Define fare settings for each vehicle type as fallback
             $fareSettings = [
-                'share' => ['base_fare' => 50, 'per_km_price' => 15, 'per_minute_price' => 0],
+                'basic' => ['base_fare' => 50, 'per_km_price' => 15, 'per_minute_price' => 0],
                 'comfort' => ['base_fare' => 80, 'per_km_price' => 20, 'per_minute_price' => 0],
-                'women' => ['base_fare' => 100, 'per_km_price' => 25, 'per_minute_price' => 0],
                 'wav' => ['base_fare' => 120, 'per_km_price' => 30, 'per_minute_price' => 0],
                 'black' => ['base_fare' => 140, 'per_km_price' => 35, 'per_minute_price' => 0],
             ];
             
             // Use default if vehicle type not found
             if (!isset($fareSettings[$vehicleType])) {
-                $vehicleType = 'share';
+                $vehicleType = 'basic';
             }
             
             $baseFare = $fareSettings[$vehicleType]['base_fare'];
@@ -197,92 +187,92 @@ class RideMatchingService
      * @return bool True if the matching process was initiated
      */
     public function initiateMatching(Ride $ride, ?int $driverId = null): bool
-    {
-        // Update ride status to matching
-        $ride->reservation_status = 'matching';
-        $ride->save();
+{
+    // Update ride status to matching
+    $ride->reservation_status = 'matching';
+    $ride->save();
+    
+    \Log::info("Initiating matching for ride #{$ride->id} with " . ($driverId ? "specified driver #{$driverId}" : "automatic driver selection"));
+    
+    if ($driverId) {
+        // Check if the specified driver is available and eligible
+        $driver = Driver::with(['user', 'vehicle', 'driverLocation'])->find($driverId);
         
-        \Log::info("Initiating matching for ride #{$ride->id} with " . ($driverId ? "specified driver #{$driverId}" : "automatic driver selection"));
-        
-        if ($driverId) {
-            // Check if the specified driver is available and eligible
-            $driver = Driver::with(['user', 'vehicle', 'driverLocation'])->find($driverId);
-            
-            if (!$driver) {
-                \Log::warning("Driver #{$driverId} not found when initiating ride #{$ride->id}");
-                $ride->reservation_status = 'pending';
-                $ride->save();
-                return false;
-            }
-            
-            if (!$this->isDriverAvailable($driver)) {
-                \Log::warning("Driver #{$driverId} is not available for ride #{$ride->id}");
-                $ride->reservation_status = 'pending';
-                $ride->save();
-                return false;
-            }
-            
-            if (!$this->isDriverVisibleToPassenger($driver, $ride->passenger->user)) {
-                \Log::warning("Driver #{$driverId} is not visible to passenger for ride #{$ride->id}");
-                $ride->reservation_status = 'pending';
-                $ride->save();
-                return false;
-            }
-            
-            // Create ride request for the specified driver
-            $this->sendRequestToDriver($ride, $driverId);
-            \Log::info("Ride request sent to specified driver #{$driverId} for ride #{$ride->id}");
-            return true;
-        } else {
-            // Find potential drivers
-            $potentialDrivers = $this->findDriversForRide($ride);
-            
-            if (empty($potentialDrivers)) {
-                \Log::warning("No drivers found for ride #{$ride->id}. Checking individual requirements...");
-                
-                // Debug why no drivers were found by checking each criterion separately
-                $onlineDrivers = Driver::whereHas('user', function($q) {
-                    $q->where('is_online', true);
-                })->count();
-                
-                $verifiedDrivers = Driver::where('is_verified', true)->count();
-                
-                $recentLocationDrivers = Driver::whereHas('driverLocation', function($q) {
-                    $q->where('last_updated', '>', now()->subMinutes(5));
-                })->count();
-                
-                $matchingVehicleDrivers = Driver::whereHas('vehicle', function($q) use ($ride) {
-                    $q->where('type', $ride->vehicle_type ?? 'share')
-                      ->where('is_active', true);
-                })->count();
-                
-                $availableDrivers = Driver::whereDoesntHave('rides', function($q) {
-                    $q->where('ride_status', 'ongoing')
-                      ->whereNull('dropoff_time');
-                })->count();
-                
-                \Log::info("Driver availability breakdown for ride #{$ride->id}: " . 
-                           "Online: {$onlineDrivers}, " . 
-                           "Verified: {$verifiedDrivers}, " . 
-                           "Recent location: {$recentLocationDrivers}, " . 
-                           "Matching vehicle: {$matchingVehicleDrivers}, " . 
-                           "Not on active ride: {$availableDrivers}");
-                
-                // No drivers available, set ride status back to pending
-                $ride->reservation_status = 'pending';
-                $ride->save();
-                return false;
-            }
-            
-            // Log the number of potential drivers found
-            \Log::info("Found " . count($potentialDrivers) . " potential drivers for ride #{$ride->id}");
-            
-            // Create ride request for the first driver
-            $this->sendRequestToDriver($ride, $potentialDrivers[0]->id);
-            \Log::info("Ride request sent to driver #{$potentialDrivers[0]->id} for ride #{$ride->id}");
-            return true;
+        if (!$driver) {
+            \Log::warning("Driver #{$driverId} not found when initiating ride #{$ride->id}");
+            $ride->reservation_status = 'pending';
+            $ride->save();
+            return false;
         }
+        
+        if (!$this->isDriverAvailable($driver)) {
+            \Log::warning("Driver #{$driverId} is not available for ride #{$ride->id}");
+            $ride->reservation_status = 'pending';
+            $ride->save();
+            return false;
+        }
+        
+        if (!$this->isDriverVisibleToPassenger($driver, $ride->passenger->user)) {
+            \Log::warning("Driver #{$driverId} is not visible to passenger for ride #{$ride->id}");
+            $ride->reservation_status = 'pending';
+            $ride->save();
+            return false;
+        }
+        
+        // Create ride request for the specified driver
+        $this->sendRequestToDriver($ride, $driverId);
+        \Log::info("Ride request sent to specified driver #{$driverId} for ride #{$ride->id}");
+        return true;
+    } else {
+        // Find potential drivers
+        $potentialDrivers = $this->findDriversForRide($ride);
+        
+        if (empty($potentialDrivers)) {
+            \Log::warning("No drivers found for ride #{$ride->id}. Checking individual requirements...");
+            
+            // Debug why no drivers were found by checking each criterion separately
+            $onlineDrivers = Driver::whereHas('user', function($q) {
+                $q->where('is_online', true);
+            })->count();
+            
+            $verifiedDrivers = Driver::where('is_verified', true)->count();
+            
+            $recentLocationDrivers = Driver::whereHas('driverLocation', function($q) {
+                $q->where('last_updated', '>', now()->subMinutes(5));
+            })->count();
+            
+            $matchingVehicleDrivers = Driver::whereHas('vehicle', function($q) use ($ride) {
+                $q->where('type', $ride->vehicle_type ?? 'share')
+                  ->where('is_active', true);
+            })->count();
+            
+            $availableDrivers = Driver::whereDoesntHave('rides', function($q) {
+                $q->where('ride_status', 'ongoing')
+                  ->whereNull('dropoff_time');
+            })->count();
+            
+            \Log::info("Driver availability breakdown for ride #{$ride->id}: " . 
+                       "Online: {$onlineDrivers}, " . 
+                       "Verified: {$verifiedDrivers}, " . 
+                       "Recent location: {$recentLocationDrivers}, " . 
+                       "Matching vehicle: {$matchingVehicleDrivers}, " . 
+                       "Not on active ride: {$availableDrivers}");
+            
+            // No drivers available, set ride status back to pending
+            $ride->reservation_status = 'pending';
+            $ride->save();
+            return false;
+        }
+        
+        // Log the number of potential drivers found
+        \Log::info("Found " . count($potentialDrivers) . " potential drivers for ride #{$ride->id}");
+        
+        // Create ride request for the first driver (best match)
+        $this->sendRequestToDriver($ride, $potentialDrivers[0]->id);
+        \Log::info("Ride request sent to driver #{$potentialDrivers[0]->id} for ride #{$ride->id}");
+        return true;
     }
+}
     
     /**
      * Check if driver is available
@@ -624,98 +614,101 @@ class RideMatchingService
      * @return array List of available drivers
      */
     public function getAvailableDriversForSelection(float $pickupLat, float $pickupLng, string $vehicleType, User $passenger): array
-    {
-        // Check for fully available drivers (online, location shared, not on a ride)
-        $query = Driver::with(['user', 'vehicle', 'driverLocation'])
-            ->whereHas('user', function($q) {
-                $q->where('is_online', true)
-                  ->where('account_status', 'activated');
-            })
-            ->where('is_verified', true)
-            ->whereHas('driverLocation', function($q) {
-                $q->where('last_updated', '>', now()->subMinutes(5));
-            })
-            ->whereHas('vehicle', function($q) use ($vehicleType) {
-                $q->where('type', $vehicleType)
-                  ->where('is_active', true);
-            })
-            ->whereDoesntHave('rides', function($q) {
-                $q->where('ride_status', 'ongoing')
-                  ->whereNull('dropoff_time');
-            });
-        
-        // Apply gender filtering based on passenger preferences
-        if ($passenger->women_only_rides) {
-            $query->where('women_only_driver', true)
-                  ->whereHas('user', function($q) {
-                      $q->where('gender', 'female');
-                  });
-        } else {
-            // Female drivers with women_only_driver should not be shown to male passengers
-            if ($passenger->gender !== 'female') {
-                $query->where(function($q) {
-                    $q->where('women_only_driver', false)
-                      ->orWhereHas('user', function($sq) {
-                          $sq->where('gender', '!=', 'female');
-                      });
-                });
-            }
-        }
-        
-        // Get drivers
-        $drivers = $query->get();
-        
-        // Calculate distance and ETA for each driver
-        $result = [];
-        foreach ($drivers as $driver) {
-            if (!$driver->driverLocation) continue;
-            
-            $distance = $this->calculateDistance(
-                $pickupLat, 
-                $pickupLng, 
-                $driver->driverLocation->latitude, 
-                $driver->driverLocation->longitude
-            );
-            
-            $eta = $this->calculateETA(
-                $driver->driverLocation->latitude, 
-                $driver->driverLocation->longitude,
-                $pickupLat,
-                $pickupLng
-            );
-            
-            // Only include drivers within reasonable distance (10km)
-            if ($distance <= 10) {
-                $result[] = [
-                    'id' => $driver->id,
-                    'name' => $driver->user->name,
-                    'gender' => $driver->user->gender,
-                    'profile_picture' => $driver->user->profile_picture,
-                    'women_only_driver' => $driver->women_only_driver,
-                    'rating' => $driver->rating,
-                    'completed_rides' => $driver->completed_rides,
-                    'vehicle' => [
-                        'make' => $driver->vehicle->make,
-                        'model' => $driver->vehicle->model,
-                        'color' => $driver->vehicle->color,
-                        'plate_number' => $driver->vehicle->plate_number,
-                        'type' => $driver->vehicle->type
-                    ],
-                    'location' => [
-                        'latitude' => $driver->driverLocation->latitude,
-                        'longitude' => $driver->driverLocation->longitude
-                    ],
-                    'distance_km' => round($distance, 2),
-                    'eta_minutes' => $eta
-                ];
-            }
-        }
-        
-        // Sort by distance (closest first)
-        usort($result, function($a, $b) {
-            return $a['distance_km'] <=> $b['distance_km'];
+{
+    // Check for fully available drivers (online, location shared, not on a ride)
+    $query = Driver::with(['user', 'vehicle', 'driverLocation'])
+        ->whereHas('user', function($q) {
+            $q->where('is_online', true)
+              ->where('account_status', 'activated');
+        })
+        ->where('is_verified', true)
+        ->whereHas('driverLocation', function($q) {
+            // FIXED: Increased time window from 5 to 10 minutes to be more lenient
+            $q->where('last_updated', '>', now()->subMinutes(10));
+        })
+        ->whereHas('vehicle', function($q) use ($vehicleType) {
+            $q->where('type', $vehicleType)
+              ->where('is_active', true);
         });
-        
-        return $result;
+    
+    // FIXED: Revised gender filtering logic to be simpler and more accurate
+    // Apply gender filtering based on passenger preferences
+    if ($passenger->women_only_rides && $passenger->gender === 'female') {
+        // Female passenger with women_only_rides wants only female drivers with women_only_driver
+        $query->where('women_only_driver', true)
+              ->whereHas('user', function($q) {
+                  $q->where('gender', 'female');
+              });
+    } else if ($passenger->gender !== 'female') {
+        // Male passengers can't see female drivers with women_only_driver enabled
+        $query->where(function($q) {
+            $q->where('women_only_driver', false)
+              ->orWhereHas('user', function($sq) {
+                  $sq->where('gender', '!=', 'female');
+              });
+        });
     }
+    
+    // Get drivers
+    $drivers = $query->get();
+    
+    // ADDED: Debug logging
+    \Log::info("Found " . $drivers->count() . " drivers for passenger {$passenger->id} with vehicle type {$vehicleType}");
+    
+    // Calculate distance and ETA for each driver
+    $result = [];
+    foreach ($drivers as $driver) {
+        if (!$driver->driverLocation) {
+            \Log::warning("Driver #{$driver->id} has no location data");
+            continue;
+        }
+        
+        $distance = $this->calculateDistance(
+            $pickupLat, 
+            $pickupLng, 
+            $driver->driverLocation->latitude, 
+            $driver->driverLocation->longitude
+        );
+        
+        $eta = $this->calculateETA(
+            $driver->driverLocation->latitude, 
+            $driver->driverLocation->longitude,
+            $pickupLat,
+            $pickupLng
+        );
+        
+        // FIXED: Increased distance threshold from 20km to 30km
+        if ($distance <= 30) {
+            $result[] = [
+                'id' => $driver->id,
+                'name' => $driver->user->name,
+                'gender' => $driver->user->gender,
+                'profile_picture' => $driver->user->profile_picture,
+                'women_only_driver' => $driver->women_only_driver,
+                'rating' => $driver->rating ?? 5.0,
+                'completed_rides' => $driver->completed_rides ?? 0,
+                'vehicle' => [
+                    'make' => $driver->vehicle->make,
+                    'model' => $driver->vehicle->model,
+                    'color' => $driver->vehicle->color,
+                    'plate_number' => $driver->vehicle->plate_number,
+                    'type' => $driver->vehicle->type
+                ],
+                'location' => [
+                    'latitude' => $driver->driverLocation->latitude,
+                    'longitude' => $driver->driverLocation->longitude
+                ],
+                'distance_km' => round($distance, 2),
+                'eta_minutes' => $eta
+            ];
+        }
+    }
+    
+    // Sort by distance (closest first)
+    usort($result, function($a, $b) {
+        return $a['distance_km'] <=> $b['distance_km'];
+    });
+    
+    return $result;
+}
 }

@@ -44,6 +44,15 @@
         <div class="max-w-4xl mx-auto">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold">Ride History</h1>
+                <!-- In passenger/rideHistory.blade.php in the ride card -->
+                @foreach($rides as $ride)
+    <!-- Your ride display code -->
+    @if($ride->driver)
+        <a href="{{ route('driver.public.profile', $ride->driver->id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
+            View Driver Profile
+        </a>
+    @endif
+@endforeach
                 
                 <!-- Filter Dropdown (optional) -->
                 <div class="relative">

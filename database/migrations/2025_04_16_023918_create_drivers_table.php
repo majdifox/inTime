@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('drivers', function (Blueprint $table) {
@@ -17,17 +14,18 @@ return new class extends Migration
             $table->string('license_number')->unique();
             $table->date('license_expiry');
             $table->string('license_photo')->nullable();
+            $table->string('insurance_document')->nullable();
+            $table->string('good_conduct_certificate')->nullable();
             $table->decimal('rating', 3, 2)->nullable();
             $table->integer('completed_rides')->default(0);
             $table->decimal('balance', 10, 2)->default(0);
             $table->boolean('is_verified')->default(false);
+            $table->decimal('driver_response_time', 5, 2)->nullable();
+            $table->boolean('women_only_driver')->default(false);
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('drivers');

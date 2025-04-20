@@ -6,6 +6,8 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\PassengerController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DriverProfileController;
+
 
 use App\Http\Controllers\Auth\GoogleLoginController;
 
@@ -83,7 +85,21 @@ Route::get('/driver/request/{requestId}/status', [DriverController::class, 'chec
     ->name('driver.request.status');
     Route::post('/driver/heartbeat', [DriverController::class, 'heartbeat'])->name('driver.heartbeat');
 Route::post('/driver/set-offline', [DriverController::class, 'setOffline'])->name('driver.set.offline');
+Route::post('/driver/force-location-refresh', [DriverController::class, 'forceLocationRefresh'])
+    ->name('driver.force.location.refresh');
+
+    Route::post('/driver/toggle-women-only', [DriverController::class, 'toggleWomenOnlyMode'])->name('driver.toggle.women.only');
+    Route::patch('/driver/vehicle', [DriverController::class, 'updateVehicle'])->name('driver.vehicle.update');
+    Route::get('/driver/profile-settings', [DriverController::class, 'profileSettings'])->name('driver.profile.settings');
+    Route::patch('/driver/password', [DriverController::class, 'updatePassword'])->name('driver.password.update');
 });
+
+
+// driver public profile route
+Route::get('/driver/{id}/profile', [DriverProfileController::class, 'show'])->name('driver.public.profile');
+Route::get('/driver/profile/{id}', [App\Http\Controllers\DriverProfileController::class, 'show'])
+    ->name('driver.public.profile');
+
 
 // Passenger routes
 Route::middleware(['auth', 'ispassenger'])->prefix('passenger')->name('passenger.')->group(function () {
@@ -124,6 +140,10 @@ Route::middleware(['auth', 'ispassenger'])->prefix('passenger')->name('passenger
     Route::get('/nearby-drivers', [PassengerController::class, 'nearbyDrivers'])
         ->name('nearby.drivers');
         Route::get('/select-driver', [PassengerController::class, 'selectDriver'])->name('select.driver');
+        Route::post('/passenger/clear-session', [PassengerController::class, 'clearSessionData'])
+    ->name('passenger.clear.session');
+    Route::post('/save-preferences', [PassengerController::class, 'saveRidePreferences'])->name('save.preferences');
+    
 
 });
 
@@ -161,6 +181,9 @@ Route::middleware(['auth', 'isadmin'])->prefix('admin')->group(function () {
     Route::get('/rides/{id}', [AdminController::class, 'getRideDetails'])->name('admin.rides.details');
     Route::patch('/rides/{id}/status', [AdminController::class, 'updateRideStatus'])->name('admin.rides.update.status');
 });
+
+// Public driver profile routes (accessible to all users)
+Route::get('/driver/{id}/profile', [DriverProfileController::class, 'show'])->name('driver.profile');
 
 // Google authentication
 Route::get('/auth/google', [GoogleLoginController::class, 'redirectToGoogle'])->name('auth.google');

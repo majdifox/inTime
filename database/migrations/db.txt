@@ -1,0 +1,196 @@
+ Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->string('profile_picture')->nullable();
+            $table->string('phone')->unique();
+            $table->date('birthday')->nullable();
+            $table->enum('gender', ['male', 'female'])->nullable();
+            $table->boolean('women_only_rides')->default(false);
+            $table->enum('role', ['driver', 'passenger', 'admin']);
+            $table->boolean('is_online')->default(false);
+            $table->enum('account_status', ['deactivated', 'pending', 'activated', 'suspended', 'deleted'])->default('deactivated');
+            $table->decimal('total_income', 10, 2)->default(0);
+            $table->rememberToken();
+            $table->timestamps();
+        });
+
+                Schema::create('passengers', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->decimal('rating', 3, 2)->nullable();
+            $table->integer('total_rides')->default(0);
+            $table->text('preferences')->nullable();
+            $table->json('ride_preferences')->nullable();
+            $table->timestamps();
+        });
+
+                Schema::create('drivers', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('license_number')->unique();
+            $table->date('license_expiry');
+            $table->string('license_photo')->nullable();
+            $table->string('insurance_document')->nullable();
+            $table->string('good_conduct_certificate')->nullable();
+            $table->decimal('rating', 3, 2)->nullable();
+            $table->integer('completed_rides')->default(0);
+            $table->decimal('balance', 10, 2)->default(0);
+            $table->boolean('is_verified')->default(false);
+            $table->decimal('driver_response_time', 5, 2)->nullable();
+            $table->boolean('women_only_driver')->default(false);
+            $table->timestamps();
+        });
+
+         // Drop the type first if it exists
+        DB::statement("DROP TYPE IF EXISTS vehicle_type_enum CASCADE");
+        
+        // Create the enum type
+        DB::statement("CREATE TYPE vehicle_type_enum AS ENUM('basic', 'comfort', 'black', 'wav')");
+        
+        Schema::create('vehicles', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+            $table->string('make');
+            $table->string('model');
+            $table->integer('year');
+            $table->string('color');
+            $table->string('plate_number')->unique();
+            // Create as string first
+            $table->string('type');
+            $table->integer('capacity');
+            $table->string('vehicle_photo')->nullable();
+            $table->date('insurance_expiry');
+            $table->date('registration_expiry');
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+        
+        // Alter the column to use the enum type
+        DB::statement("ALTER TABLE vehicles ALTER COLUMN type TYPE vehicle_type_enum USING type::vehicle_type_enum");
+    }
+
+            Schema::create('vehicle_features', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('vehicle_id')->constrained()->onDelete('cascade');
+            $table->enum('feature', ['ac', 'wifi', 'child_seat', 'usb_charger', 'pet_friendly', 'luggage_carrier']);
+            $table->timestamps();
+            
+            // Prevent duplicate features for the same vehicle
+            $table->unique(['vehicle_id', 'feature']);
+        });
+
+            public function up(): void
+    {
+        // Drop the type first if it exists
+        DB::statement("DROP TYPE IF EXISTS reservation_status_enum CASCADE");
+        
+        // Create the enum type
+        DB::statement("CREATE TYPE reservation_status_enum AS ENUM('pending', 'matching', 'not_accepted', 'accepted', 'cancelled')");
+        
+        Schema::create('rides', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('passenger_id')->constrained()->onDelete('cascade');
+            $table->foreignId('driver_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('vehicle_id')->nullable()->constrained()->onDelete('set null');
+            $table->dateTime('reservation_date');
+            // Create without default first
+            $table->string('reservation_status');
+            $table->dateTime('pickup_time')->nullable();
+            $table->string('pickup_location');
+            $table->decimal('pickup_latitude', 10, 7)->nullable();
+            $table->decimal('pickup_longitude', 10, 7)->nullable();
+            $table->dateTime('dropoff_time')->nullable();
+            $table->string('dropoff_location');
+            $table->decimal('dropoff_latitude', 10, 7)->nullable();
+            $table->decimal('dropoff_longitude', 10, 7)->nullable();
+            $table->enum('ride_status', ['ongoing', 'completed'])->default('ongoing');
+            $table->decimal('ride_cost', 10, 2)->nullable();
+            $table->decimal('price', 10, 2)->nullable();
+            $table->decimal('base_fare', 10, 2)->nullable();
+            $table->decimal('per_km_price', 10, 2)->nullable();
+            $table->decimal('distance_in_km', 10, 2)->nullable();
+            $table->decimal('surge_multiplier', 4, 2)->default(1.0);
+            $table->integer('wait_time_minutes')->default(0);
+            $table->string('vehicle_type')->nullable();
+            $table->integer('available_seats')->nullable();
+            $table->text('notes')->nullable();
+            $table->boolean('is_reviewed')->default(false);
+            $table->timestamps();
+        });
+        
+        // Fill all existing rows with 'pending' value
+        DB::statement("UPDATE rides SET reservation_status = 'pending'");
+        
+        // Alter the column to use the enum type
+        DB::statement("ALTER TABLE rides ALTER COLUMN reservation_status TYPE reservation_status_enum USING reservation_status::reservation_status_enum");
+        
+        // Now add default constraint
+        DB::statement("ALTER TABLE rides ALTER COLUMN reservation_status SET DEFAULT 'pending'::reservation_status_enum");
+        
+        // Add indexes for coordinates
+        DB::statement("CREATE INDEX idx_rides_pickup_coordinates ON rides USING btree (pickup_latitude, pickup_longitude)");
+        DB::statement("CREATE INDEX idx_rides_dropoff_coordinates ON rides USING btree (dropoff_latitude, dropoff_longitude)");
+    }
+
+            Schema::create('reviews', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('ride_id')->constrained()->onDelete('cascade');
+            $table->foreignId('reviewer_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('reviewed_id')->constrained('users')->onDelete('cascade');
+            $table->integer('rating')->nullable(); 
+            $table->text('comment')->nullable();
+            $table->timestamps();
+        });
+    }
+
+            Schema::create('driver_locations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+            $table->decimal('latitude', 10, 7);
+            $table->decimal('longitude', 10, 7);
+            $table->timestamp('last_updated')->useCurrent();
+            $table->timestamps();
+            
+            // Each driver should have only one location
+            $table->unique('driver_id');
+        });
+        
+        // Add index for coordinates
+        DB::statement("CREATE INDEX idx_driver_locations_coordinates ON driver_locations USING btree (latitude, longitude)");
+    }
+
+            Schema::create('ride_requests', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('ride_id')->constrained()->onDelete('cascade');
+            $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+            $table->string('status')->default('pending');
+            $table->timestamp('requested_at')->nullable();
+            $table->timestamp('responded_at')->nullable();
+            $table->timestamps();
+        });
+
+            {
+        Schema::create('fare_settings', function (Blueprint $table) {
+            $table->id();
+            $table->string('vehicle_type');
+            $table->decimal('base_fare', 10, 2);
+            $table->decimal('per_km_price', 10, 2);
+            $table->decimal('per_minute_price', 10, 2)->default(0);
+            $table->decimal('minimum_fare', 10, 2)->default(0);
+            $table->timestamps();
+            
+            // Ensure unique vehicle types
+            $table->unique('vehicle_type');
+        });
+        
+        // Seed with initial fare settings
+        DB::table('fare_settings')->insert([
+            ['vehicle_type' => 'basic', 'base_fare' => 50.00, 'per_km_price' => 15.00, 'per_minute_price' => 0.00, 'minimum_fare' => 50.00, 'created_at' => now(), 'updated_at' => now()],
+            ['vehicle_type' => 'comfort', 'base_fare' => 80.00, 'per_km_price' => 20.00, 'per_minute_price' => 0.00, 'minimum_fare' => 80.00, 'created_at' => now(), 'updated_at' => now()],
+            ['vehicle_type' => 'wav', 'base_fare' => 120.00, 'per_km_price' => 30.00, 'per_minute_price' => 0.00, 'minimum_fare' => 120.00, 'created_at' => now(), 'updated_at' => now()],
+            ['vehicle_type' => 'black', 'base_fare' => 140.00, 'per_km_price' => 35.00, 'per_minute_price' => 0.00, 'minimum_fare' => 140.00, 'created_at' => now(), 'updated_at' => now()]
+        ]);
+    }

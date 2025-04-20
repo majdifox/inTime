@@ -51,10 +51,11 @@ class Passenger extends Model
     
     /**
      * Check if passenger is eligible for women-only rides
+     * (can see and be matched with women-only drivers)
      * 
      * @return bool Whether passenger can request women-only rides
      */
-    public function canRequestWomenOnlyRides()
+    public function canAccessWomenOnlyDrivers()
     {
         return $this->user->gender === 'female';
     }
@@ -135,16 +136,15 @@ class Passenger extends Model
     {
         // Get fare settings based on vehicle type
         $fareSettings = [
-            'share' => ['base_fare' => 50, 'rate_per_km' => 15],
+            'basic' => ['base_fare' => 50, 'rate_per_km' => 15],
             'comfort' => ['base_fare' => 80, 'rate_per_km' => 20],
-            'women' => ['base_fare' => 100, 'rate_per_km' => 25],
             'wav' => ['base_fare' => 120, 'rate_per_km' => 30],
             'black' => ['base_fare' => 140, 'rate_per_km' => 35],
         ];
         
         // Use default if vehicle type not found
         if (!isset($fareSettings[$vehicleType])) {
-            $vehicleType = 'share';
+            $vehicleType = 'basic';
         }
         
         $baseFare = $fareSettings[$vehicleType]['base_fare'];
@@ -167,5 +167,15 @@ class Passenger extends Model
             'surge_multiplier' => $surgeMultiplier,
             'total_fare' => $totalFare
         ];
+    }
+    
+    /**
+     * Check if this passenger prefers women-only drivers
+     * 
+     * @return bool Whether passenger prefers women-only drivers
+     */
+    public function prefersWomenOnlyDrivers()
+    {
+        return $this->user && $this->user->women_only_rides;
     }
 }

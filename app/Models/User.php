@@ -161,4 +161,20 @@ class User extends Authenticatable
         // Consider suspending if 3+ cancellations in 30 minutes
         return $this->getRecentCancelledRidesCount(30) >= 3;
     }
+    
+    /**
+     * Check if this user can see or be matched with drivers in women-only mode
+     */
+    public function canAccessWomenOnlyDrivers()
+    {
+        return $this->gender === 'female';
+    }
+    
+    /**
+     * Check if this user driver can enable women-only mode
+     */
+    public function canEnableWomenOnlyMode()
+    {
+        return $this->gender === 'female' && $this->isDriver();
+    }
 }

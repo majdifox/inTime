@@ -70,7 +70,7 @@ class DriverController extends Controller
             'year' => 'required|integer|min:2005|max:' . (date('Y') + 1),
             'color' => 'required|string|max:255',
             'plate_number' => 'required|string|max:255|unique:vehicles,plate_number',
-            'type' => ['required', Rule::in(['share', 'comfort', 'women', 'wav', 'black'])],
+            'type' => ['required', Rule::in(['basic', 'comfort', 'black', 'wav'])],
             'capacity' => 'required|integer|min:1|max:50',
             'vehicle_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'insurance_expiry' => 'required|date|after:today',
@@ -128,9 +128,9 @@ class DriverController extends Controller
             ];
             
             // Enforce women vehicle type restriction - only female drivers with women_only_driver=true
-            if ($validated['type'] === 'women' && (!$user->gender === 'female' || !$validated['women_only_driver'])) {
-                throw new \Exception('Only female drivers can register for the "Women" vehicle type.');
-            }
+            // if ($validated['type'] === 'women' && (!$user->gender === 'female' || !$validated['women_only_driver'])) {
+            //     throw new \Exception('Only female drivers can register for the "Women" vehicle type.');
+            // }
             
             $vehicle = Vehicle::create($vehicleData);
             
@@ -605,7 +605,9 @@ class DriverController extends Controller
         $rideDurationMinutes = Carbon::parse($ride->pickup_time)->diffInMinutes($ride->dropoff_time);
         
         // Get fare settings for the vehicle type
-        $fareSetting = FareSetting::where('vehicle_type', $ride->vehicle_type ?? $driver->vehicle->type)->first();
+        $vehicleType = $ride->vehicle_type ?? $driver->vehicle->type;
+        $fareSetting = FareSetting::where('vehicle_type', $vehicleType)->first();
+
         
         if (!$fareSetting) {
             // Fallback to default pricing if no fare settings found
@@ -748,54 +750,58 @@ class DriverController extends Controller
         ]);
         
         // Validate gender requirement for women-only drivers
-        if (!empty($validated['women_only_driver']) && $user->gender !== 'female') {
-            return back()->withErrors(['women_only_driver' => 'Only female drivers can register as women-only drivers.'])->withInput();
-        }
-        
-        $driver->women_only_driver = !empty($validated['women_only_driver']);
-        $driver->save();
-        
-        // If this is a women-only driver, check if their vehicle type matches
-        if ($driver->women_only_driver && $driver->vehicle && $driver->vehicle->type !== 'women') {
-            return back()->with('warning', 'Your women-only driver preference has been saved. Consider updating your vehicle type to "Women" for consistent matching.');
-        }
-        
-        return back()->with('success', 'Profile updated successfully.');
+    if (!empty($validated['women_only_driver']) && $user->gender !== 'female') {
+        return back()->withErrors(['women_only_driver' => 'Only female drivers can register as women-only drivers.'])->withInput();
+    }
+    
+    $driver->women_only_driver = !empty($validated['women_only_driver']);
+    $driver->save();
+    
+    return back()->with('success', 'Profile updated successfully.');
     }
     
     /**
      * Toggle women-only driver mode via AJAX
      */
     public function toggleWomenOnlyMode(Request $request)
-    {
-        $user = Auth::user();
-        $driver = Driver::where('user_id', Auth::id())->first();
-        
-        // Check if user is female (only females can toggle this)
-        if ($user->gender !== 'female') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only female drivers can use women-only driver mode'
-            ], 403);
-        }
-        
+{
+    $user = Auth::user();
+    $driver = Driver::where('user_id', Auth::id())->first();
+    
+    // Check if user is female (only females can toggle this)
+    if ($user->gender !== 'female') {
+        return response()->json([
+            'success' => false,
+            'message' => 'Only female drivers can use women-only driver mode'
+        ], 403);
+    }
+    
+    try {
         // Toggle women_only_driver
         $driver->women_only_driver = !$driver->women_only_driver;
         $driver->save();
         
         // Give warning if vehicle type doesn't match
-        $warningMessage = null;
+        $warning = null;
         if ($driver->women_only_driver && $driver->vehicle && $driver->vehicle->type !== 'women') {
-            $warningMessage = 'For best matching results, consider updating your vehicle type to "Women"';
+            $warning = 'For best matching results, consider updating your vehicle type to "Women" in vehicle settings.';
         }
         
         return response()->json([
             'success' => true,
-            'women_only_driver' => $driver->women_only_driver,
-            'message' => $driver->women_only_driver ? 'Women-only driver mode enabled' : 'Women-only driver mode disabled',
-            'warning' => $warningMessage
+            'women_only_driver' => (bool)$driver->women_only_driver, // Cast to boolean for clarity
+            'warning' => $warning,
+            'message' => $driver->women_only_driver ? 'Women-only driver mode enabled' : 'Women-only driver mode disabled'
         ]);
+    } catch (\Exception $e) {
+        \Log::error('Error toggling women-only mode: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred while updating your preferences.'
+        ], 500);
     }
+}
     
     /**
      * Update vehicle information
@@ -807,7 +813,7 @@ class DriverController extends Controller
         $vehicle = $driver->vehicle;
         
         $validated = $request->validate([
-            'type' => ['required', Rule::in(['share', 'comfort', 'women', 'wav', 'black'])],
+            'type' => ['required', Rule::in(['basic', 'comfort', 'black', 'wav'])],
             'make' => 'required|string|max:255',
             'model' => 'required|string|max:255',
             'year' => 'required|integer|min:2005|max:' . (date('Y') + 1),
@@ -819,13 +825,6 @@ class DriverController extends Controller
             'features.*' => Rule::in(['ac', 'wifi', 'child_seat', 'usb_charger', 'pet_friendly', 'luggage_carrier']),
         ]);
         
-        // Enforce women vehicle type restriction
-        if ($validated['type'] === 'women') {
-            if ($user->gender !== 'female' || empty($driver->women_only_driver)) {
-                return back()->withErrors(['type' => 'Only female drivers who have enabled women-only mode can register for the "Women" vehicle type.'])->withInput();
-            }
-        }
-        
         // Handle file upload
         if ($request->hasFile('vehicle_photo')) {
             // Delete old image if exists
@@ -836,16 +835,16 @@ class DriverController extends Controller
             $validated['vehicle_photo'] = $request->file('vehicle_photo')->store('vehicles', 'public');
         }
         
-        // Update vehicle
-        $vehicle->fill([
-            'type' => $validated['type'],
-            'make' => $validated['make'],
-            'model' => $validated['model'],
-            'year' => $validated['year'],
-            'color' => $validated['color'],
-            'plate_number' => $validated['plate_number'],
-            'capacity' => $validated['capacity'],
-        ]);
+    // Update vehicle
+    $vehicle->fill([
+        'type' => $validated['type'],
+        'make' => $validated['make'],
+        'model' => $validated['model'],
+        'year' => $validated['year'],
+        'color' => $validated['color'],
+        'plate_number' => $validated['plate_number'],
+        'capacity' => $validated['capacity'],
+    ]);
         
         if (isset($validated['vehicle_photo'])) {
             $vehicle->vehicle_photo = $validated['vehicle_photo'];
@@ -862,14 +861,6 @@ class DriverController extends Controller
             foreach ($validated['features'] as $feature) {
                 $vehicle->features()->create(['feature' => $feature]);
             }
-        }
-        
-        // If the vehicle type is 'women', ensure the driver has women_only_driver enabled
-        if ($validated['type'] === 'women' && !$driver->women_only_driver) {
-            $driver->women_only_driver = true;
-            $driver->save();
-            
-            return back()->with('success', 'Vehicle information updated successfully. Women-only driver mode has been automatically enabled to match your vehicle type.');
         }
         
         return back()->with('success', 'Vehicle information updated successfully.');
@@ -1083,4 +1074,53 @@ public function setOffline(Request $request)
     
     return response()->json(['status' => 'success']);
 }
+
+public function forceLocationRefresh(Request $request)
+{
+    $validated = $request->validate([
+        'latitude' => 'required|numeric|between:-90,90',
+        'longitude' => 'required|numeric|between:-180,180',
+    ]);
+    
+    $driver = Driver::where('user_id', Auth::id())->first();
+    
+    if (!$driver) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Driver record not found',
+        ], 404);
+    }
+    
+    // Make sure driver is online
+    $user = Auth::user();
+    if (!$user->is_online) {
+        $user->is_online = true;
+        $user->save();
+    }
+    
+    // Force update driver location with current timestamp
+    try {
+        $location = DriverLocation::updateOrCreate(
+            ['driver_id' => $driver->id],
+            [
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
+                'last_updated' => now(),
+            ]
+        );
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Location forcefully updated',
+            'location' => $location,
+            'timestamp' => now()->toIso8601String()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
 }

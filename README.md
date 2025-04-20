@@ -1,84 +1,66 @@
-# Cahier des Charges : Application Web de Transport - **inTime**
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
----
+<p align="center">
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
-## 1. Contexte et Objectifs
+## About Laravel
 
-Dans un contexte de forte croissance des mobilités urbaines et face à l’évolution des besoins des citoyens en matière de transport, ce projet vise à développer une application web innovante. L’objectif est de proposer une plateforme simple et efficace permettant de connecter des passagers et des chauffeurs pour faciliter les déplacements urbains. Inspirée des modèles comme **Uber** ou **InDrive**, cette application ambitionne d'offrir une solution locale adaptée aux besoins des utilisateurs.
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
----
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-## 2. Description Fonctionnelle
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-### 2.1 Inscription et Connexion
-- Les utilisateurs peuvent créer un compte en renseignant un **email** et un **mot de passe**.
-- Trois types de profils seront disponibles :
-  - **Admin** : Responsable de la gestion globale de la plateforme.
-  - **Chauffeur** : Inscrit pour proposer ses services de transport.
-  - **Passager** : Inscrit pour demander des trajets.
-- Possibilité de se connecter à un compte existant.
+## Learning Laravel
 
-### 2.2 Demande de Trajet (Passager)
-- Le passager saisit sa **position de départ** et sa **destination** via un formulaire.
-- Une **estimation du tarif** est affichée en fonction de la distance.
-- La plateforme affiche les **chauffeurs disponibles** à proximité.
-- Le passager peut choisir un **chauffeur spécifique** pour effectuer le trajet.
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
 
-### 2.3 Gestion des Trajets (Chauffeur)
-- Les chauffeurs reçoivent les **demandes de trajet** des passagers proches.
-- Ils peuvent **accepter** ou **refuser** une demande.
-- Une fois le trajet effectué, le chauffeur peut marquer le trajet comme **terminé**.
+You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
 
-### 2.4 Historique des Trajets
-- **Passager** : Accès à une liste des trajets effectués, avec les détails de chaque trajet (chauffeur, destination, tarif, date).
-- **Chauffeur** : Suivi des trajets réalisés, avec des informations similaires.
-- **Admin** : Vue globale des trajets effectués sur la plateforme.
+If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-### 2.5 Gestion Admin
-- Gestion des utilisateurs (**ajout**, **modification**, **suppression**).
-- Accès à des **statistiques** sur les trajets, les utilisateurs actifs, et les revenus estimés.
-- **Modération** des contenus ou comportements non conformes.
+## Laravel Sponsors
 
----
+We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
 
-## 3. Contraintes
+### Premium Partners
 
-### 3.1 Simplicité et Accessibilité
-- L’application doit être **intuitive** pour tous les utilisateurs, quel que soit leur niveau de compétence technique.
-- Le design sera **simple**, **clair**, et adapté aux **appareils mobiles** et **ordinateurs**.
+- **[Vehikl](https://vehikl.com/)**
+- **[Tighten Co.](https://tighten.co)**
+- **[WebReinvent](https://webreinvent.com/)**
+- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
+- **[64 Robots](https://64robots.com)**
+- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
+- **[Cyber-Duck](https://cyber-duck.co.uk)**
+- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
+- **[Jump24](https://jump24.co.uk)**
+- **[Redberry](https://redberry.international/laravel/)**
+- **[Active Logic](https://activelogic.com)**
+- **[byte5](https://byte5.de)**
+- **[OP.GG](https://op.gg)**
 
-### 3.2 Performance et Réactivité
-- La plateforme doit être **rapide à charger** et performante même en cas de forte affluence.
-- Les opérations critiques (**connexion**, **demande de trajet**) doivent être traitées en **temps réel**.
+## Contributing
 
-### 3.3 Confidentialité et Sécurité
-- Les données des utilisateurs (**emails**, **mots de passe**, **historiques de trajets**) doivent être protégées.
-- Mise en place de mesures pour empêcher l’accès non autorisé et garantir la conformité à la réglementation.
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
 
-### 3.4 Scalabilité
-- La solution doit être conçue pour pouvoir accueillir un **nombre croissant d’utilisateurs** sans perte de qualité.
+## Code of Conduct
 
----
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-## 4. Planning
+## Security Vulnerabilities
 
-### Phase de Conception (15 jours)
-- Collecte des besoins des parties prenantes.
-- Conception des **maquettes** de l’interface utilisateur.
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-### Phase de Développement (3 mois)
-- Implémentation des **fonctionnalités principales**.
-- Mise en place des **bases de données** et des systèmes de gestion des utilisateurs.
+## License
 
-### Phase de Tests (15 jours)
-- Tests des fonctionnalités par les utilisateurs et correction des **bogues**.
-- Validation de la conformité aux attentes.
-
-### Phase de Lancement (10 jours)
-- Mise en ligne de l’application.
-- Formation des **administrateurs** et support initial aux utilisateurs.
-
----
-
-**Un projet ambitieux, conçu pour révolutionner les transports urbains et offrir une expérience utilisateur inégalée !**
-
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

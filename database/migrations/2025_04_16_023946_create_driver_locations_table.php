@@ -7,15 +7,8 @@ use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        // Drop the table if it exists to ensure a clean slate
-        Schema::dropIfExists('driver_locations');
-        
-        // Create the table with all required columns
         Schema::create('driver_locations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('driver_id')->constrained()->onDelete('cascade');
@@ -28,25 +21,15 @@ return new class extends Migration
             $table->unique('driver_id');
         });
         
-        // Add indexes for faster location queries
+        // Add index for coordinates
         DB::statement("CREATE INDEX idx_driver_locations_coordinates ON driver_locations USING btree (latitude, longitude)");
-        
-        // Add indexes to rides table for coordinates
-        DB::statement("CREATE INDEX idx_rides_pickup_coordinates ON rides USING btree (pickup_latitude, pickup_longitude)");
-        DB::statement("CREATE INDEX idx_rides_dropoff_coordinates ON rides USING btree (dropoff_latitude, dropoff_longitude)");
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        // Drop indexes first
-        DB::statement("DROP INDEX IF EXISTS idx_rides_pickup_coordinates");
-        DB::statement("DROP INDEX IF EXISTS idx_rides_dropoff_coordinates");
+        // Drop index first
         DB::statement("DROP INDEX IF EXISTS idx_driver_locations_coordinates");
         
-        // Then drop the table
         Schema::dropIfExists('driver_locations');
     }
 };

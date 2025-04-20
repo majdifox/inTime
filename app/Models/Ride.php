@@ -18,6 +18,7 @@ class Ride extends Model
     protected $fillable = [
         'passenger_id',
         'driver_id',
+        'vehicle_id',
         'reservation_date',
         'reservation_status',
         'pickup_time',
@@ -37,6 +38,8 @@ class Ride extends Model
         'surge_multiplier',
         'wait_time_minutes',
         'vehicle_type',
+        'available_seats',
+        'notes',
         'is_reviewed',
     ];
 
@@ -71,11 +74,19 @@ class Ride extends Model
     }
 
     /**
-     * Get the driver that owns the ride.
+     * Get the driver for the ride.
      */
     public function driver()
     {
         return $this->belongsTo(Driver::class);
+    }
+    
+    /**
+     * Get the vehicle for the ride.
+     */
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class);
     }
     
     /**
@@ -211,13 +222,17 @@ class Ride extends Model
     }
     
     /**
-     * Check if this ride is eligible for "women only" ride
+     * Check if this is a women-only ride (based on driver settings, not vehicle type)
      * 
-     * @return bool Whether this ride is women-only
+     * @return bool Whether this ride is restricted to women-only
      */
     public function isWomenOnlyRide()
     {
-        return $this->vehicle_type === 'women';
+        // A ride is women-only if the driver has women_only_driver enabled
+        return $this->driver && 
+               $this->driver->women_only_driver && 
+               $this->driver->user && 
+               $this->driver->user->gender === 'female';
     }
     
     /**
@@ -259,4 +274,6 @@ class Ride extends Model
         
         return 'Unknown Status';
     }
+
+
 }

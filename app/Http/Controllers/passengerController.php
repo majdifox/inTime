@@ -111,7 +111,10 @@ class PassengerController extends Controller
         
         // Get vehicle types for selection
         $vehicleTypes = Vehicle::select('type')->distinct()->get()->pluck('type');
-    
+        
+        // Get all fare options
+        $fareOptions = FareSetting::all();
+        
         // Get or create passenger record
         $passenger = Passenger::firstOrCreate(
             ['user_id' => Auth::id()],
@@ -129,50 +132,7 @@ class PassengerController extends Controller
             $savedLocations = $passenger->preferences['favorite_locations'];
         }
         
-        // Define fare options - retrieve from database
-        $fareOptions = FareSetting::all();
-        
         return view('passenger.bookRide', compact('vehicleTypes', 'fareOptions', 'savedLocations'));
-    }
-
-    public function selectDriver(Request $request)
-    {
-        $validated = $request->validate([
-            'vehicle_type' => 'required|string|in:share,comfort,women,wav,black',
-            'pickup_latitude' => 'required|numeric',
-            'pickup_longitude' => 'required|numeric',
-        ]);
-        
-        // Get ride search from session if available
-        $rideSearch = session('ride_search');
-        
-        // Prepare ride info for the view
-        $rideInfo = [
-            'pickup_location' => $rideSearch['pickup_location'] ?? 'Unknown location',
-            'pickup_latitude' => $validated['pickup_latitude'],
-            'pickup_longitude' => $validated['pickup_longitude'],
-            'dropoff_location' => $rideSearch['dropoff_location'] ?? 'Unknown destination',
-            'dropoff_latitude' => $rideSearch['dropoff_latitude'] ?? 0,
-            'dropoff_longitude' => $rideSearch['dropoff_longitude'] ?? 0,
-            'distance_km' => $rideSearch['distance_km'] ?? 0,
-            'vehicle_type' => $validated['vehicle_type'],
-            'price' => $rideSearch['total_fare'] ?? 0,
-            'surge_multiplier' => $rideSearch['surge_multiplier'] ?? 1.0
-        ];
-        
-        // Get available drivers
-        $drivers = $this->rideMatchingService->getAvailableDriversForSelection(
-            $validated['pickup_latitude'],
-            $validated['pickup_longitude'],
-            $validated['vehicle_type'],
-            Auth::user()
-        );
-        
-        return view('passenger.selectDriver', [
-            'drivers' => $drivers,
-            'rideInfo' => $rideInfo,
-            'rideId' => null // Since we haven't created a ride yet
-        ]);
     }
     
     /**
@@ -210,7 +170,8 @@ class PassengerController extends Controller
         $user = Auth::user();
         
         // Calculate fares for each vehicle type
-        $vehicleTypes = ['share', 'comfort', 'women', 'wav', 'black'];
+        $vehicleTypes = ['basic', 'comfort', 'black', 'wav'];
+
         $rideOptions = [];
         
         foreach ($vehicleTypes as $vehicleType) {
@@ -276,39 +237,114 @@ class PassengerController extends Controller
      * Get available drivers for a ride
      */
     public function getAvailableDrivers(Request $request)
-{
-    $request->validate([
-        'vehicle_type' => 'required|string|in:share,comfort,women,wav,black',
-        'pickup_latitude' => 'required|numeric',
-        'pickup_longitude' => 'required|numeric',
-    ]);
-    
-    $vehicleType = $request->input('vehicle_type');
-    $pickupLat = $request->input('pickup_latitude');
-    $pickupLng = $request->input('pickup_longitude');
-    
-    // Ensure ride search is stored in session
-    $rideSearch = session('ride_search');
-    if (!$rideSearch) {
+    {
+        $request->validate([
+            'vehicle_type' => 'required|string|in:basic,comfort,black,wav',
+            'pickup_latitude' => 'required|numeric',
+            'pickup_longitude' => 'required|numeric',
+        ]);
+        
+        $vehicleType = $request->input('vehicle_type');
+        $pickupLat = $request->input('pickup_latitude');
+        $pickupLng = $request->input('pickup_longitude');
+        
+        // Ensure ride search is stored in session
+        $rideSearch = session('ride_search');
+        if (!$rideSearch) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride search information missing. Please try again.'
+            ], 400);
+        }
+        
+        // Get available drivers for this location and vehicle type
+        $availableDrivers = $this->rideMatchingService->getAvailableDriversForSelection(
+            $pickupLat,
+            $pickupLng,
+            $vehicleType,
+            Auth::user()
+        );
+        
         return response()->json([
-            'success' => false,
-            'message' => 'Ride search information missing. Please try again.'
-        ], 400);
+            'success' => true,
+            'drivers' => $availableDrivers
+        ]);
     }
-    
-    // Get available drivers for this location and vehicle type
-    $availableDrivers = $this->rideMatchingService->getAvailableDriversForSelection(
-        $pickupLat,
-        $pickupLng,
-        $vehicleType,
-        Auth::user()
-    );
-    
-    return response()->json([
-        'success' => true,
-        'drivers' => $availableDrivers
-    ]);
-}
+
+    public function selectDriver(Request $request)
+    {
+        // Get vehicle type and coordinates from query parameters with a default value
+        $vehicleType = $request->query('vehicle_type', 'basic');
+        $pickupLat = $request->query('pickup_latitude');
+        $pickupLng = $request->query('pickup_longitude');
+        
+        // If no pickup coordinates are provided, get from session
+        if (!$pickupLat || !$pickupLng) {
+            $rideSearch = session('ride_search');
+            if ($rideSearch) {
+                $pickupLat = $rideSearch['pickup_latitude'] ?? null;
+                $pickupLng = $rideSearch['pickup_longitude'] ?? null;
+            }
+        }
+        
+        // Validate coordinates exist
+        if (!$pickupLat || !$pickupLng) {
+            return redirect()->route('passenger.book')->with('error', 'Pickup location information is missing. Please try again.');
+        }
+        
+        // Get ride info from session
+        $rideInfo = session('ride_search');
+        if (!$rideInfo) {
+            return redirect()->route('passenger.book')->with('error', 'Ride information is missing. Please try again.');
+        }
+        
+        // IMPORTANT FIX: Ensure required keys exist in $rideInfo
+        if (!isset($rideInfo['vehicle_type'])) {
+            $rideInfo['vehicle_type'] = $vehicleType;
+        }
+        
+        // Calculate price if it doesn't exist
+        if (!isset($rideInfo['price'])) {
+            // Calculate using the same method as in calculateRideOptions
+            $fare = $this->calculateFare(
+                $rideInfo['vehicle_type'] ?? $vehicleType,
+                $rideInfo['distance_km'] ?? 0,
+                $rideInfo['surge_multiplier'] ?? 1.0
+            );
+            
+            $rideInfo['price'] = $fare['total_fare'];
+        }
+        
+        // Get available drivers for the selected vehicle type
+        $drivers = $this->rideMatchingService->getAvailableDriversForSelection(
+            $pickupLat,
+            $pickupLng,
+            $vehicleType,
+            Auth::user()
+        );
+        
+        // Sort drivers by distance, then by rating (highest first), then by completed rides (highest first)
+        usort($drivers, function($a, $b) {
+            // First sort by distance (closest first)
+            if ($a['distance_km'] != $b['distance_km']) {
+                return $a['distance_km'] <=> $b['distance_km'];
+            }
+            
+            // Then by rating (highest first)
+            if ($a['rating'] != $b['rating']) {
+                return $b['rating'] <=> $a['rating'];
+            }
+            
+            // Finally by completed rides (highest first)
+            return $b['completed_rides'] <=> $a['completed_rides'];
+        });
+        
+        return view('passenger.selectDriver', [
+            'drivers' => $drivers,
+            'rideInfo' => $rideInfo,
+            'vehicle_type' => $vehicleType  // Make sure to pass this variable to the view
+        ]);
+    }
     
     /**
      * Request a ride with selected vehicle type and driver
@@ -316,8 +352,8 @@ class PassengerController extends Controller
     public function requestRide(Request $request)
 {
     $validated = $request->validate([
-        'vehicle_type' => 'required|string|in:share,comfort,women,wav,black',
-        'driver_id' => 'required|integer|exists:drivers,id', // Now driver_id is required
+        'vehicle_type' => 'required|string|in:basic,comfort,black,wav',
+        'driver_id' => 'nullable|integer|exists:drivers,id',
         'ride_preferences' => 'nullable|array'
     ]);
     
@@ -335,10 +371,6 @@ class PassengerController extends Controller
     $passenger = Passenger::where('user_id', Auth::id())->first();
     $user = Auth::user();
     
-    // Validate women-only ride restriction
-    if ($validated['vehicle_type'] === 'women' && $user->gender !== 'female') {
-        return redirect()->route('passenger.book')->with('error', 'Sorry, "Women" vehicle type is only available for female passengers.');
-    }
     
     // Calculate fare
     $fare = $this->calculateFare(
@@ -384,8 +416,15 @@ class PassengerController extends Controller
         }
     }
     
-    // Start the matching process with the selected driver
-    $matchingInitiated = $this->rideMatchingService->initiateMatching($ride, $validated['driver_id']);
+    // Start the matching process
+    $matchingInitiated = false;
+    if (isset($validated['driver_id'])) {
+        // Manual driver selection - send request only to the selected driver
+        $matchingInitiated = $this->rideMatchingService->initiateMatching($ride, $validated['driver_id']);
+    } else {
+        // Automatic driver matching
+        $matchingInitiated = $this->rideMatchingService->initiateMatching($ride);
+    }
     
     // Clear search session
     session()->forget('ride_search');
@@ -580,88 +619,52 @@ class PassengerController extends Controller
      * Save ride preferences
      */
     public function saveRidePreferences(Request $request)
-    {
-        $validated = $request->validate([
-            'preferences' => 'required|array'
-        ]);
+{
+    $validated = $request->validate([
+        'preferences' => 'required|array'
+    ]);
+    
+    $passenger = Passenger::where('user_id', Auth::id())->first();
+    $user = Auth::user();
+    
+    // Validate women_only_rides preference - only female passengers can set this
+    if (isset($validated['preferences']['women_only_rides']) && 
+        $validated['preferences']['women_only_rides'] && 
+        $user->gender !== 'female') {
         
-        $passenger = Passenger::where('user_id', Auth::id())->first();
-        $user = Auth::user();
-        
-        // Validate women_only_rides preference - only female passengers can set this
-        if (isset($validated['preferences']['women_only_rides']) && 
-            $validated['preferences']['women_only_rides'] && 
-            $user->gender !== 'female') {
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Women-only rides are only available for female passengers'
-            ], 400);
-        }
-        
-        $passenger->ride_preferences = $validated['preferences'];
-        $passenger->save();
-        
-        // Also update the user's women_only_rides preference if present
-        if (isset($validated['preferences']['women_only_rides'])) {
-            $user->women_only_rides = $validated['preferences']['women_only_rides'];
-            $user->save();
-        }
-        
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Women-only rides are only available for female passengers'
+        ], 400);
     }
     
-    /**
-     * Rate and review a completed ride
-     */
-    public function rateRide(Request $request, Ride $ride)
-    {
-        $validated = $request->validate([
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'nullable|string|max:500'
-        ]);
-        
-        $passenger = Passenger::where('user_id', Auth::id())->first();
-        
-        // Check if ride belongs to passenger and is completed
-        if ($ride->passenger_id !== $passenger->id || $ride->ride_status !== 'completed') {
-            return back()->with('error', 'You cannot review this ride.');
-        }
-        
-        // Check if already reviewed
-        if ($ride->is_reviewed) {
-            return back()->with('error', 'You have already reviewed this ride.');
-        }
-        
-        // Create a new review
-        DB::beginTransaction();
-        try {
-            $review = new \App\Models\Review();
-            $review->ride_id = $ride->id;
-            $review->reviewer_id = Auth::id();
-            $review->reviewed_id = $ride->driver->user_id;
-            $review->rating = $validated['rating'];
-            $review->comment = $validated['comment'];
-            $review->save();
-            
-            // Mark ride as reviewed
-            $ride->is_reviewed = true;
-            $ride->save();
-            
-            // Update driver's average rating
-            $driver = $ride->driver;
-            $avgRating = \App\Models\Review::where('reviewed_id', $driver->user_id)->avg('rating');
-            $driver->rating = round($avgRating, 2);
-            $driver->save();
-            
-            DB::commit();
-            
-            return back()->with('success', 'Thank you for your review!');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Failed to submit review. Please try again.');
-        }
+    // Handle vehicle_features array
+    if (isset($validated['preferences']['vehicle_features']) && is_array($validated['preferences']['vehicle_features'])) {
+        // Ensure only valid features are included
+        $validFeatures = ['ac', 'wifi', 'child_seat', 'usb_charger', 'pet_friendly', 'luggage_carrier'];
+        $validated['preferences']['vehicle_features'] = array_intersect(
+            $validated['preferences']['vehicle_features'], 
+            $validFeatures
+        );
     }
+    
+    // Initialize ride_preferences if it doesn't exist
+    if (!$passenger->ride_preferences) {
+        $passenger->ride_preferences = [];
+    }
+    
+    // Merge new preferences with existing ones
+    $passenger->ride_preferences = array_merge($passenger->ride_preferences ?? [], $validated['preferences']);
+    $passenger->save();
+    
+    // Also update the user's women_only_rides preference if present
+    if (isset($validated['preferences']['women_only_rides'])) {
+        $user->women_only_rides = $validated['preferences']['women_only_rides'];
+        $user->save();
+    }
+    
+    return response()->json(['success' => true]);
+}
     
     /**
      * Calculate fare based on vehicle type and distance
@@ -675,16 +678,15 @@ class PassengerController extends Controller
     {
         // Get fare settings based on vehicle type
         $fareSettings = [
-            'share' => ['base_fare' => 50, 'rate_per_km' => 15],
+            'basic' => ['base_fare' => 50, 'rate_per_km' => 15],
             'comfort' => ['base_fare' => 80, 'rate_per_km' => 20],
-            'women' => ['base_fare' => 100, 'rate_per_km' => 25],
             'wav' => ['base_fare' => 120, 'rate_per_km' => 30],
             'black' => ['base_fare' => 140, 'rate_per_km' => 35],
         ];
         
         // Use default if vehicle type not found
         if (!isset($fareSettings[$vehicleType])) {
-            $vehicleType = 'share';
+            $vehicleType = 'basic';
         }
         
         $baseFare = $fareSettings[$vehicleType]['base_fare'];
@@ -1011,13 +1013,13 @@ class PassengerController extends Controller
  */
 public function debugAvailableDrivers(Request $request)
 {
-    // Security check - in production, restrict this to admins or dev environment
-    // if (!app()->environment('local') && !Auth::user()->isAdmin()) {
-    //     return redirect()->route('passenger.dashboard')
-    //         ->with('error', 'Unauthorized access.');
-    // }
-    
     $results = [];
+    
+    // ADDED: Clear pickup coordinates from session to ensure we don't use stale data
+    if (session()->has('ride_search')) {
+        $rideSearch = session('ride_search');
+        \Log::info("Current ride_search in session: " . json_encode($rideSearch));
+    }
     
     // Get all drivers
     $allDrivers = Driver::with(['user', 'vehicle', 'driverLocation'])->get();
@@ -1047,8 +1049,14 @@ public function debugAvailableDrivers(Request $request)
         }
         
         // Check if driver has updated their location recently
-        if (!$driver->driverLocation || $driver->driverLocation->last_updated->lt(now()->subMinutes(5))) {
-            $reasons[] = 'Location not updated in last 5 minutes';
+        if (!$driver->driverLocation) {
+            $reasons[] = 'No location data available';
+        }
+        elseif ($driver->driverLocation->last_updated->lt(now()->subMinutes(10))) {
+            $reasons[] = 'Location not updated in last 10 minutes';
+            // ADDED: Show actual time
+            $minutes = now()->diffInMinutes($driver->driverLocation->last_updated);
+            $reasons[count($reasons)-1] .= " (last update: {$minutes} minutes ago)";
         } else {
             // If location is recent, calculate distance
             $pickup_lat = $request->input('lat', 0);
@@ -1062,7 +1070,7 @@ public function debugAvailableDrivers(Request $request)
                     $driver->driverLocation->longitude
                 );
                 
-                if ($distance > 10) {
+                if ($distance > 30) {
                     $reasons[] = 'Too far: ' . round($distance, 2) . 'km away';
                 }
             }
@@ -1093,7 +1101,18 @@ public function debugAvailableDrivers(Request $request)
         ];
     }
     
-    return view('passenger.debugDrivers', compact('results'));
+    // ADDED: Add debug information for the current user
+    $currentUser = Auth::user();
+    $currentPassenger = Passenger::where('user_id', $currentUser->id)->first();
+    
+    $debugInfo = [
+        'user_id' => $currentUser->id,
+        'gender' => $currentUser->gender,
+        'women_only_rides' => $currentUser->women_only_rides ? 'Yes' : 'No',
+        'passenger_id' => $currentPassenger ? $currentPassenger->id : 'None',
+    ];
+    
+    return view('passenger.debugDrivers', compact('results', 'debugInfo'));
 }
 
 public function nearbyDrivers(Request $request)
@@ -1115,12 +1134,12 @@ public function nearbyDrivers(Request $request)
         return view('passenger.nearbyDrivers', [
             'drivers' => [],
             'has_coordinates' => false,
-            'vehicleTypes' => ['share', 'comfort', 'women', 'wav', 'black']
+            'vehicleTypes' => ['basic', 'comfort', 'black', 'wav']
         ]);
     }
     
-    $vehicleType = $request->input('vehicle_type', 'share');
-    
+    $vehicleType = $request->input('vehicle_type', 'basic');
+
     // Get nearby drivers
     $nearbyDrivers = $this->rideMatchingService->getAvailableDriversForSelection(
         $latitude,
@@ -1135,7 +1154,18 @@ public function nearbyDrivers(Request $request)
         'latitude' => $latitude,
         'longitude' => $longitude,
         'vehicle_type' => $vehicleType,
-        'vehicleTypes' => ['share', 'comfort', 'women', 'wav', 'black']
+        'vehicleTypes' => ['basic', 'comfort', 'black', 'wav']
     ]);
 }
+public function clearSessionData()
+{
+    // Clear ride search data from session
+    session()->forget('ride_search');
+    
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Session data cleared'
+    ]);
+}
+
 }

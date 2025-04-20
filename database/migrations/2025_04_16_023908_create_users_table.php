@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
@@ -21,6 +18,7 @@ return new class extends Migration
             $table->string('phone')->unique();
             $table->date('birthday')->nullable();
             $table->enum('gender', ['male', 'female'])->nullable();
+            $table->boolean('women_only_rides')->default(false);
             $table->enum('role', ['driver', 'passenger', 'admin']);
             $table->boolean('is_online')->default(false);
             $table->enum('account_status', ['deactivated', 'pending', 'activated', 'suspended', 'deleted'])->default('deactivated');
@@ -30,9 +28,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('users');

@@ -85,9 +85,8 @@ class FareSetting extends Model
     public function getVehicleTypeDisplayAttribute()
     {
         $displayNames = [
-            'share' => 'Share',
+            'basic' => 'Basic',
             'comfort' => 'Comfort',
-            'women' => 'Women',
             'wav' => 'Wheelchair Accessible',
             'black' => 'Premium Black'
         ];
@@ -101,21 +100,12 @@ class FareSetting extends Model
     public function getDescriptionAttribute()
     {
         $descriptions = [
-            'share' => 'Economic shared rides for daily commuters',
+            'basic' => 'Economic rides for daily commuters',
             'comfort' => 'Standard private rides with comfortable vehicles',
-            'women' => 'Women-only service with female drivers for enhanced security',
             'wav' => 'Wheelchair accessible vehicles with trained drivers',
             'black' => 'Premium service with high-end vehicles and professional drivers'
         ];
         
         return $descriptions[$this->vehicle_type] ?? '';
-    }
-    
-    /**
-     * Check if this fare setting is for women-only service
-     */
-    public function isWomenOnly()
-    {
-        return $this->vehicle_type === 'women';
     }
 }

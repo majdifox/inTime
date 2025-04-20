@@ -89,6 +89,13 @@
                         </div>
                     </form>
                 </div>
+<!-- In passenger/rideHistory.blade.php in the ride card -->
+@if(isset($ride) && $ride->driver)
+    <a href="{{ route('driver.public.profile', $ride->driver->id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
+        View Driver Profile
+    </a>
+@endif
+
                 
                 <!-- User Info Card -->
                 <div class="bg-white rounded-lg shadow-md p-6">
@@ -127,49 +134,138 @@
                         @endif
                     </div>
                 </div>
-                
-                <!-- Ride Preferences Card -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">Ride Preferences</h2>
-                        <a href="{{ route('passenger.save.preferences') }}" class="text-blue-600 text-sm font-medium hover:text-blue-800">
-                            Edit
-                        </a>
-                    </div>
+                <!-- Ride Preferences Summary Card (clickable to open modal) -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6 cursor-pointer" id="open-preferences-modal">
+    <div class="flex justify-between items-center">
+        <h2 class="text-xl font-bold">Ride Preferences</h2>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+        </svg>
+    </div>
+    
+    <div class="mt-4 space-y-2">
+        <div class="flex justify-between">
+            <span class="text-gray-600">Preferred Vehicle Type</span>
+            <span class="font-medium" id="preferred-vehicle-summary">{{ $passenger->ride_preferences['preferred_vehicle'] ?? 'Any' }}</span>
+        </div>
+        
+        @if(Auth::user()->gender === 'female')
+        <div class="flex justify-between">
+            <span class="text-gray-600">Women-Only Rides 2</span>
+            <span class="font-medium" id="women-only-summary">
+                @if(Auth::user()->women_only_rides)
+                <span class="text-pink-600">Enabled</span>
+                @else
+                Disabled
+                @endif
+            </span>
+        </div>
+        
+        @endif
+        
+        <div class="flex justify-between">
+            <span class="text-gray-600">Quiet Ride</span>
+            <span class="font-medium" id="quiet-ride-summary">
+                {{ isset($passenger->ride_preferences['quiet_ride']) && $passenger->ride_preferences['quiet_ride'] ? 'Enabled' : 'Disabled' }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Ride Preferences Modal -->
+<div id="preferences-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" id="modal-backdrop"></div>
+        
+        <div class="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div class="absolute top-0 right-0 pt-4 pr-4">
+                <button type="button" id="close-preferences-modal" class="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div>
+                <div class="mt-3 text-center sm:mt-0 sm:text-left">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        Edit Ride Preferences x
+                    </h3>
                     
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Preferred Vehicle Type</span>
-                            <span class="font-medium">{{ isset($passenger->ride_preferences['vehicle_type']) ? ucfirst($passenger->ride_preferences['vehicle_type']) : 'Any' }}</span>
-                        </div>
-                        
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Women-Only Rides</span>
-                            <span class="px-2 py-1 rounded-full text-xs {{ Auth::user()->women_only_rides ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                {{ Auth::user()->women_only_rides ? 'Enabled' : 'Disabled' }}
-                            </span>
-                        </div>
-                        
-                        @if(isset($passenger->ride_preferences['quiet_ride']) && $passenger->ride_preferences['quiet_ride'])
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Quiet Ride</span>
-                            <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                                Enabled
-                            </span>
-                        </div>
-                        @endif
-                        
-                        @if(isset($passenger->ride_preferences['assistance_required']) && $passenger->ride_preferences['assistance_required'])
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Assistance Required</span>
-                            <span class="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                                Enabled
-                            </span>
-                        </div>
-                        @endif
+                    <div class="mt-4">
+                        <form id="preferences-form" method="POST">
+                            @csrf
+                            
+                            <!-- Preferred Vehicle Type -->
+                            <div class="mb-4">
+                                <label for="preferred_vehicle" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Preferred Vehicle Type
+                                </label>
+                                <select id="preferred_vehicle" name="preferences[preferred_vehicle]" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-black focus:border-black sm:text-sm rounded-md">
+                                    <option value="">Any</option>
+                                    <option value="basic" {{ isset($passenger->ride_preferences['preferred_vehicle']) && $passenger->ride_preferences['preferred_vehicle'] == 'basic' ? 'selected' : '' }}>Basic</option>
+                                    <option value="comfort" {{ isset($passenger->ride_preferences['preferred_vehicle']) && $passenger->ride_preferences['preferred_vehicle'] == 'comfort' ? 'selected' : '' }}>Comfort</option>
+                                    <option value="black" {{ isset($passenger->ride_preferences['preferred_vehicle']) && $passenger->ride_preferences['preferred_vehicle'] == 'black' ? 'selected' : '' }}>Black</option>
+                                    <option value="wav" {{ isset($passenger->ride_preferences['preferred_vehicle']) && $passenger->ride_preferences['preferred_vehicle'] == 'wav' ? 'selected' : '' }}>WAV</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Women-Only Rides (visible only to female passengers) -->
+                            @if(Auth::user()->gender === 'female')
+                            <div class="mb-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                                            Women-Only Rides
+                                        </label>
+                                        <span class="text-xs text-gray-500">When enabled, you'll be matched only with female drivers.</span>
+                                    </div>
+                                    
+                                    <div class="flex items-center">
+                                        <button type="button" id="women-only-toggle" class="relative inline-flex h-6 w-11 items-center rounded-full {{ Auth::user()->women_only_rides ? 'bg-pink-500' : 'bg-gray-300' }} transition-colors duration-300">
+                                            <span id="women-only-toggle-dot" class="inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 {{ Auth::user()->women_only_rides ? 'translate-x-5' : 'translate-x-1' }}"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="women_only_rides" name="preferences[women_only_rides]" value="{{ Auth::user()->women_only_rides ? '1' : '0' }}">
+                            </div>
+                            @endif
+                            
+                            <!-- Quiet Ride Preference -->
+                            <div class="mb-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                                            Quiet Ride
+                                        </label>
+                                        <span class="text-xs text-gray-500">Prefer minimal conversation during your ride.</span>
+                                    </div>
+                                    
+                                    <div class="flex items-center">
+                                        <button type="button" id="quiet-ride-toggle" class="relative inline-flex h-6 w-11 items-center rounded-full {{ isset($passenger->ride_preferences['quiet_ride']) && $passenger->ride_preferences['quiet_ride'] ? 'bg-blue-500' : 'bg-gray-300' }} transition-colors duration-300">
+                                            <span id="quiet-ride-toggle-dot" class="inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 {{ isset($passenger->ride_preferences['quiet_ride']) && $passenger->ride_preferences['quiet_ride'] ? 'translate-x-5' : 'translate-x-1' }}"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="quiet_ride" name="preferences[quiet_ride]" value="{{ isset($passenger->ride_preferences['quiet_ride']) && $passenger->ride_preferences['quiet_ride'] ? '1' : '0' }}">
+                            </div>
+                            
+                            <!-- Save Button -->
+                            <div class="mt-5 sm:mt-6">
+                                <button type="button" id="save-preferences-btn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-black text-base font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black sm:text-sm">
+                                    Save Preferences
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+                
+              
             
             <!-- Right Column - Map, Active/Recent Rides -->
             <div class="w-full lg:w-2/3 flex flex-col gap-6">
@@ -487,6 +583,81 @@
             </div>
         </div>
     </div>
+    <!-- Vehicle Features Preferences Section -->
+<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 mb-1">
+        Preferred Vehicle Features
+    </label>
+    <p class="text-xs text-gray-500 mb-2">Select vehicle features that are important to you.</p>
+    
+    <div class="grid grid-cols-2 gap-2">
+        <div class="flex items-start">
+            <div class="flex items-center h-5">
+                <input id="feature_ac" name="preferences[vehicle_features][]" type="checkbox" value="ac" 
+                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    {{ isset($passenger->ride_preferences['vehicle_features']) && in_array('ac', $passenger->ride_preferences['vehicle_features']) ? 'checked' : '' }}>
+            </div>
+            <div class="ml-3 text-sm">
+                <label for="feature_ac" class="font-medium text-gray-700">Air Conditioning</label>
+            </div>
+        </div>
+        
+        <div class="flex items-start">
+            <div class="flex items-center h-5">
+                <input id="feature_wifi" name="preferences[vehicle_features][]" type="checkbox" value="wifi" 
+                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    {{ isset($passenger->ride_preferences['vehicle_features']) && in_array('wifi', $passenger->ride_preferences['vehicle_features']) ? 'checked' : '' }}>
+            </div>
+            <div class="ml-3 text-sm">
+                <label for="feature_wifi" class="font-medium text-gray-700">WiFi</label>
+            </div>
+        </div>
+        
+        <div class="flex items-start">
+            <div class="flex items-center h-5">
+                <input id="feature_child_seat" name="preferences[vehicle_features][]" type="checkbox" value="child_seat" 
+                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    {{ isset($passenger->ride_preferences['vehicle_features']) && in_array('child_seat', $passenger->ride_preferences['vehicle_features']) ? 'checked' : '' }}>
+            </div>
+            <div class="ml-3 text-sm">
+                <label for="feature_child_seat" class="font-medium text-gray-700">Child Seat</label>
+            </div>
+        </div>
+        
+        <div class="flex items-start">
+            <div class="flex items-center h-5">
+                <input id="feature_usb_charger" name="preferences[vehicle_features][]" type="checkbox" value="usb_charger" 
+                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    {{ isset($passenger->ride_preferences['vehicle_features']) && in_array('usb_charger', $passenger->ride_preferences['vehicle_features']) ? 'checked' : '' }}>
+            </div>
+            <div class="ml-3 text-sm">
+                <label for="feature_usb_charger" class="font-medium text-gray-700">USB Charger</label>
+            </div>
+        </div>
+        
+        <div class="flex items-start">
+            <div class="flex items-center h-5">
+                <input id="feature_pet_friendly" name="preferences[vehicle_features][]" type="checkbox" value="pet_friendly" 
+                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    {{ isset($passenger->ride_preferences['vehicle_features']) && in_array('pet_friendly', $passenger->ride_preferences['vehicle_features']) ? 'checked' : '' }}>
+            </div>
+            <div class="ml-3 text-sm">
+                <label for="feature_pet_friendly" class="font-medium text-gray-700">Pet Friendly</label>
+            </div>
+        </div>
+        
+        <div class="flex items-start">
+            <div class="flex items-center h-5">
+                <input id="feature_luggage_carrier" name="preferences[vehicle_features][]" type="checkbox" value="luggage_carrier" 
+                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    {{ isset($passenger->ride_preferences['vehicle_features']) && in_array('luggage_carrier', $passenger->ride_preferences['vehicle_features']) ? 'checked' : '' }}>
+            </div>
+            <div class="ml-3 text-sm">
+                <label for="feature_luggage_carrier" class="font-medium text-gray-700">Luggage Carrier</label>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Preferences Modal -->
     <div id="preferences-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
@@ -529,7 +700,7 @@
                         <div class="flex items-center">
                             <input id="women_only_rides" name="ride_preferences[women_only_rides]" type="checkbox" class="h-4 w-4 text-black focus:ring-black border-gray-300 rounded" {{ Auth::user()->women_only_rides ? 'checked' : '' }}>
                             <label for="women_only_rides" class="ml-2 block text-sm text-gray-700">
-                                Women-Only Rides
+                                Women-Only Rides x
                             </label>
                         </div>
                         <p class="mt-1 text-xs text-gray-500">Only available for female passengers. You'll be matched with female drivers.</p>
@@ -822,6 +993,342 @@
                 map.invalidateSize();
             });
         });
+        document.addEventListener('DOMContentLoaded', function() {
+    // Create a debug panel
+    const debugPanel = document.createElement('div');
+    debugPanel.style.position = 'fixed';
+    debugPanel.style.bottom = '10px';
+    debugPanel.style.right = '10px';
+    debugPanel.style.backgroundColor = '#f8f9fa';
+    debugPanel.style.padding = '15px';
+    debugPanel.style.borderRadius = '5px';
+    debugPanel.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
+    debugPanel.style.zIndex = '9999';
+    debugPanel.style.minWidth = '300px';
+    
+    // Add title
+    const title = document.createElement('h4');
+    title.textContent = 'Passenger Debug Tools';
+    title.style.marginBottom = '10px';
+    debugPanel.appendChild(title);
+    
+    // Add clear session button
+    const clearSessionButton = document.createElement('button');
+    clearSessionButton.textContent = 'Clear Session Data';
+    clearSessionButton.className = 'btn btn-warning btn-sm';
+    clearSessionButton.style.marginRight = '10px';
+    clearSessionButton.style.marginBottom = '10px';
+    clearSessionButton.addEventListener('click', function() {
+        fetch('/passenger/clear-session', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('Session cleared: ' + data.message);
+            console.log('Session cleared:', data);
+        })
+        .catch(error => {
+            console.error('Error clearing session:', error);
+        });
+    });
+    debugPanel.appendChild(clearSessionButton);
+    
+    // Add a refresh location button to force location refresh
+    const refreshLocationButton = document.createElement('button');
+    refreshLocationButton.textContent = 'Refresh Nearby Drivers';
+    refreshLocationButton.className = 'btn btn-primary btn-sm';
+    refreshLocationButton.style.marginBottom = '10px';
+    refreshLocationButton.addEventListener('click', function() {
+        // Get current location or use default test location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    window.location.href = `/passenger/nearby-drivers?latitude=${lat}&longitude=${lng}`;
+                },
+                function(error) {
+                    console.error('Geolocation error:', error);
+                    alert('Could not get your location. Using default location.');
+                    // Use a default location as fallback
+                    window.location.href = '/passenger/nearby-drivers?latitude=32.2603695&longitude=-9.2453128';
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by this browser. Using default location.');
+            window.location.href = '/passenger/nearby-drivers?latitude=32.2603695&longitude=-9.2453128';
+        }
+    });
+    debugPanel.appendChild(refreshLocationButton);
+    
+    // Add location status
+    const locationStatus = document.createElement('div');
+    locationStatus.style.fontSize = '12px';
+    locationStatus.style.marginTop = '10px';
+    locationStatus.textContent = 'Location: Getting status...';
+    debugPanel.appendChild(locationStatus);
+    
+    // Add session info
+    const sessionInfo = document.createElement('div');
+    sessionInfo.style.fontSize = '12px';
+    sessionInfo.style.marginTop = '5px'; 
+    sessionInfo.textContent = 'Session: Checking...';
+    debugPanel.appendChild(sessionInfo);
+    
+    // Add to body
+    document.body.appendChild(debugPanel);
+    
+    // Check for geolocation support
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                locationStatus.textContent = `Location: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+            },
+            function(error) {
+                locationStatus.textContent = `Location error: ${error.message}`;
+            }
+        );
+    } else {
+        locationStatus.textContent = 'Location: Geolocation not supported';
+    }
+    
+    // Check session status
+    fetch('/api/server-time')
+        .then(response => response.json())
+        .then(data => {
+            sessionInfo.textContent = `Server time: ${new Date(data.server_time).toLocaleString()}`;
+        })
+        .catch(error => {
+            sessionInfo.textContent = 'Session: Error checking server';
+            console.error('Error fetching server time:', error);
+        });
+});
+
+// Add this to driver debugging page to force location update
+function forceLocationUpdate() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                fetch('/driver/force-location-refresh', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lng
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Location forcefully updated: ' + data.message);
+                    console.log('Location update:', data);
+                    // Reload the page to see the changes
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error('Error updating location:', error);
+                    alert('Error updating location: ' + error);
+                });
+            },
+            function(error) {
+                console.error('Geolocation error:', error);
+                alert('Could not get your location. Error: ' + error.message);
+            }
+        );
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const openModalBtn = document.getElementById('open-preferences-modal');
+    const modal = document.getElementById('preferences-modal');
+    const closeModalBtn = document.getElementById('close-preferences-modal');
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const saveBtn = document.getElementById('save-preferences-btn');
+    const form = document.getElementById('preferences-form');
+    
+    // Toggle buttons
+    const womenOnlyToggle = document.getElementById('women-only-toggle');
+    const womenOnlyDot = document.getElementById('women-only-toggle-dot');
+    const womenOnlyInput = document.getElementById('women_only_rides');
+    
+    const quietRideToggle = document.getElementById('quiet-ride-toggle');
+    const quietRideDot = document.getElementById('quiet-ride-toggle-dot');
+    const quietRideInput = document.getElementById('quiet_ride');
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // Open modal
+    if (openModalBtn) {
+        openModalBtn.addEventListener('click', function() {
+            modal.classList.remove('hidden');
+        });
+    }
+    
+    // Close modal
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+        });
+    }
+    
+    // Close modal on outside click
+    if (modalBackdrop) {
+        modalBackdrop.addEventListener('click', function() {
+            modal.classList.add('hidden');
+        });
+    }
+    
+    // Toggle women-only rides
+    if (womenOnlyToggle) {
+        womenOnlyToggle.addEventListener('click', function() {
+            const isEnabled = womenOnlyToggle.classList.contains('bg-pink-500');
+            
+            // Update UI
+            if (isEnabled) {
+                womenOnlyToggle.classList.remove('bg-pink-500');
+                womenOnlyToggle.classList.add('bg-gray-300');
+                womenOnlyDot.classList.remove('translate-x-5');
+                womenOnlyDot.classList.add('translate-x-1');
+                womenOnlyInput.value = '0';
+            } else {
+                womenOnlyToggle.classList.remove('bg-gray-300');
+                womenOnlyToggle.classList.add('bg-pink-500');
+                womenOnlyDot.classList.remove('translate-x-1');
+                womenOnlyDot.classList.add('translate-x-5');
+                womenOnlyInput.value = '1';
+            }
+        });
+    }
+    
+    // Toggle quiet ride
+    if (quietRideToggle) {
+        quietRideToggle.addEventListener('click', function() {
+            const isEnabled = quietRideToggle.classList.contains('bg-blue-500');
+            
+            // Update UI
+            if (isEnabled) {
+                quietRideToggle.classList.remove('bg-blue-500');
+                quietRideToggle.classList.add('bg-gray-300');
+                quietRideDot.classList.remove('translate-x-5');
+                quietRideDot.classList.add('translate-x-1');
+                quietRideInput.value = '0';
+            } else {
+                quietRideToggle.classList.remove('bg-gray-300');
+                quietRideToggle.classList.add('bg-blue-500');
+                quietRideDot.classList.remove('translate-x-1');
+                quietRideDot.classList.add('translate-x-5');
+                quietRideInput.value = '1';
+            }
+        });
+    }
+    
+    // Save preferences
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            // Get form data
+            const formData = new FormData(form);
+            const preferences = {};
+            
+            // Convert form data to JSON object
+            for (let entry of formData.entries()) {
+                // Handle nested preferences object
+                if (entry[0].startsWith('preferences[')) {
+                    const key = entry[0].match(/\[([^\]]+)\]/)[1];
+                    preferences[key] = entry[1];
+                }
+            }
+            
+            // Convert string values to appropriate types
+            if (preferences.women_only_rides) {
+                preferences.women_only_rides = preferences.women_only_rides === '1';
+            }
+            
+            if (preferences.quiet_ride) {
+                preferences.quiet_ride = preferences.quiet_ride === '1';
+            }
+            
+            // Send AJAX request
+            fetch('{{ route("passenger.save.preferences") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({ preferences: preferences })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showNotification('Preferences saved successfully', 'success');
+                    
+                    // Update summary in dashboard
+                    updatePreferenceSummary(preferences);
+                    
+                    // Close modal
+                    modal.classList.add('hidden');
+                } else {
+                    throw new Error(data.message || 'Failed to save preferences');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error saving preferences: ' + error.message, 'error');
+            });
+        });
+    }
+    
+    // Function to show notification
+    function showNotification(message, type = 'success') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Remove notification after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+    // Function to update preference summary in dashboard
+    function updatePreferenceSummary(preferences) {
+        const vehicleSummary = document.getElementById('preferred-vehicle-summary');
+        if (vehicleSummary) {
+            vehicleSummary.textContent = preferences.preferred_vehicle || 'Any';
+        }
+        
+        const womenOnlySummary = document.getElementById('women-only-summary');
+        if (womenOnlySummary && preferences.women_only_rides !== undefined) {
+            if (preferences.women_only_rides) {
+                womenOnlySummary.innerHTML = '<span class="text-pink-600">Enabled</span>';
+            } else {
+                womenOnlySummary.textContent = 'Disabled';
+            }
+        }
+        
+        const quietRideSummary = document.getElementById('quiet-ride-summary');
+        if (quietRideSummary && preferences.quiet_ride !== undefined) {
+            quietRideSummary.textContent = preferences.quiet_ride ? 'Enabled' : 'Disabled';
+        }
+    }
+});
     </script>
 </body>
 </html>

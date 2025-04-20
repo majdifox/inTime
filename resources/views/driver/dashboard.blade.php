@@ -493,6 +493,26 @@
                     @endif
                 </div>
             </div>
+            <!-- Vehicle Features Requested -->
+@if(!empty($request->ride->passenger->ride_preferences['vehicle_features']))
+<div class="flex items-start mt-2">
+    <div class="mr-3 text-gray-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+    </div>
+    <div>
+        <p class="text-sm font-medium">Requested Features</p>
+        <div class="flex flex-wrap gap-1 mt-1">
+            @foreach($request->ride->passenger->ride_preferences['vehicle_features'] as $feature)
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                    {{ ucfirst(str_replace('_', ' ', $feature)) }}
+                </span>
+            @endforeach
+        </div>
+    </div>
+</div>
+@endif
             
             <!-- Right Column - Map and Rides -->
             <div class="w-full lg:w-2/3 flex flex-col gap-6">
