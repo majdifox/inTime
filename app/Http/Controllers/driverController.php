@@ -677,6 +677,95 @@ class DriverController extends Controller
     ]);
 }
 
+/**
+ * Show rate ride page for driver
+ * 
+ * @param Ride $ride The ride to rate
+ * @return \Illuminate\Http\Response
+ */
+public function rateRide(Ride $ride)
+{
+    $driver = Driver::where('user_id', Auth::id())->first();
+    
+    // Security check - ensure the ride belongs to this driver
+    if ($ride->driver_id !== $driver->id) {
+        return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to rate this ride.');
+    }
+    
+    // Check if ride is completed
+    if ($ride->ride_status !== 'completed') {
+        return redirect()->route('driver.dashboard')->with('error', 'Only completed rides can be rated.');
+    }
+    
+    // Check if ride is already reviewed by the driver
+    $reviewed = Review::where('ride_id', $ride->id)
+        ->where('reviewer_id', Auth::id())
+        ->exists();
+        
+    if ($reviewed) {
+        return redirect()->route('driver.dashboard')->with('info', 'You have already rated this ride.');
+    }
+    
+    // Load passenger info
+    $ride->load('passenger.user');
+    
+    return view('driver.rateRide', compact('ride'));
+}
+
+/**
+ * Submit rating for a completed ride
+ * 
+ * @param Request $request The request data
+ * @param Ride $ride The ride to rate
+ * @return \Illuminate\Http\RedirectResponse
+ */
+public function submitRating(Request $request, Ride $ride)
+{
+    // Validate the incoming request
+    $validated = $request->validate([
+        'rating' => 'required|integer|min:1|max:5',
+        'comment' => 'nullable|string|max:500',
+    ]);
+    
+    // Security check - ensure the ride belongs to this driver
+    $driver = Driver::where('user_id', Auth::id())->first();
+    if ($ride->driver_id !== $driver->id) {
+        return back()->with('error', 'You are not authorized to rate this ride.');
+    }
+    
+    // Check if ride is completed
+    if ($ride->ride_status !== 'completed') {
+        return back()->with('error', 'Only completed rides can be rated.');
+    }
+    
+    // Check if ride is already reviewed by the driver
+    $reviewed = Review::where('ride_id', $ride->id)
+        ->where('reviewer_id', Auth::id())
+        ->exists();
+        
+    if ($reviewed) {
+        return redirect()->route('driver.dashboard')->with('info', 'You have already rated this ride.');
+    }
+    
+    // Create the review
+    $review = new Review();
+    $review->ride_id = $ride->id;
+    $review->reviewer_id = Auth::id();
+    $review->reviewed_id = $ride->passenger->user_id;
+    $review->rating = $validated['rating'];
+    $review->comment = $validated['comment'] ?? null;
+    $review->save();
+    
+    // Update the passenger's rating
+    $passenger = $ride->passenger;
+    $allRatings = Review::where('reviewed_id', $passenger->user_id)->pluck('rating');
+    $newRating = $allRatings->avg();
+    $passenger->rating = $newRating;
+    $passenger->save();
+    
+    return redirect()->route('driver.dashboard')->with('success', 'Thank you for your rating and feedback!');
+}
+
     /**
      * View ride history
      */
