@@ -33,7 +33,7 @@
             <!-- Navigation Links -->
             <nav class="hidden md:flex space-x-6">
                 <a href="{{ route('passenger.history') }}" class="font-medium">Ride History</a>
-                <a href="{{ route('profile.edit') }}" class="font-medium">My Profile</a>
+                <a href="{{ route('passenger.profile.private') }}" class="font-medium">My Profile</a>
             </nav>
         </div>
         

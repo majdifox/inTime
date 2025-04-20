@@ -7,6 +7,11 @@ use App\Models\Driver;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\Ride;
+use Illuminate\Support\Facades\DB; // Add this import
+use Illuminate\Support\Facades\Hash; // For password updates
+use Illuminate\Validation\Rule; // For validation rules
+use App\Models\RideRequest; // Add this import
+
 use Illuminate\Support\Facades\Auth;
 
 class DriverProfileController extends Controller

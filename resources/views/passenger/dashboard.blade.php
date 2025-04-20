@@ -34,6 +34,7 @@
                 <a href="{{ route('passenger.history') }}" class="font-medium">Ride History</a>
                 <a href="{{ route('passenger.profile.private') }}" class="font-medium">My Profile</a>
 
+
             </nav>
         </div>
         

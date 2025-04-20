@@ -38,6 +38,9 @@
                 <a href="{{ route('driver.active.rides') }}" class="font-medium hover:text-blue-600 transition">Active Rides</a>
                 <a href="{{ route('driver.history') }}" class="font-medium hover:text-blue-600 transition">History</a>
                 <a href="{{ route('driver.earnings') }}" class="font-medium hover:text-blue-600 transition">Earnings</a>
+                <a href="{{ route('driver.profile.private') }}" class="font-medium hover:text-blue-600 transition">My Profile</a>
+
+            
             </nav>
         </div>
         
@@ -67,7 +70,7 @@
                 
                 <!-- Profile Dropdown -->
                 <div class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50" id="profile-dropdown">
-                    <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile Settings</a>
+                    <!--  -->
                     <a href="{{ route('driver.reviews') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Reviews</a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
@@ -102,7 +105,7 @@
                         <a href="{{ route('driver.active.rides') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Active Rides</a>
                         <a href="{{ route('driver.history') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">History</a>
                         <a href="{{ route('driver.earnings') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Earnings</a>
-                        <a href="{{ route('profile.edit') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Profile Settings</a>
+                        
                         <a href="{{ route('driver.reviews') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">My Reviews</a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -135,6 +138,14 @@
                 <p>{{ session('warning') }}</p>
             </div>
         @endif
+
+        <!-- And for profile buttons that might appear in the dashboard: -->
+<a href="{{ route('driver.profile.private') }}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    View Profile
+</a>
 
         <div class="card mb-4">
     <div class="card-header">Driver Visibility Status</div>
@@ -444,7 +455,7 @@
                                 <p class="text-sm text-gray-500">{{ $driver->vehicle->plate_number }}</p>
                             @else
                                 <p class="text-gray-600">No vehicle information available</p>
-                                <a href="{{ route('profile.edit') }}#vehicle-section" class="text-blue-600 hover:text-blue-800 text-sm hover:underline">
+                                <a href="{{ route('driver.profile.private') }}#vehicle-section" class="text-blue-600 hover:text-blue-800 text-sm hover:underline">
                                     Add Vehicle
                                 </a>
                             @endif
@@ -467,9 +478,7 @@
                                 </span>
                             </div>
                             
-                            <a href="{{ route('profile.edit') }}#vehicle-section" class="text-blue-600 hover:text-blue-800 text-sm hover:underline">
-                                Update Vehicle
-                            </a>
+                          
                         </div>
                         
                         @if($driver->vehicle->type === 'women' && !($driver->women_only_driver && Auth::user()->gender === 'female'))
