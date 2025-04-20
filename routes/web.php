@@ -144,7 +144,21 @@ Route::middleware(['auth', 'ispassenger'])->prefix('passenger')->name('passenger
     ->name('passenger.clear.session');
     Route::post('/save-preferences', [PassengerController::class, 'saveRidePreferences'])->name('save.preferences');
     
+ // Profile routes
+ Route::get('/profile/{id}', [App\Http\Controllers\PassengerProfileController::class, 'show'])
+ ->name('public.profile');
 
+Route::get('/profile', [App\Http\Controllers\PassengerProfileController::class, 'privateProfile'])
+ ->name('profile.private');
+
+Route::post('/profile/preferences', [App\Http\Controllers\PassengerProfileController::class, 'updatePreferences'])
+ ->name('profile.update.preferences');
+
+Route::post('/profile/location/add', [App\Http\Controllers\PassengerProfileController::class, 'addFavoriteLocation'])
+ ->name('profile.add.location');
+
+Route::post('/profile/location/remove', [App\Http\Controllers\PassengerProfileController::class, 'removeFavoriteLocation'])
+ ->name('profile.remove.location');
 });
 
 // Admin routes
