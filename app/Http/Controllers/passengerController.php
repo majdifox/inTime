@@ -593,6 +593,60 @@ class PassengerController extends Controller
             
         return view('passenger.rideHistory', compact('rides'));
     }
+
+    /**
+ * Rate a completed ride
+ * 
+ * @param Request $request The request data
+ * @param Ride $ride The ride to rate
+ * @return \Illuminate\Http\RedirectResponse
+ */
+public function rateRide(Request $request, Ride $ride)
+{
+    // Validate the incoming request
+    $validated = $request->validate([
+        'rating' => 'required|integer|min:1|max:5',
+        'comment' => 'nullable|string|max:500',
+    ]);
+    
+    // Security check - ensure the ride belongs to this passenger
+    $passenger = Passenger::where('user_id', Auth::id())->first();
+    if ($ride->passenger_id !== $passenger->id) {
+        return back()->with('error', 'You are not authorized to rate this ride.');
+    }
+    
+    // Check if ride is completed
+    if ($ride->ride_status !== 'completed') {
+        return back()->with('error', 'Only completed rides can be rated.');
+    }
+    
+    // Check if ride is already reviewed
+    if ($ride->is_reviewed) {
+        return back()->with('error', 'This ride has already been reviewed.');
+    }
+    
+    // Create the review
+    $review = new Review();
+    $review->ride_id = $ride->id;
+    $review->reviewer_id = $passenger->user_id;
+    $review->reviewed_id = $ride->driver->user_id;
+    $review->rating = $validated['rating'];
+    $review->comment = $validated['comment'] ?? null;
+    $review->save();
+    
+    // Update the driver's rating
+    $driver = $ride->driver;
+    $allRatings = Review::where('reviewed_id', $driver->user_id)->pluck('rating');
+    $newRating = $allRatings->avg();
+    $driver->rating = $newRating;
+    $driver->save();
+    
+    // Mark the ride as reviewed
+    $ride->is_reviewed = true;
+    $ride->save();
+    
+    return back()->with('success', 'Thank you for your rating and feedback!');
+}
     
     /**
      * Save favorite locations
