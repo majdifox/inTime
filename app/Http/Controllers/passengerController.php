@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Passenger;
 use App\Models\FareSetting;
 use App\Models\RideRequest;
+use App\Models\Review; 
 use App\Services\RideMatchingService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
