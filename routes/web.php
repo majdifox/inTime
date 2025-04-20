@@ -92,6 +92,23 @@ Route::post('/driver/force-location-refresh', [DriverController::class, 'forceLo
     Route::patch('/driver/vehicle', [DriverController::class, 'updateVehicle'])->name('driver.vehicle.update');
     Route::get('/driver/profile-settings', [DriverController::class, 'profileSettings'])->name('driver.profile.settings');
     Route::patch('/driver/password', [DriverController::class, 'updatePassword'])->name('driver.password.update');
+      // Private profile view
+      Route::get('/driver/profile/private', [App\Http\Controllers\DriverProfileController::class, 'privateProfile'])
+      ->name('driver.profile.private');
+  
+  // Profile-related routes (these already exist but should be reviewed)
+  Route::patch('/driver/profile', [App\Http\Controllers\DriverController::class, 'updateProfile'])
+      ->name('driver.profile.update');
+  
+  Route::patch('/driver/vehicle', [App\Http\Controllers\DriverController::class, 'updateVehicle'])
+      ->name('driver.vehicle.update');
+  
+  Route::patch('/driver/password', [App\Http\Controllers\DriverProfileController::class, 'updatePassword'])
+      ->name('driver.password.update');
+  
+  // Toggle women-only mode
+  Route::post('/driver/toggle-women-only', [App\Http\Controllers\DriverController::class, 'toggleWomenOnlyMode'])
+      ->name('driver.toggle.women.only');
 });
 
 
