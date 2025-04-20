@@ -110,7 +110,12 @@ Route::post('/driver/force-location-refresh', [DriverController::class, 'forceLo
   Route::post('/driver/toggle-women-only', [App\Http\Controllers\DriverController::class, 'toggleWomenOnlyMode'])
       ->name('driver.toggle.women.only');
 
-      Route::get('/driver/ride/{ride}/rate', [DriverController::class, 'rateRide'])->name('driver.rate.ride');
+// Driver ride actions
+Route::post('/driver/ride/{id}/start', [DriverController::class, 'startRide'])->name('driver.ride.start');
+Route::post('/driver/ride/{id}/complete', [DriverController::class, 'completeRide'])->name('driver.ride.complete');
+
+// Driver rating system
+Route::get('/driver/ride/{ride}/rate', [DriverController::class, 'rateRide'])->name('driver.rate.ride');
 Route::post('/driver/ride/{ride}/submit-rating', [DriverController::class, 'submitRating'])->name('driver.submit.rating');
 });
 
@@ -179,6 +184,8 @@ Route::post('/profile/location/add', [App\Http\Controllers\PassengerProfileContr
 
 Route::post('/profile/location/remove', [App\Http\Controllers\PassengerProfileController::class, 'removeFavoriteLocation'])
  ->name('profile.remove.location');
+
+ Route::post('/passenger/ride/{ride}/rate', [PassengerController::class, 'rateRide'])->name('passenger.rate.ride');
 });
 
 // Admin routes
@@ -265,5 +272,12 @@ Route::middleware('auth')->prefix('api')->group(function() {
 Route::get('/api/server-time', function() {
     return response()->json([
         'server_time' => now()->toIso8601String()
+    ]);
+});
+
+Route::get('/test-ride-complete', function() {
+    return response()->json([
+        'success' => true,
+        'message' => 'Test route is working'
     ]);
 });

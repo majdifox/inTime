@@ -78,14 +78,16 @@ class PassengerController extends Controller
     }
 
     /**
-     * Show the active ride page
-     */
-    /**
  * Show the active ride page
  */
 public function activeRide()
 {
     $passenger = Passenger::where('user_id', Auth::id())->first();
+    
+    if (!$passenger) {
+        \Log::warning('No passenger record found for user ID: ' . Auth::id());
+        return redirect()->route('passenger.dashboard')->with('error', 'Passenger profile not found.');
+    }
     
     // Get active ride OR most recently completed rides (within the last hour)
     // that haven't been rated by the passenger yet
@@ -109,8 +111,17 @@ public function activeRide()
         ->first();
     
     if (!$activeRide) {
+        \Log::info('No active ride found for passenger: ' . $passenger->id);
         return redirect()->route('passenger.dashboard')->with('info', 'No active ride found.');
     }
+    
+    \Log::info('Active ride found', [
+        'ride_id' => $activeRide->id,
+        'ride_status' => $activeRide->ride_status,
+        'reservation_status' => $activeRide->reservation_status,
+        'is_reviewed' => $activeRide->is_reviewed,
+        'has_dropoff_time' => $activeRide->dropoff_time ? 'yes' : 'no'
+    ]);
     
     // If the ride is completed but not rated, show the rating view
     if ($activeRide->ride_status === 'completed' && !$activeRide->is_reviewed) {

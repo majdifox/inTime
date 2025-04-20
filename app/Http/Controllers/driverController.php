@@ -530,16 +530,18 @@ class DriverController extends Controller
         ]);
     }
     
-    /**
-     * Complete a ride (passenger has been dropped off)
-     */
+   /**
+ * Complete a ride (passenger has been dropped off)
+ */
 /**
  * Complete a ride (passenger has been dropped off)
  */
 public function completeRide(Request $request, $rideId)
 {
     try {
-        \Log::info('CompleteRide method called for ride ID: ' . $rideId);
+        \Log::info('CompleteRide method called for ride ID: ' . $rideId, [
+            'request_data' => $request->all()
+        ]);
         
         $ride = Ride::findOrFail($rideId);
         $driver = Driver::where('user_id', Auth::id())->first();
@@ -551,7 +553,7 @@ public function completeRide(Request $request, $rideId)
                 'driver_id' => $driver->id,
                 'ride_driver_id' => $ride->driver_id
             ]);
-            return response()->json(['error' => 'Unauthorized'], 403);
+            return response()->json(['error' => 'Unauthorized', 'success' => false], 403);
         }
 
         // Check if the ride is in the correct state to be completed
@@ -559,7 +561,10 @@ public function completeRide(Request $request, $rideId)
             \Log::warning('Attempted to complete a ride that has not been started', [
                 'ride_id' => $rideId
             ]);
-            return response()->json(['error' => 'This ride cannot be completed because it has not been started'], 400);
+            return response()->json([
+                'error' => 'This ride cannot be completed because it has not been started',
+                'success' => false
+            ], 400);
         }
 
         $ride->dropoff_time = now();
@@ -618,7 +623,7 @@ public function completeRide(Request $request, $rideId)
         $rideDurationMinutes = Carbon::parse($ride->pickup_time)->diffInMinutes($ride->dropoff_time);
         
         // Get fare settings for the vehicle type
-        $vehicleType = $ride->vehicle_type ?? $driver->vehicle->type;
+        $vehicleType = $ride->vehicle_type ?? $driver->vehicle->type ?? 'basic';
         $fareSetting = FareSetting::where('vehicle_type', $vehicleType)->first();
         
         if (!$fareSetting) {
@@ -674,7 +679,7 @@ public function completeRide(Request $request, $rideId)
 
         // Update user total income
         $user = User::find(Auth::id());
-        $user->total_income += $finalFare;
+        $user->total_income = ($user->total_income ?? 0) + $finalFare;
         $user->save();
 
         // Success response
@@ -797,8 +802,15 @@ public function submitRating(Request $request, Ride $ride)
     $passenger->rating = $newRating;
     $passenger->save();
     
-    return redirect()->route('driver.dashboard')->with('success', 'Thank you for your rating and feedback!');
+    // Mark the ride as reviewed by the driver
+    $ride->is_reviewed_by_driver = true;
+    $ride->save();
+    
+    return redirect()->route('driver.dashboard')->with('success', 'Thank you for your rating! You can now continue using inTime.');
 }
+
+
+
 
     /**
      * View ride history

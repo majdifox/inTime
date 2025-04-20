@@ -1,56 +1,45 @@
-<!-- driver/rateRide.blade.php -->
+<!-- resources/views/driver/rateRide.blade.php -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>inTime - Rate Passenger</title>
+    <title>inTime - Rate Your Passenger</title>
     
     <!-- Vite Assets -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50">
     <!-- Header/Navigation -->
-    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm sticky top-0 z-50">
-        <!-- Logo and navigation -->
+    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm">
         <div class="flex items-center space-x-8">
             <!-- Logo -->
             <a href="{{ route('driver.dashboard') }}" class="text-2xl font-bold">inTime</a>
             
             <!-- Navigation Links -->
             <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('driver.dashboard') }}" class="font-medium hover:text-blue-600 transition">Dashboard</a>
-                <a href="{{ route('driver.active.rides') }}" class="font-medium hover:text-blue-600 transition">Active Rides</a>
-                <a href="{{ route('driver.history') }}" class="font-medium hover:text-blue-600 transition">History</a>
-                <a href="{{ route('driver.earnings') }}" class="font-medium hover:text-blue-600 transition">Earnings</a>
+                <a href="{{ route('driver.history') }}" class="font-medium">Ride History</a>
+                <a href="{{ route('driver.profile.private') }}" class="font-medium">My Profile</a>
             </nav>
         </div>
         
-        <!-- User Profile -->
-        <div class="flex items-center space-x-4">
-            <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
-                @if(Auth::user()->profile_picture)
-                    <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
-                @else
-                    <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
-                @endif
-            </div>
+        <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
+            @if(Auth::user()->profile_picture)
+                <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
+            @else
+                <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
+            @endif
         </div>
     </header>
 
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
-        @if(session('error'))
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow" role="alert">
-                <p>{{ session('error') }}</p>
-            </div>
-        @endif
-        
         <div class="max-w-xl mx-auto">
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h1 class="text-2xl font-bold mb-6">Rate Your Experience</h1>
+                <h1 class="text-2xl font-bold mb-6">Rate Your Passenger</h1>
                 
+                <!-- Passenger info section -->
                 <div class="flex items-center space-x-4 mb-6">
                     <div class="h-16 w-16 rounded-full bg-gray-200 overflow-hidden">
                         @if($ride->passenger->user->profile_picture)
@@ -63,10 +52,16 @@
                     </div>
                     <div>
                         <h2 class="text-lg font-medium">{{ $ride->passenger->user->name }}</h2>
-                        <p class="text-sm text-gray-600">Ride completed on {{ $ride->dropoff_time->format('M d, Y g:i A') }}</p>
+                        <div class="flex items-center">
+                            <span class="text-sm text-gray-600 mr-2">{{ number_format($ride->passenger->rating ?? 5.0, 1) }}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 
+                <!-- Ride details section -->
                 <div class="border-t border-gray-200 pt-4 mb-6">
                     <div class="flex items-center space-x-4 mb-4">
                         <div class="flex-shrink-0 text-gray-500">
@@ -103,11 +98,15 @@
                     </div>
                 </div>
                 
-                <form action="{{ route('driver.submit.rating', $ride->id) }}" method="POST">
+                <!-- Rating form -->
+                <form action="{{ route('driver.submit.rating', $ride->id) }}" method="POST" id="rating-form">
                     @csrf
                     
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">How was your experience with this passenger?</label>
+                        <div class="text-center mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">How was your experience with this passenger?</label>
+                            <p class="text-sm text-gray-500">You must submit a rating to continue</p>
+                        </div>
                         <div class="flex items-center justify-center space-x-2">
                             <input type="hidden" name="rating" id="rating-value" value="5">
                             @for($i = 1; $i <= 5; $i++)
@@ -126,10 +125,14 @@
                     </div>
                     
                     <div class="flex justify-between">
-                        <a href="{{ route('driver.dashboard') }}" class="bg-gray-100 text-gray-800 px-6 py-2.5 rounded-md font-medium hover:bg-gray-200 transition">Skip</a>
-                        <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-md font-medium hover:bg-blue-700 transition">Submit Rating</button>
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-md font-medium hover:bg-blue-700 transition w-full">Submit Rating</button>
                     </div>
                 </form>
+            </div>
+
+            <div class="mt-4 text-center">
+                <p class="text-sm text-gray-600">Your rating helps other drivers and is visible on the passenger's profile.</p>
+                <p class="text-sm text-red-600 font-medium">You must submit a rating to continue using inTime</p>
             </div>
         </div>
     </main>
@@ -138,6 +141,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             const ratingStars = document.querySelectorAll('.rating-star');
             const ratingValue = document.getElementById('rating-value');
+            const ratingForm = document.getElementById('rating-form');
+            
+            // Prevent navigation away from page
+            window.addEventListener('beforeunload', function(e) {
+                e.preventDefault();
+                e.returnValue = 'You must rate your passenger before leaving this page. Your rating helps other drivers.';
+            });
             
             // Star rating functionality
             if (ratingStars && ratingValue) {
@@ -159,6 +169,14 @@
                             }
                         });
                     });
+                });
+            }
+
+            // Form submission
+            if (ratingForm) {
+                ratingForm.addEventListener('submit', function() {
+                    // Remove the navigation warning once the form is submitted
+                    window.removeEventListener('beforeunload', function() {});
                 });
             }
         });

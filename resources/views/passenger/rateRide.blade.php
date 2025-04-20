@@ -103,7 +103,10 @@
                     @csrf
                     
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">How was your experience with this driver?</label>
+                        <div class="text-center mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">How was your experience with this driver ?</label>
+                            <p class="text-sm text-gray-500">You must submit a rating to continue</p>
+                        </div>
                         <div class="flex items-center justify-center space-x-2">
                             <input type="hidden" name="rating" id="rating-value" value="5">
                             @for($i = 1; $i <= 5; $i++)
@@ -121,11 +124,15 @@
                         <textarea id="comment" name="comment" rows="4" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Share your experience with this driver..."></textarea>
                     </div>
                     
+                              
                     <div class="flex justify-between">
-                        <a href="{{ route('passenger.dashboard') }}" class="bg-gray-100 text-gray-800 px-6 py-2.5 rounded-md font-medium hover:bg-gray-200 transition">Skip</a>
-                        <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-md font-medium hover:bg-blue-700 transition">Submit Rating</button>
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-md font-medium hover:bg-blue-700 transition w-full">Submit Rating</button>
                     </div>
                 </form>
+            </div>
+            <div class="mt-4 text-center">
+                <p class="text-sm text-gray-600">Your rating helps other drivers and is visible on the passenger's profile.</p>
+                <p class="text-sm text-red-600 font-medium">You must submit a rating to continue using inTime</p>
             </div>
         </div>
     </main>

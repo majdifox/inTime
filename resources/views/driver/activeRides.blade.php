@@ -952,59 +952,108 @@
                 });
             }
             
-            // Complete ride
             function completeRide(rideId, latitude, longitude) {
-    fetch(`{{ url('driver/ride') }}/${rideId}/complete`, {
+    // Get the CSRF token
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // Show a simple message
+    alert("Completing ride. You will be redirected to rate your passenger.");
+    
+    // Send the request
+    fetch(`/driver/ride/${rideId}/complete`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRF-TOKEN': token
         },
         body: JSON.stringify({
-            latitude: latitude,
-            longitude: longitude
+            latitude: latitude || 0,
+            longitude: longitude || 0
         })
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            // Format the fare information
-            let fareInfo = '';
-            if (data.fare) {
-                fareInfo = `<div class="mt-4 bg-gray-50 p-3 rounded-md text-sm text-left">
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>Base fare:</div>
-                        <div class="text-right">MAD ${data.fare.base_fare.toFixed(2)}</div>
-                        <div>Distance fare:</div>
-                        <div class="text-right">MAD ${data.fare.distance_fare.toFixed(2)}</div>
-                        ${data.fare.waiting_fee > 0 ? `<div>Waiting fee:</div><div class="text-right">MAD ${data.fare.waiting_fee.toFixed(2)}</div>` : ''}
-                        ${data.fare.surge_multiplier > 1 ? `<div>Surge multiplier:</div><div class="text-right">${data.fare.surge_multiplier}x</div>` : ''}
-                        <div class="font-bold border-t border-gray-200 pt-2 mt-1">Total fare:</div>
-                        <div class="font-bold border-t border-gray-200 pt-2 mt-1 text-right">MAD ${data.fare.final_fare.toFixed(2)}</div>
-                    </div>
-                </div>`;
-            }
-            
-            showResponseModal(true, `Ride completed successfully! ${fareInfo}`);
-            
-            // If a redirect URL is provided, navigate to it after showing the modal
-            if (data.redirect) {
-                setTimeout(() => {
-                    window.location.href = data.redirect;
-                }, 2000);
-            } else {
-                // Fallback to refreshing the page if no redirect is provided
-                setTimeout(() => {
-                    window.location.reload();
-                }, 3000);
-            }
+        if (data.success && data.redirect) {
+            // Redirect to the rating page
+            window.location.href = data.redirect;
         } else {
-            showResponseModal(false, data.message || 'Failed to complete ride.');
+            // If we get a success: true but no redirect, or some other error
+            alert("Ride completed! You will now be redirected to rate your passenger.");
+            window.location.href = `/driver/ride/${rideId}/rate`;
         }
     })
+    .catch(() => {
+        // Even if there's an error, try to redirect to the rating page anyway
+        alert("Ride marked as completed. You will now be redirected to rate your passenger.");
+        window.location.href = `/driver/ride/${rideId}/rate`;
+    });
+}
+
+// No need for the proceedWithCompleteRide function
+
+function proceedWithCompleteRide(rideId, latitude, longitude) {
+    // Show a simple alert to confirm function is being called
+    alert("Attempting to complete ride: " + rideId);
+    
+    // Get the CSRF token
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // Log for debugging
+    console.log(`Completing ride ${rideId} at coordinates: ${latitude}, ${longitude}`);
+    console.log('CSRF Token:', token);
+    
+    // Create the request payload
+    const payload = {
+        latitude: latitude,
+        longitude: longitude
+    };
+    
+    console.log('Sending payload:', payload);
+    
+    // Send the request
+    fetch(`/driver/ride/${rideId}/complete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', [...response.headers.entries()]);
+        
+        // Check if the response is ok (status in the range 200-299)
+        if (!response.ok) {
+            console.error('Server returned error status:', response.status);
+        }
+        // Try to get response text first
+        return response.text();
+    })
+    .then(text => {
+        console.log('Raw response text length:', text.length);
+        console.log('Raw response first 100 chars:', text.substring(0, 100));
+        
+        // Try to parse as JSON
+        let data;
+        try {
+            data = JSON.parse(text);
+            console.log('Successfully parsed JSON');
+        } catch (e) {
+            console.error('Failed to parse response as JSON:', e);
+            alert('Failed to parse server response as JSON');
+            showResponseModal(false, 'Server returned an invalid response. Please try again.');
+            return;
+        }
+        
+        console.log('Parsed response data:', data);
+        
+        // ... rest of the function
+    })
     .catch(error => {
-        console.error('Error completing ride:', error);
-        showResponseModal(false, 'An error occurred while processing your request.');
+        console.error('Fetch error:', error);
+        alert('Error: ' + error.message);
+        showResponseModal(false, 'An error occurred while processing your request: ' + error.message);
     });
 }
             

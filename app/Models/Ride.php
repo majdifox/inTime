@@ -41,6 +41,7 @@ class Ride extends Model
         'available_seats',
         'notes',
         'is_reviewed',
+        'is_reviewed_by_driver',
     ];
 
     /**
@@ -49,20 +50,21 @@ class Ride extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'reservation_date' => 'datetime',
-        'pickup_time' => 'datetime',
-        'dropoff_time' => 'datetime',
-        'pickup_latitude' => 'decimal:7',
-        'pickup_longitude' => 'decimal:7',
-        'dropoff_latitude' => 'decimal:7',
-        'dropoff_longitude' => 'decimal:7',
-        'ride_cost' => 'decimal:2',
-        'price' => 'decimal:2',
-        'base_fare' => 'decimal:2',
-        'per_km_price' => 'decimal:2',
-        'distance_in_km' => 'decimal:2',
-        'surge_multiplier' => 'decimal:2',
-        'is_reviewed' => 'boolean',
+'reservation_date' => 'datetime',
+    'pickup_time' => 'datetime',
+    'dropoff_time' => 'datetime',
+    'pickup_latitude' => 'decimal:7',
+    'pickup_longitude' => 'decimal:7',
+    'dropoff_latitude' => 'decimal:7',
+    'dropoff_longitude' => 'decimal:7',
+    'ride_cost' => 'decimal:2',
+    'price' => 'decimal:2',
+    'base_fare' => 'decimal:2',
+    'per_km_price' => 'decimal:2',
+    'distance_in_km' => 'decimal:2',
+    'surge_multiplier' => 'decimal:2',
+    'is_reviewed' => 'boolean',
+    'is_reviewed_by_driver' => 'boolean',
     ];
 
     /**
