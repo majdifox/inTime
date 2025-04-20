@@ -263,4 +263,49 @@ public function updatePassword(Request $request)
     
     return back()->with('success', 'Password updated successfully.');
 }
+
+public function privateProfile()
+{
+    $user = Auth::user();
+    $driver = Driver::with(['vehicle', 'vehicle.features'])->where('user_id', $user->id)->firstOrFail();
+    
+    // Get recent earnings data for graph
+    $recentEarnings = Ride::where('driver_id', $driver->id)
+        ->where('ride_status', 'completed')
+        ->where('dropoff_time', '>=', now()->subDays(30))
+        ->select(
+            DB::raw('DATE(dropoff_time) as date'),
+            DB::raw('SUM(price) as total')
+        )
+        ->groupBy('date')
+        ->orderBy('date', 'asc')
+        ->get();
+    
+    // Get statistics
+    $stats = [
+        'today' => $recentEarnings->where('date', now()->format('Y-m-d'))->sum('total'),
+        'week' => Ride::where('driver_id', $driver->id)
+            ->where('ride_status', 'completed')
+            ->where('dropoff_time', '>=', now()->startOfWeek())
+            ->sum('price'),
+        'month' => Ride::where('driver_id', $driver->id)
+            ->where('ride_status', 'completed')
+            ->where('dropoff_time', '>=', now()->startOfMonth())
+            ->sum('price'),
+        'total' => $driver->balance,
+        'completed_rides' => $driver->completed_rides,
+        'avg_rating' => $driver->rating
+    ];
+    
+    // Calculate response rate
+    $totalRequests = RideRequest::where('driver_id', $driver->id)->count();
+    $respondedRequests = RideRequest::where('driver_id', $driver->id)
+        ->whereNotNull('responded_at')
+        ->count();
+    
+    $responseRate = $totalRequests > 0 ? $respondedRequests / $totalRequests : 1;
+    $driver->response_rate = $responseRate;
+    
+    return view('driver.profile.private', compact('user', 'driver', 'stats'));
+}
 }
