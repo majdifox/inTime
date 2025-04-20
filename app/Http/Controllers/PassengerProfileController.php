@@ -8,76 +8,78 @@ use App\Models\Ride;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PassengerProfileController extends Controller
 {
    /**
- * Display the passenger's public profile
- * 
- * @param int $id Passenger ID
- * @return \Illuminate\View\View
- */
-public function show($id)
-{
-    $passenger = Passenger::with('user')->findOrFail($id);
-    
-    // Get completed rides
-    $completedRides = Ride::where('passenger_id', $passenger->id)
-        ->where('ride_status', 'completed')
-        ->count();
-        
-    // Get reviews left by drivers for the passenger
-    $reviews = Review::whereHas('ride', function($query) use ($passenger) {
-            $query->where('passenger_id', $passenger->id);
-        })
-        ->where('reviewed_id', $passenger->user_id)
-        ->with(['reviewer', 'ride'])
-        ->orderBy('created_at', 'desc')
-        ->paginate(5);
-        
-    // Get ratings statistics
-    $averageRating = Review::where('reviewed_id', $passenger->user_id)->avg('rating') ?? 0;
-    $ratingsCount = Review::where('reviewed_id', $passenger->user_id)->count();
-    
-    // Get breakdown of ratings (how many 5 stars, 4 stars, etc.)
-    $ratingsBreakdown = [
-        5 => Review::where('reviewed_id', $passenger->user_id)->where('rating', 5)->count(),
-        4 => Review::where('reviewed_id', $passenger->user_id)->where('rating', 4)->count(),
-        3 => Review::where('reviewed_id', $passenger->user_id)->where('rating', 3)->count(),
-        2 => Review::where('reviewed_id', $passenger->user_id)->where('rating', 2)->count(),
-        1 => Review::where('reviewed_id', $passenger->user_id)->where('rating', 1)->count(),
-    ];
-    
-    // Get passenger's favorite ride types if available
-    $favoriteVehicleTypes = [];
-    $vehicleTypeCounts = Ride::where('passenger_id', $passenger->id)
-        ->where('ride_status', 'completed')
-        ->select('vehicle_type', DB::raw('count(*) as count'))
-        ->groupBy('vehicle_type')
-        ->orderBy('count', 'desc')
-        ->get();
-        
-    if ($vehicleTypeCounts->count() > 0) {
-        $favoriteVehicleTypes = $vehicleTypeCounts->toArray();
-    }
-    
-    // Check if the current user can see private information
-    $canViewPrivate = Auth::check() && (
-        Auth::id() === $passenger->user_id || 
-        Auth::user()->role === 'admin'
-    );
-    
-    return view('passenger.profile.public', compact(
-        'passenger', 
-        'completedRides', 
-        'reviews', 
-        'averageRating', 
-        'ratingsCount',
-        'ratingsBreakdown',
-        'favoriteVehicleTypes',
-        'canViewPrivate'
-    ));
-}
+    * Display the passenger's public profile
+    * 
+    * @param int $id Passenger ID
+    * @return \Illuminate\View\View
+    */
+   public function show($id)
+   {
+       $passenger = Passenger::with('user')->findOrFail($id);
+       
+       // Get completed rides
+       $completedRides = Ride::where('passenger_id', $passenger->id)
+           ->where('ride_status', 'completed')
+           ->count();
+           
+       // Get reviews left by drivers for the passenger
+       $reviews = Review::whereHas('ride', function($query) use ($passenger) {
+               $query->where('passenger_id', $passenger->id);
+           })
+           ->where('reviewed_id', $passenger->user_id)
+           ->with(['reviewer', 'ride'])
+           ->orderBy('created_at', 'desc')
+           ->paginate(5);
+           
+       // Get ratings statistics
+       $averageRating = Review::where('reviewed_id', $passenger->user_id)->avg('rating') ?? 0;
+       $ratingsCount = Review::where('reviewed_id', $passenger->user_id)->count();
+       
+       // Get breakdown of ratings (how many 5 stars, 4 stars, etc.)
+       $ratingsBreakdown = [
+           5 => Review::where('reviewed_id', $passenger->user_id)->where('rating', 5)->count(),
+           4 => Review::where('reviewed_id', $passenger->user_id)->where('rating', 4)->count(),
+           3 => Review::where('reviewed_id', $passenger->user_id)->where('rating', 3)->count(),
+           2 => Review::where('reviewed_id', $passenger->user_id)->where('rating', 2)->count(),
+           1 => Review::where('reviewed_id', $passenger->user_id)->where('rating', 1)->count(),
+       ];
+       
+       // Get passenger's favorite ride types if available
+       $favoriteVehicleTypes = [];
+       $vehicleTypeCounts = Ride::where('passenger_id', $passenger->id)
+           ->where('ride_status', 'completed')
+           ->select('vehicle_type', DB::raw('count(*) as count'))
+           ->groupBy('vehicle_type')
+           ->orderBy('count', 'desc')
+           ->take(3) // Limit to top 3 most used vehicle types
+           ->get();
+           
+       if ($vehicleTypeCounts->count() > 0) {
+           $favoriteVehicleTypes = $vehicleTypeCounts->toArray();
+       }
+       
+       // Check if the current user can see private information
+       $canViewPrivate = Auth::check() && (
+           Auth::id() === $passenger->user_id || 
+           Auth::user()->role === 'admin'
+       );
+       
+       return view('passenger.profile.public', compact(
+           'passenger', 
+           'completedRides', 
+           'reviews', 
+           'averageRating', 
+           'ratingsCount',
+           'ratingsBreakdown',
+           'favoriteVehicleTypes',
+           'canViewPrivate'
+       ));
+   }
     
     /**
      * Display the passenger's private profile (only for the passenger themselves)

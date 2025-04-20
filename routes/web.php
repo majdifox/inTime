@@ -227,20 +227,20 @@ Route::middleware(['auth', 'isadmin'])->prefix('admin')->group(function () {
 Route::get('/driver/{id}/profile', [DriverProfileController::class, 'show'])->name('driver.profile');
 
 // Passenger Profile Routes
-Route::get('/profile/{id}', [App\Http\Controllers\PassengerProfileController::class, 'show'])
+Route::get('/passenger/{id}/profile', [App\Http\Controllers\PassengerProfileController::class, 'show'])
     ->name('passenger.public.profile');
     
 Route::middleware(['auth', 'ispassenger'])->group(function () {
-    Route::get('/profile', [App\Http\Controllers\PassengerProfileController::class, 'privateProfile'])
+    Route::get('/passenger/profile', [App\Http\Controllers\PassengerProfileController::class, 'privateProfile'])
         ->name('passenger.profile.private');
     
-    Route::post('/profile/preferences', [App\Http\Controllers\PassengerProfileController::class, 'updatePreferences'])
+    Route::post('/passenger/profile/preferences', [App\Http\Controllers\PassengerProfileController::class, 'updatePreferences'])
         ->name('passenger.profile.update.preferences');
     
-    Route::post('/profile/location/add', [App\Http\Controllers\PassengerProfileController::class, 'addFavoriteLocation'])
+    Route::post('/passenger/profile/location/add', [App\Http\Controllers\PassengerProfileController::class, 'addFavoriteLocation'])
         ->name('passenger.profile.add.location');
     
-    Route::post('/profile/location/remove', [App\Http\Controllers\PassengerProfileController::class, 'removeFavoriteLocation'])
+    Route::post('/passenger/profile/location/remove', [App\Http\Controllers\PassengerProfileController::class, 'removeFavoriteLocation'])
         ->name('passenger.profile.remove.location');
 });
 // Google authentication
