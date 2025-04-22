@@ -187,57 +187,86 @@ class DriverController extends Controller
     }
 
     public function dashboard()
-    {
-        // Get the authenticated user
-        $user = Auth::user();
+{
+    // Get the authenticated user
+    $user = Auth::user();
+    
+    // Get driver details
+    $driver = Driver::with(['vehicle', 'driverLocation'])->where('user_id', $user->id)->first();
+    
+    // Get driver statistics
+    $stats = [
+        'completed_rides' => $driver->completed_rides ?? 0,
+        'total_income' => $user->total_income ?? 0,
+        'rating' => $driver->rating ?? 0,
+    ];
+    
+    // Get new ride requests - these need to be responded to quickly
+    $rideRequests = RideRequest::with(['ride.passenger.user'])
+        ->where('driver_id', $driver->id)
+        ->where('status', 'pending')
+        ->orderBy('requested_at', 'desc')
+        ->get();
         
-        // Get driver details
-        $driver = Driver::with('vehicle')->where('user_id', $user->id)->first();
+    // Get rides where the driver is en route to the pickup
+    $enRouteRides = Ride::with(['passenger.user'])
+        ->where('driver_id', $driver->id)
+        ->where('reservation_status', 'accepted')
+        ->where('ride_status', 'ongoing')
+        ->whereNull('pickup_time')
+        ->orderBy('reservation_date', 'asc')
+        ->get();
         
-        // Get driver statistics
-        $stats = [
-            'completed_rides' => $driver->completed_rides ?? 0,
-            'total_income' => $user->total_income ?? 0,
-            'rating' => $driver->rating ?? 0,
-        ];
+    // Get rides where the passenger has been picked up but not dropped off
+    $inProgressRides = Ride::with(['passenger.user'])
+        ->where('driver_id', $driver->id)
+        ->where('reservation_status', 'accepted')
+        ->where('ride_status', 'ongoing')
+        ->whereNotNull('pickup_time')
+        ->whereNull('dropoff_time')
+        ->orderBy('pickup_time', 'asc')
+        ->get();
         
-        // Get new ride requests - these need to be responded to quickly
-        $rideRequests = RideRequest::with(['ride.passenger.user'])
-            ->where('driver_id', $driver->id)
-            ->where('status', 'pending')
-            ->orderBy('requested_at', 'desc')
-            ->get();
-            
-        // Get pending ride requests (old system compatibility)
-        $pendingRides = Ride::with('passenger.user')
-            ->where('driver_id', $driver->id)
-            ->where('reservation_status', 'pending')
-            ->orderBy('reservation_date', 'asc')
-            ->get();
-        
-        // Get upcoming rides (accepted but not yet started)
-        $upcomingRides = Ride::with('passenger.user')
-            ->where('driver_id', $driver->id)
-            ->where('reservation_status', 'accepted')
-            ->where('ride_status', 'ongoing')
-            ->where(function($query) {
-                $query->whereNull('pickup_time')
-                    ->orWhere('pickup_time', '>', now());
-            })
-            ->orderBy('reservation_date', 'asc')
-            ->get();
-        
-        // Get active rides (in progress)
-        $activeRides = Ride::with('passenger.user')
-            ->where('driver_id', $driver->id)
-            ->where('reservation_status', 'accepted')
-            ->where('ride_status', 'ongoing')
-            ->whereNotNull('pickup_time')
-            ->whereNull('dropoff_time')
-            ->get();
-        
-        return view('driver.dashboard', compact('user', 'driver', 'stats', 'rideRequests', 'pendingRides', 'upcomingRides', 'activeRides'));
-    }
+    // Get pending ride requests (old system compatibility)
+    $pendingRides = Ride::with('passenger.user')
+        ->where('driver_id', $driver->id)
+        ->where('reservation_status', 'pending')
+        ->orderBy('reservation_date', 'asc')
+        ->get();
+    
+    // Get upcoming rides (accepted but not yet started)
+    $upcomingRides = Ride::with('passenger.user')
+        ->where('driver_id', $driver->id)
+        ->where('reservation_status', 'accepted')
+        ->where('ride_status', 'ongoing')
+        ->where(function($query) {
+            $query->whereNull('pickup_time')
+                ->orWhere('pickup_time', '>', now());
+        })
+        ->orderBy('reservation_date', 'asc')
+        ->get();
+    
+    // Get active rides (for previous definition)
+    $activeRides = Ride::with('passenger.user')
+        ->where('driver_id', $driver->id)
+        ->where('reservation_status', 'accepted')
+        ->where('ride_status', 'ongoing')
+        ->whereNotNull('pickup_time')
+        ->whereNull('dropoff_time')
+        ->get();
+    
+    return view('driver.dashboard', compact(
+        'user', 
+        'driver', 
+        'stats', 
+        'rideRequests', 
+        'pendingRides', 
+        'upcomingRides', 
+        'activeRides',
+        'enRouteRides',
+        'inProgressRides'
+    ));
+}
     
     /**
      * Show incoming ride requests

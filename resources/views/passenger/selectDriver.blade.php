@@ -103,13 +103,7 @@
                     </div>
                     <!-- In passenger/selectDriver.blade.php in the driver card -->
                     @foreach($drivers as $driver)
-    <div class="driver-card border rounded-md p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer">
-        <!-- Driver info -->
-        
-        <a href="{{ route('driver.profile', $driver['id']) }}" class="text-blue-600 text-sm hover:text-blue-800" target="_blank">
-            View Profile
-        </a>
-    </div>
+
 @endforeach
                     
                     <div id="drivers-list" class="space-y-4">
@@ -124,78 +118,86 @@
                             </div>
                         @else
                             @foreach($drivers as $driver)
-                                <div class="driver-card border rounded-md p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer">
-                                    <div class="flex items-start">
-                                        <div class="h-16 w-16 rounded-full bg-gray-200 overflow-hidden mr-4">
-                                            @if(isset($driver['profile_picture']) && $driver['profile_picture'])
-                                                <img src="{{ asset('storage/' . $driver['profile_picture']) }}" alt="Driver" class="h-full w-full object-cover">
-                                            @else
-                                                <div class="h-full w-full flex items-center justify-center bg-gray-300 text-gray-600 font-bold text-xl">
-                                                    {{ substr($driver['name'], 0, 1) }}
-                                                </div>
-                                            @endif
-                                        </div>
-                                        <div class="flex-1">
-                                            <div class="flex justify-between">
-                                                <h3 class="font-medium text-lg">{{ $driver['name'] }}</h3>
-                                                <div class="flex items-center">
-                                                    @if($driver['women_only_driver'])
-                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800 mr-2">
-                                                            Women Only
-                                                        </span>
-                                                    @endif
-                                                    <span class="text-sm">{{ number_format($driver['rating'], 1) }} 
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                        </svg>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div class="flex justify-between items-center mt-1">
-                                                <div class="text-gray-600 text-sm">
-                                                    <span class="inline-flex items-center">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                                                        </svg>
-                                                        {{ ucfirst($driver['gender']) }}
-                                                    </span>
-                                                </div>
-                                                <div class="text-sm">
-                                                    <span>{{ $driver['completed_rides'] }} rides</span>
-                                                </div>
-                                            </div>
-                                            <div class="mt-2 text-gray-600">
-                                                <p class="text-sm">
-                                                    <span class="font-medium">{{ $driver['vehicle']['make'] }} {{ $driver['vehicle']['model'] }}</span> · 
-                                                    {{ $driver['vehicle']['color'] }} · 
-                                                    {{ $driver['vehicle']['plate_number'] }}
-                                                </p>
-                                            </div>
-                                            <div class="flex justify-between items-center mt-2">
-                                                <div>
-                                                    <span class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">
-                                                        {{ ucfirst($driver['vehicle']['type']) }}
-                                                    </span>
-                                                </div>
-                                                <div class="text-sm">
-                                                    <span class="font-medium">{{ number_format($driver['distance_km'], 1) }} km away</span> · 
-                                                    <span>{{ $driver['eta_minutes'] }} min</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="mt-3">
-                                            <form action="{{ route('passenger.request.ride') }}" method="POST">
-                                                @csrf
-                                                <input type="hidden" name="vehicle_type" value="{{ $rideInfo['vehicle_type'] ?? $vehicle_type }}">
-                                                <input type="hidden" name="driver_id" value="{{ $driver['id'] }}">
-                                                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md font-medium hover:bg-blue-700 transition">
-                                                    Select Driver
-                                                </button>
-                                            </form>
-                                        </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="driver-card border rounded-md p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer">
+    <div class="flex items-start">
+        <div class="h-16 w-16 rounded-full bg-gray-200 overflow-hidden mr-4">
+            @if(isset($driver['profile_picture']) && $driver['profile_picture'])
+                <img src="{{ asset('storage/' . $driver['profile_picture']) }}" alt="Driver" class="h-full w-full object-cover">
+            @else
+                <div class="h-full w-full flex items-center justify-center bg-gray-300 text-gray-600 font-bold text-xl">
+                    {{ substr($driver['name'], 0, 1) }}
+                </div>
+            @endif
+        </div>
+        <div class="flex-1">
+            <div class="flex justify-between">
+                <h3 class="font-medium text-lg">{{ $driver['name'] }}</h3>
+                <div class="flex items-center">
+                    @if($driver['women_only_driver'])
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800 mr-2">
+                            Women Only
+                        </span>
+                    @endif
+                    <span class="text-sm">{{ number_format($driver['rating'], 1) }} 
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                    </span>
+                </div>
+            </div>
+            <div class="flex justify-between items-center mt-1">
+                <div class="text-gray-600 text-sm">
+                    <span class="inline-flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                        </svg>
+                        {{ ucfirst($driver['gender']) }}
+                    </span>
+                </div>
+                <div class="text-sm">
+                    <span>{{ $driver['completed_rides'] }} rides</span>
+                </div>
+            </div>
+            <div class="mt-2 text-gray-600">
+                <p class="text-sm">
+                    <span class="font-medium">{{ $driver['vehicle']['make'] }} {{ $driver['vehicle']['model'] }}</span> · 
+                    {{ $driver['vehicle']['color'] }} · 
+                    {{ $driver['vehicle']['plate_number'] }}
+                </p>
+            </div>
+            <div class="flex justify-between items-center mt-2">
+                <div>
+                    <span class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">
+                        {{ ucfirst($driver['vehicle']['type']) }}
+                    </span>
+                </div>
+                <div class="text-sm">
+                    <span class="font-medium">{{ number_format($driver['distance_km'], 1) }} km away</span> · 
+                    <span>{{ $driver['eta_minutes'] }} min</span>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <div class="flex justify-between items-center">
+                    <a href="{{ route('driver.profile', $driver['id']) }}" class="text-blue-600 text-sm hover:text-blue-800 font-medium flex items-center" target="_blank">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+</svg>
+                        View Profile
+                    </a>
+                    <form action="{{ route('passenger.request.ride') }}" method="POST" class="flex-1 ml-4">
+                        @csrf
+                        <input type="hidden" name="vehicle_type" value="{{ $rideInfo['vehicle_type'] ?? $vehicle_type }}">
+                        <input type="hidden" name="driver_id" value="{{ $driver['id'] }}">
+                        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md font-medium hover:bg-blue-700 transition">
+                            Select Driver
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                             @endforeach
                         @endif
                     </div>
@@ -224,6 +226,7 @@
                             <div class="font-medium">{{ $rideInfo['dropoff_location'] }}</div>
                         </div>
                         
+                        <hr class="my-4 border-gray-200">
                         <div class="flex justify-between">
                             <div class="text-gray-600">Distance</div>
                             <div class="font-medium">{{ number_format($rideInfo['distance_km'], 1) }} km</div>
@@ -245,17 +248,9 @@
                         </div>
                     </div>
                     
-                    <hr class="my-4 border-gray-200">
+                 
                     
-                    <div>
-                        <form action="{{ route('passenger.request.ride') }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="vehicle_type" value="{{ $vehicle_type }}">
-                            <button type="submit" class="w-full bg-black text-white py-3 px-4 rounded-md font-medium hover:bg-gray-800 transition">
-                                Request Any Available Driver
-                            </button>
-                        </form>
-                    </div>
+                   
                 </div>
             </div>
         </div>

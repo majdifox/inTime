@@ -194,3 +194,12 @@
             ['vehicle_type' => 'black', 'base_fare' => 140.00, 'per_km_price' => 35.00, 'per_minute_price' => 0.00, 'minimum_fare' => 140.00, 'created_at' => now(), 'updated_at' => now()]
         ]);
     }
+
+    public function up()
+    {
+        Schema::table('rides', function (Blueprint $table) {
+            if (!Schema::hasColumn('rides', 'is_reviewed_by_driver')) {
+                $table->boolean('is_reviewed_by_driver')->default(false);
+            }
+        });
+    }
