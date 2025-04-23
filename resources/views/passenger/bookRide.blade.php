@@ -72,15 +72,15 @@
             </div>
         @endif
         
-        <div class="flex flex-col lg:flex-row gap-6">
-            <!-- Left Column - Search Form -->
-            <div class="w-full lg:w-1/3 flex flex-col gap-6">
-                <!-- Ride Search Card -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">Where are you going?</h2>
-                    
-                    <div id="search-form" class="space-y-4">
-                        <div>
+                                <div class="flex flex-col lg:flex-row gap-6">
+                                    <!-- Left Column -- Search Form -->
+                                    <div class="w-full lg:w-1/3 flex flex-col gap-6">
+                                        <!-- Ride Search Card -->
+                                        <div class="bg-white rounded-lg shadow-md p-6">
+                                            <h2 class="text-xl font-bold mb-4">Where are you going?</h2>
+                                            
+                                            <div id="search-form" class="space-y-4">
+                                            <div>
                             <label for="pickup_location" class="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
                             <div class="relative">
                                 <input type="text" id="pickup_location" name="pickup_location" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" placeholder="Enter pickup location">
@@ -88,16 +88,12 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                         <circle cx="10" cy="10" r="8" stroke-width="1" />
                                     </svg>
-                                    
                                 </div>
+                                
 
                                  <!-- Add the locate me button -->
                                 <div class="absolute inset-y-0 right-0 flex items-center">
-                                    <button type="button" id="locate-me-btn" class="h-full px-2 text-gray-500 hover:text-blue-600" title="Use my current location">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
+                                    
                                 
                                 <!-- Saved Locations Dropdown -->
                                 @if(isset($savedLocations) && count($savedLocations) > 0)
@@ -173,38 +169,7 @@
                         </button>
                     </div>
                 </div>
-                <!-- Vehicle Features Section -->
-<div class="mb-4">
-    <h4 class="text-sm font-medium text-gray-700 mb-2">Vehicle Features Needed:</h4>
-    
-    <div class="grid grid-cols-2 gap-2">
-        <div class="flex items-start">
-            <div class="flex items-center h-5">
-                <input id="feature_ac" name="ride_preferences[vehicle_features][]" type="checkbox" value="ac" 
-                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                    {{ isset($passenger->ride_preferences['vehicle_features']) && in_array('ac', $passenger->ride_preferences['vehicle_features']) ? 'checked' : '' }}>
-            </div>
-            <div class="ml-3 text-sm">
-                <label for="feature_ac" class="font-medium text-gray-700">Air Conditioning</label>
-            </div>
-        </div>
-        
-        <!-- Add the other feature options here, similar to above -->
-        
-        <!-- Example for WiFi -->
-        <div class="flex items-start">
-            <div class="flex items-center h-5">
-                <input id="feature_wifi" name="ride_preferences[vehicle_features][]" type="checkbox" value="wifi" 
-                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                    {{ isset($passenger->ride_preferences['vehicle_features']) && in_array('wifi', $passenger->ride_preferences['vehicle_features']) ? 'checked' : '' }}>
-            </div>
-            <div class="ml-3 text-sm">
-                <label for="feature_wifi" class="font-medium text-gray-700">WiFi</label>
-            </div>
-        </div>
-        
-        <!-- Continue with other options -->
-    </div>
+               
 </div>
                 
                 <!-- Save Location Card (Hidden by default) -->
