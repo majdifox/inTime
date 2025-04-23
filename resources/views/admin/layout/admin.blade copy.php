@@ -36,7 +36,7 @@
                 <div class="text-xl font-medium text-white">inTime Admin</div>
             </div>
             <nav class="mt-6 px-4">
-               
+                @include('layouts.admin.sidebar-menu')
             </nav>
         </div>
 
@@ -49,7 +49,7 @@
                     </div>
                     <div class="flex-1 flex flex-col overflow-y-auto">
                         <nav class="flex-1 px-4 py-4 bg-white">
-                           
+                            @include('layouts.admin.sidebar-menu')
                         </nav>
                     </div>
                 </div>
@@ -193,7 +193,7 @@
                                     <p class="text-sm font-medium text-gray-700">{{ Auth::user()->name }}</p>
                                     <p class="text-sm text-gray-500 truncate">{{ Auth::user()->email }}</p>
                                 </div>
-                                <a href="" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                                <a href="{{ route('admin.settings') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sign out</button>
