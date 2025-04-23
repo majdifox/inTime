@@ -49,7 +49,6 @@
     <!-- Your ride display code -->
     @if($ride->driver)
         <a href="{{ route('driver.public.profile', $ride->driver->id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
-            View Driver Profile
         </a>
     @endif
 @endforeach
@@ -87,40 +86,61 @@
                     </div>
                 </div>
             @else
+
+        
                 <!-- Ride History List -->
                 <div class="space-y-4">
                     @foreach($rides as $ride)
                         <div class="bg-white rounded-lg shadow-md p-6">
                             <div class="flex justify-between items-start mb-4">
                                 <div class="flex items-center">
-                                    <div class="mr-4">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                            @if($ride->ride_status == 'completed') 
-                                                bg-green-100 text-green-800
-                                            @elseif($ride->reservation_status == 'cancelled') 
-                                                bg-red-100 text-red-800
-                                            @else 
-                                                bg-gray-100 text-gray-800
-                                            @endif
-                                        ">
-                                            {{ $ride->getStatusText() }}
-                                        </span>
-                                    </div>
+                                   
                                     <div>
                                         <h3 class="font-bold">{{ $ride->dropoff_time ? $ride->dropoff_time->format('M d, Y') : $ride->reservation_date->format('M d, Y') }}</h3>
                                         <p class="text-sm text-gray-500">{{ $ride->dropoff_time ? $ride->dropoff_time->format('g:i A') : $ride->reservation_date->format('g:i A') }}</p>
                                     </div>
                                 </div>
+                                
                                 <div class="text-right">
+                                    
                                     <p class="font-bold">MAD {{ number_format($ride->price, 2) }}</p>
                                     @if($ride->surge_multiplier > 1)
                                         <p class="text-xs text-red-600">Surge x{{ $ride->surge_multiplier }}</p>
                                     @endif
+                                    
                                 </div>
+                                
                             </div>
                             
                             <div class="flex items-center space-x-4 mb-4">
+                            @if($ride->driver)
+                                <div class="ml-6 flex items-center">
+    <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden mr-3">
+        @if($ride->driver->user->profile_picture)
+            <img src="{{ asset('storage/' . $ride->driver->user->profile_picture) }}" alt="Driver" class="h-full w-full object-cover">
+        @else
+            <div class="h-full w-full flex items-center justify-center text-gray-500 bg-gray-300">
+                {{ strtoupper(substr($ride->driver->user->name, 0, 1)) }}
+            </div>
+        @endif
+    </div>
+    <div>
+        <p class="font-medium">{{ $ride->driver->user->name }}</p>
+        @if($ride->driver->rating)
+            <div class="flex items-center text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span>{{ number_format($ride->driver->rating, 1) }}</span>
+            </div>
+        @endif
+        <a href="{{ route('driver.public.profile', $ride->driver->id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
+            View Profile
+        </a>
+    </div>
+</div>
                                 <div class="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center">
+                                    
                                     @switch($ride->vehicle_type)
                                         @case('share')
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -158,29 +178,7 @@
                                     <p class="text-sm text-gray-600">{{ number_format($ride->distance_in_km, 1) }} km</p>
                                 </div>
                                 
-                                @if($ride->driver)
-                                    <div class="ml-6 flex items-center">
-                                        <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden mr-3">
-                                            @if($ride->driver->user->profile_picture)
-                                                <img src="{{ asset('storage/' . $ride->driver->user->profile_picture) }}" alt="Driver" class="h-full w-full object-cover">
-                                            @else
-                                                <div class="h-full w-full flex items-center justify-center bg-gray-400 text-white">
-                                                    {{ strtoupper(substr($ride->driver->user->name, 0, 1)) }}
-                                                </div>
-                                            @endif
-                                        </div>
-                                        <div>
-                                            <p class="font-medium">{{ $ride->driver->user->name }}</p>
-                                            @if($ride->driver->rating)
-                                                <div class="flex items-center text-sm">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                    </svg>
-                                                    <span>{{ number_format($ride->driver->rating, 1) }}</span>
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </div>
+                                
                                 @endif
                             </div>
                             
@@ -228,7 +226,20 @@
                                         <span></span>
                                     @endif
                                     
-                                    <a href="#" class="text-gray-500 text-sm hover:text-gray-700">Get Receipt</a>
+                                    <div class="mr-4">
+                                        
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                            @if($ride->ride_status == 'completed') 
+                                                bg-green-100 text-green-800
+                                            @elseif($ride->reservation_status == 'cancelled') 
+                                                bg-red-100 text-red-800
+                                            @else 
+                                                bg-gray-100 text-gray-800
+                                            @endif
+                                        ">
+                                            {{ $ride->getStatusText() }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
