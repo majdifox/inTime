@@ -32,16 +32,7 @@
             </nav>
         </div>
         
-        <div class="flex justify-center space-x-4">
-            @if(!$activeRide->pickup_time)
-            <form id="cancel-ride-form" action="{{ route('passenger.cancel.ride', $activeRide->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this ride?');">
-                @csrf
-                <button type="submit" class="bg-red-500 text-white py-2 px-6 rounded-md font-medium hover:bg-red-600 transition">
-                    Cancel Ride
-                </button>
-            </form>
-            @endif
-        </div>
+        
         
         <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
             @if(Auth::user()->profile_picture)
@@ -224,7 +215,17 @@
                             <span class="text-sm text-gray-600">{{ $activeRide->driver->completed_rides }} rides</span>
                         </div>
                     </div>
+                    
                 </div>
+                <br>
+                
+                        <!-- In passenger/activeRide.blade.php in the driver info section -->
+        <a href="{{ route('driver.profile', $activeRide->driver->id) }}" class="text-blue-600 hover:text-blue-800 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+</svg>
+    Driver Profile
+</a>
                 
                 <div class="mt-4 border-t border-gray-200 pt-4">
                     <h3 class="font-medium mb-2">Vehicle Information</h3>
@@ -305,13 +306,7 @@
             </div>
         </div>
 
-        <!-- In passenger/activeRide.blade.php in the driver info section -->
-        <a href="{{ route('driver.profile', $activeRide->driver->id) }}" class="text-blue-600 hover:text-blue-800 flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-    </svg>
-    Driver Profile
-</a>
+
         
         <!-- Right Column - Map and Trip Progress -->
         <div class="w-full lg:w-2/3 flex flex-col gap-6">
@@ -341,6 +336,7 @@
                                 <p class="text-sm text-gray-500">{{ $activeRide->updated_at->format('g:i A') }}</p>
                             </div>
                         </div>
+                        
                         
                         <!-- Driver En Route -->
                         <div class="relative mb-8" id="driver-en-route-status">
@@ -438,9 +434,22 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                <div class="flex justify-center space-x-4">
+            @if(!$activeRide->pickup_time)
+            <form id="cancel-ride-form" action="{{ route('passenger.cancel.ride', $activeRide->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this ride?');">
+                @csrf
+                <button type="submit" class="bg-red-500 text-white py-2 px-6 rounded-md font-medium hover:bg-red-600 transition">
+                    Cancel Ride
+                </button>
+            </form>
+            @endif
         </div>
+            </div>
+            
+        </div>
+        
     </div>
+    
 </main>
 
 <!-- Change Destination Modal -->

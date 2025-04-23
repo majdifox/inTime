@@ -555,7 +555,7 @@ public function activeRide()
                 'requests_sent' => $rideRequests->count(),
                 'pending_requests' => $pendingCount,
                 'rejected_requests' => $rejectedCount,
-                'message' => 'Looking for a driver near you...'
+                'message' => 'Waiting for your driver to confirm the ride. This won’t take long :)'
             ]);
         } else {
             // Matching failed or was cancelled

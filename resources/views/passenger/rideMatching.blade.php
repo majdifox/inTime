@@ -1,4 +1,3 @@
-```php
 <!-- passenger/rideMatching.blade.php -->
 <!DOCTYPE html>
 <html lang="en">
@@ -58,8 +57,8 @@
             <div class="w-full lg:w-1/2 flex flex-col gap-6">
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <div class="text-center mb-6">
-                        <h2 class="text-xl font-bold mb-2">Finding a Driver</h2>
-                        <p class="text-gray-600" id="matching-status">Looking for a driver near you...</p>
+                        <h2 class="text-xl font-bold mb-2">Sending request to your driver</h2>
+                        <p class="text-gray-600" id="matching-status">Waiting for your driver to confirm the ride. This won’t take long.</p>
                     </div>
                     
                     <div class="flex justify-center mb-6">
@@ -383,7 +382,7 @@
                     .then(response => response.json())
                     .then(data => {
                         // Update status message
-                        matchingStatus.textContent = data.message || 'Looking for a driver near you...';
+                        matchingStatus.textContent = data.message || 'Waiting for your driver to confirm the ride. This won’t take long.';
                         
                         // Update matching stats
                         requestsSent.textContent = data.requests_sent || 0;

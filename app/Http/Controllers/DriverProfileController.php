@@ -7,12 +7,12 @@ use App\Models\Driver;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\Ride;
-use Illuminate\Support\Facades\DB; // Add this import
-use Illuminate\Support\Facades\Hash; // For password updates
-use Illuminate\Validation\Rule; // For validation rules
-use App\Models\RideRequest; // Add this import
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use App\Models\RideRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class DriverProfileController extends Controller
 {
@@ -24,90 +24,78 @@ class DriverProfileController extends Controller
      */
     public function show($id)
     {
-        // Get the driver with related data
-        $driver = Driver::with(['user', 'vehicle', 'vehicle.features'])
-            ->where('id', $id)
-            ->firstOrFail();
-        
-        // Get reviews for this driver by joining with rides table
-        $reviews = Review::join('rides', 'reviews.ride_id', '=', 'rides.id')
-            ->where('rides.driver_id', $id)
-            ->where('reviews.rating', '>', 0)
-            ->with('passenger.user')
-            ->select('reviews.*')
-            ->orderBy('reviews.created_at', 'desc')
-            ->paginate(5);
-        
-        // Calculate review summary
-        $reviewSummary = [
-            'total_count' => Review::join('rides', 'reviews.ride_id', '=', 'rides.id')
+        try {
+            // Get the driver with related data
+            $driver = Driver::with(['user', 'vehicle', 'vehicle.features'])
+                ->where('id', $id)
+                ->firstOrFail();
+            
+            // Use raw query to ensure we only get reviews with valid relationships
+            $validReviewIds = DB::table('reviews')
+                ->join('rides', 'reviews.ride_id', '=', 'rides.id')
+                ->join('passengers', 'rides.passenger_id', '=', 'passengers.id')
+                ->join('users', 'passengers.user_id', '=', 'users.id')
                 ->where('rides.driver_id', $id)
                 ->where('reviews.rating', '>', 0)
-                ->count(),
-            'average_rating' => $driver->rating ?? 5.0,
-            'ratings_breakdown' => [
-                5 => Review::join('rides', 'reviews.ride_id', '=', 'rides.id')
-                    ->where('rides.driver_id', $id)
-                    ->where('reviews.rating', 5)
-                    ->count(),
-                4 => Review::join('rides', 'reviews.ride_id', '=', 'rides.id')
-                    ->where('rides.driver_id', $id)
-                    ->where('reviews.rating', 4)
-                    ->count(),
-                3 => Review::join('rides', 'reviews.ride_id', '=', 'rides.id')
-                    ->where('rides.driver_id', $id)
-                    ->where('reviews.rating', 3)
-                    ->count(),
-                2 => Review::join('rides', 'reviews.ride_id', '=', 'rides.id')
-                    ->where('rides.driver_id', $id)
-                    ->where('reviews.rating', 2)
-                    ->count(),
-                1 => Review::join('rides', 'reviews.ride_id', '=', 'rides.id')
-                    ->where('rides.driver_id', $id)
-                    ->where('reviews.rating', 1)
-                    ->count(),
-            ]
-        ];
-        
-        // Get recent ride locations (initialize as empty array if no rides)
-        $recentLocations = Ride::where('driver_id', $id)
-            ->where('ride_status', 'completed')
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->select('pickup_location', 'dropoff_location')
-            ->get()
-            ->map(function ($ride) {
-                // Only return the area/neighborhood, not exact address
-                return [
-                    'pickup' => $this->getNeighborhood($ride->pickup_location),
-                    'dropoff' => $this->getNeighborhood($ride->dropoff_location)
-                ];
-            });
-        
-        // Initialize as empty array if no rides found
-        if ($recentLocations === null) {
-            $recentLocations = [];
-        }
-        
-        // Check if the current user has ridden with this driver
-        $hasRiddenWith = false;
-        if (Auth::check()) {
-            $passenger = Auth::user()->passenger;
-            if ($passenger) {
+                ->pluck('reviews.id')
+                ->toArray();
+                
+            // Now get the reviews using the validated IDs
+            $reviews = Review::whereIn('id', $validReviewIds)
+                ->with(['passenger.user'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(5);
+            
+            // Calculate review summary
+            $reviewSummary = [
+                'total_count' => count($validReviewIds),
+                'average_rating' => $driver->rating ?? 5.0,
+                'ratings_breakdown' => [
+                    5 => Review::whereIn('id', $validReviewIds)->where('rating', 5)->count(),
+                    4 => Review::whereIn('id', $validReviewIds)->where('rating', 4)->count(),
+                    3 => Review::whereIn('id', $validReviewIds)->where('rating', 3)->count(),
+                    2 => Review::whereIn('id', $validReviewIds)->where('rating', 2)->count(),
+                    1 => Review::whereIn('id', $validReviewIds)->where('rating', 1)->count(),
+                ]
+            ];
+            
+            // Get recent ride locations
+            $recentLocations = Ride::where('driver_id', $id)
+                ->where('ride_status', 'completed')
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->select('pickup_location', 'dropoff_location')
+                ->get()
+                ->map(function ($ride) {
+                    return [
+                        'pickup' => $this->getNeighborhood($ride->pickup_location),
+                        'dropoff' => $this->getNeighborhood($ride->dropoff_location)
+                    ];
+                })->toArray();
+            
+            // Check if the current user has ridden with this driver
+            $hasRiddenWith = false;
+            if (Auth::check() && Auth::user()->passenger) {
                 $hasRiddenWith = Ride::where('driver_id', $id)
-                    ->where('passenger_id', $passenger->id)
+                    ->where('passenger_id', Auth::user()->passenger->id)
                     ->where('ride_status', 'completed')
                     ->exists();
             }
+            
+            return view('driver.profile', compact(
+                'driver', 
+                'reviews', 
+                'reviewSummary', 
+                'recentLocations',
+                'hasRiddenWith'
+            ));
+        } catch (\Exception $e) {
+            // Log the error
+            Log::error('Error displaying driver profile: ' . $e->getMessage());
+            
+            // Return a more user-friendly error page
+            abort(404, 'Driver profile not found');
         }
-        
-        return view('driver.profile', compact(
-            'driver', 
-            'reviews', 
-            'reviewSummary', 
-            'recentLocations',
-            'hasRiddenWith'
-        ));
     }
     
     /**
@@ -118,8 +106,12 @@ class DriverProfileController extends Controller
      */
     private function getNeighborhood($fullAddress)
     {
+        // Handle null addresses
+        if (!$fullAddress) {
+            return 'Unknown area';
+        }
+        
         // Simple implementation - extract just the last part of the address
-        // In a production environment, use a more sophisticated geocoding approach
         $parts = explode(',', $fullAddress);
         
         if (count($parts) > 1) {

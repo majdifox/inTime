@@ -11,30 +11,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50">
-    <!-- Header/Navigation -->
-    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm">
-        <div class="flex items-center space-x-8">
-            <!-- Logo -->
-            <a href="{{ route('passenger.dashboard') }}" class="text-2xl font-bold">inTime</a>
-            
-            <!-- Navigation Links -->
-            <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('passenger.history') }}" class="font-medium">Ride History</a>
-                <a href="{{ route('passenger.profile.private') }}" class="font-medium">My Profile</a>
-            </nav>
-        </div>
-        
-        <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
-            @if(Auth::user()->profile_picture)
-                <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
-            @else
-                <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
-            @endif
-        </div>
-    </header>
+
 
     <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
+    <main class="container mx-auto px-4 py-20">
         <div class="max-w-xl mx-auto">
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h1 class="text-2xl font-bold mb-6">Rate Your Ride</h1>
