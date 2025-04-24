@@ -221,7 +221,11 @@ Route::middleware(['auth', 'isadmin'])->prefix('admin')->group(function () {
     Route::get('/rides/pending', [AdminController::class, 'pendingRides'])->name('admin.rides.pending');
     Route::get('/rides/{id}', [AdminController::class, 'getRideDetails'])->name('admin.rides.details');
     Route::patch('/rides/{id}/status', [AdminController::class, 'updateRideStatus'])->name('admin.rides.update.status');
+
+    Route::patch('/user/{id}/verify', [AdminController::class, 'verifyDriver'])->name('admin.user.verify');
+Route::patch('/user/{id}/unverify', [AdminController::class, 'unverifyDriver'])->name('admin.user.unverify');
 });
+
 
 // Public driver profile routes (accessible to all users)
 Route::get('/driver/{id}/profile', [DriverProfileController::class, 'show'])->name('driver.profile');

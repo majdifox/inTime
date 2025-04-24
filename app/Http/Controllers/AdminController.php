@@ -651,4 +651,55 @@ public function getPassengers(Request $request)
             'ride' => $ride
         ]);
     }
+    /**
+ * Verify a driver
+ *
+ * @param  int  $id
+ * @return \Illuminate\Http\Response
+ */
+public function verifyDriver($id)
+{
+    try {
+        $user = User::where('role', 'driver')->findOrFail($id);
+        
+        if (!$user->driver) {
+            return redirect()->back()->with('error', 'Driver profile not found');
+        }
+        
+        $user->driver->is_verified = true;
+        $user->driver->save();
+        
+        // Update account status as well
+        $user->account_status = 'activated';
+        $user->save();
+        
+        return redirect()->back()->with('success', 'Driver has been verified successfully');
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', 'Error verifying driver: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Unverify a driver
+ *
+ * @param  int  $id
+ * @return \Illuminate\Http\Response
+ */
+public function unverifyDriver($id)
+{
+    try {
+        $user = User::where('role', 'driver')->findOrFail($id);
+        
+        if (!$user->driver) {
+            return redirect()->back()->with('error', 'Driver profile not found');
+        }
+        
+        $user->driver->is_verified = false;
+        $user->driver->save();
+        
+        return redirect()->back()->with('success', 'Driver verification has been revoked successfully');
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', 'Error unverifying driver: ' . $e->getMessage());
+    }
+}
 }
