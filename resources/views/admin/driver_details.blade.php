@@ -294,49 +294,11 @@
                     @endif
                 </div>
                 
-                <!-- Driver Verification Actions -->
-               <!-- Driver Verification Actions -->
-<div class="p-6 border-t">
-    <h3 class="text-xl font-semibold mb-4 border-b pb-2">Verification Actions</h3>
-    
-    <div class="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-        <p class="text-gray-700">
-            @if($driver->driver && $driver->driver->is_verified)
-                <span class="text-green-600 font-medium">This driver is verified and can accept rides.</span>
-            @else
-                <span class="text-yellow-600 font-medium">This driver is not verified and is waiting for approval.</span>
-            @endif
-        </p>
-        
-        @if($driver->driver && !$driver->driver->is_verified)
-            <form action="{{ route('admin.user.verify', ['id' => $driver->id]) }}" method="POST" class="inline">
-                @csrf
-                @method('PATCH')
-                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    Verify Driver
-                </button>
-            </form>
-        @elseif($driver->driver && $driver->driver->is_verified)
-            <form action="{{ route('admin.user.unverify', ['id' => $driver->id]) }}" method="POST" class="inline">
-                @csrf
-                @method('PATCH')
-                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    Revoke Verification
-                </button>
-            </form>
-        @endif
-    </div>
-    
-    <p class="text-gray-500 text-sm mt-2">
-        <strong>Note:</strong> Verifying a driver will allow them to accept ride requests. Only verify drivers after checking all their documents.
-    </p>
-</div>
-                
                 <!-- Account Status Actions -->
                 <div class="p-6 flex justify-end space-x-3 border-t">
                     <a href="{{ route('admin.user.status', ['id' => $driver->id, 'status' => 'activated']) }}" 
                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                       onclick="return confirm('Are you sure you want to activate this driver?')">
+                       onclick="return confirm('Are you sure you want to activate this driver? This will also verify them.')">
                         Activate
                     </a>
                     <a href="{{ route('admin.user.status', ['id' => $driver->id, 'status' => 'deactivated']) }}" 

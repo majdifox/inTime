@@ -1,45 +1,21 @@
+<!-- resources/views/admin/partials/drivers_table.blade.php -->
 @foreach($drivers as $driver)
-<tr>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {{ $driver->created_at->format('Y-m-d') }}
-    </td>
-    <td class="px-6 py-4 whitespace-nowrap">
-        <div class="flex items-center">
-            <div class="h-10 w-10 flex-shrink-0 mr-3">
-                @if($driver->profile_picture)
-                    <img class="h-10 w-10 rounded-full" src="{{ Storage::url($driver->profile_picture) }}" alt="">
-                @else
-                    <img class="h-10 w-10 rounded-full" src="/api/placeholder/40/40" alt="">
-                @endif
-            </div>
-            <div>
-                <div class="text-sm font-medium text-gray-900">
-                    {{ $driver->name }}
-                </div>
-                <div class="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span class="text-xs text-gray-500 ml-1">{{ $driver->driver ? number_format($driver->driver->rating, 1) : 'N/A' }}</span>
-                </div>
-            </div>
+<tr class="bg-white border-b hover:bg-gray-50">
+    <td class="px-6 py-4">{{ $driver->created_at->format('Y-m-d') }}</td>
+    <td class="px-6 py-4">
+        <div class="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+            @if($driver->profile_picture)
+                <img src="{{ Storage::url($driver->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
+            @else
+                <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
+            @endif
         </div>
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {{ $driver->birthday ? $driver->birthday->format('Y-m-d') : 'N/A' }}
-    </td>
-    <td class="px-6 py-4 whitespace-nowrap">
-        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-            Driver
-        </span>
-    </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {{ $driver->email }}
-    </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {{ $driver->phone }}
-    </td>
-    <td class="px-6 py-4 whitespace-nowrap">
+    <td class="px-6 py-4 font-medium text-gray-900">{{ $driver->name }}</td>
+    <td class="px-6 py-4">{{ $driver->birthday ? date('Y-m-d', strtotime($driver->birthday)) : 'N/A' }}</td>
+    <td class="px-6 py-4">{{ $driver->email }}</td>
+    <td class="px-6 py-4">{{ $driver->phone }}</td>
+    <td class="px-6 py-4">
         @php
             $statusClasses = [
                 'activated' => 'bg-green-100 text-green-800',
@@ -54,50 +30,43 @@
             {{ ucfirst($driver->account_status) }}
         </span>
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        DH {{ number_format($driver->driver ? $driver->driver->balance : 0, 2) }}
+    <td class="px-6 py-4">
+        @if($driver->driver && $driver->driver->is_verified)
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                Verified
+            </span>
+        @else
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                Not Verified
+            </span>
+        @endif
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+    <td class="px-6 py-4">
+        DH {{ $driver->driver ? number_format($driver->driver->balance, 2) : '0.00' }}
+    </td>
+    <td class="px-6 py-4">
         <div class="flex space-x-2">
-            <button class="text-green-600 hover:text-green-900 user-status-btn" 
-                    data-user-id="{{ $driver->id }}" 
-                    data-status="activated" 
-                    title="Activate">
+            <a href="{{ route('admin.driver.show', $driver->id) }}" class="font-medium text-blue-600 hover:underline">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-            </button>
-            <button class="text-red-600 hover:text-red-900 user-status-btn" 
-                    data-user-id="{{ $driver->id }}" 
-                    data-status="deactivated" 
-                    title="Deactivate">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-            <button class="text-yellow-600 hover:text-yellow-900 user-status-btn" 
-                    data-user-id="{{ $driver->id }}" 
-                    data-status="suspended" 
-                    title="Suspend">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </button>
-            <button class="text-gray-600 hover:text-gray-900 delete-user-btn" 
-                    data-user-id="{{ $driver->id }}"
-                    title="Delete">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-            </button>
-            <button class="text-blue-600 hover:text-blue-900 view-details-btn" 
-                    data-user-id="{{ $driver->id }}" 
-                    data-user-type="driver"
-                    title="View Details">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-            </button>
+            </a>
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" class="font-medium text-gray-600 hover:text-gray-900">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                </button>
+                <div x-show="open" @click.away="open = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                    <div class="py-1">
+                        <a href="{{ route('admin.user.status', ['id' => $driver->id, 'status' => 'activated']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Activate</a>
+                        <a href="{{ route('admin.user.status', ['id' => $driver->id, 'status' => 'deactivated']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Deactivate</a>
+                        <a href="{{ route('admin.user.status', ['id' => $driver->id, 'status' => 'suspended']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Suspend</a>
+                        <a href="{{ route('admin.user.delete', ['id' => $driver->id]) }}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100" onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">Delete</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </td>
 </tr>

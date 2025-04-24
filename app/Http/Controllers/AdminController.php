@@ -128,6 +128,13 @@ public function updateUserStatusDirect($id, $status)
         
         $user = User::findOrFail($id);
         $user->account_status = $status;
+        
+        // If user is a driver and status is 'activated', also set is_verified to true
+        if ($user->role == 'driver' && $status == 'activated' && $user->driver) {
+            $user->driver->is_verified = true;
+            $user->driver->save();
+        }
+        
         $user->save();
         
         return redirect()->back()->with('success', 'User status updated successfully');
@@ -471,6 +478,13 @@ public function getPassengers(Request $request)
         ]);
         
         $user->account_status = $validated['status'];
+        
+        // If user is a driver and status is 'activated', also set is_verified to true
+        if ($user->role == 'driver' && $validated['status'] == 'activated' && $user->driver) {
+            $user->driver->is_verified = true;
+            $user->driver->save();
+        }
+        
         $user->save();
 
         // Get the updated user data to return
@@ -700,6 +714,25 @@ public function unverifyDriver($id)
         return redirect()->back()->with('success', 'Driver verification has been revoked successfully');
     } catch (\Exception $e) {
         return redirect()->back()->with('error', 'Error unverifying driver: ' . $e->getMessage());
+    }
+}
+
+public function showPassengerDetails($id)
+{
+    try {
+        // Get the passenger with all related information
+        $passenger = User::where('role', 'passenger')
+                    ->with('passenger')
+                    ->findOrFail($id);
+        
+        // Return view with passenger data
+        return view('admin.passenger_details', compact('passenger'));
+    } catch (\Exception $e) {
+        \Log::error('Error showing passenger details: ' . $e->getMessage());
+        \Log::error('Error trace: ' . $e->getTraceAsString());
+        
+        return redirect()->route('admin.users')
+            ->with('error', 'Error loading passenger details: ' . $e->getMessage());
     }
 }
 }

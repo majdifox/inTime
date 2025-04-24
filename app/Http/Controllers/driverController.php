@@ -359,35 +359,27 @@ class DriverController extends Controller
      * Update driver's online status (Available/Unavailable)
      */
     public function updateOnlineStatus(Request $request)
-    {
-        $validated = $request->validate([
-            'is_online' => 'required|boolean',
-        ]);
-        
-        $user = Auth::user();
-        $user->is_online = $validated['is_online'];
-        $user->save();
-        
-        // If going online, request location update
-        $response = [
-            'status' => 'success',
-            'is_online' => $user->is_online,
-        ];
-        
-        if ($validated['is_online']) {
-            $response['request_location'] = true;
-        } else {
-            // If going offline, clear any active ride requests
-            $driver = Driver::where('user_id', $user->id)->first();
-            if ($driver) {
-                RideRequest::where('driver_id', $driver->id)
-                    ->where('status', 'pending')
-                    ->update(['status' => 'expired']);
-            }
-        }
-        
-        return response()->json(['status' => 'success']);
+{
+    $user = Auth::user();
+    
+    // Check if the driver is verified
+    if (!$user->driver || !$user->driver->is_verified) {
+        return response()->json([
+            'success' => false,
+            'message' => 'You must be verified before you can go online',
+            'is_online' => false
+        ], 403);
     }
+    
+    $user->is_online = $request->is_online;
+    $user->save();
+    
+    return response()->json([
+        'success' => true,
+        'message' => $user->is_online ? 'You are now online' : 'You are now offline',
+        'is_online' => $user->is_online
+    ]);
+}
     
     /**
      * Update driver's location (real-time tracking)
@@ -1288,5 +1280,7 @@ public function forceLocationRefresh(Request $request)
         ], 500);
     }
 }
+
+
 
 }

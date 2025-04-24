@@ -212,6 +212,7 @@ Route::middleware(['auth', 'isadmin'])->prefix('admin')->group(function () {
 
     // Direct driver details page route
     Route::get('/driver-details/{id}', [AdminController::class, 'showDriverDetails'])->name('admin.driver.show');
+    Route::get('/passenger-details/{id}', [AdminController::class, 'showPassengerDetails'])->name('admin.passenger.show');
     
     // Action routes
     Route::get('/user/{id}/status/{status}', [AdminController::class, 'updateUserStatusDirect'])->name('admin.user.status');
@@ -224,6 +225,8 @@ Route::middleware(['auth', 'isadmin'])->prefix('admin')->group(function () {
 
     Route::patch('/user/{id}/verify', [AdminController::class, 'verifyDriver'])->name('admin.user.verify');
 Route::patch('/user/{id}/unverify', [AdminController::class, 'unverifyDriver'])->name('admin.user.unverify');
+Route::get('/passenger-details/{id}', [AdminController::class, 'showPassengerDetails'])->name('admin.passenger.show');
+
 });
 
 
