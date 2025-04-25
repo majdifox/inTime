@@ -1096,6 +1096,23 @@ function hideLoadingOverlay() {
         overlay.classList.add('hidden');
     }
 }
+
+function showSuccessMessage(message) {
+    // You can use your existing response modal or create a simpler notification
+    if (window.showResponseModal) {
+        window.showResponseModal(true, message);
+    } else {
+        alert(message);
+    }
+}
+
+function showErrorMessage(message) {
+    if (window.showResponseModal) {
+        window.showResponseModal(false, message);
+    } else {
+        alert(`Error: ${message}`);
+    }
+}
 // No need for the proceedWithCompleteRide function
 
 function proceedWithCompleteRide(rideId, latitude, longitude) {
