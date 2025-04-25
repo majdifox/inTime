@@ -120,10 +120,24 @@ Route::post('/driver/ride/{ride}/submit-rating', [DriverController::class, 'subm
 
 
 // Payment routes
-Route::get('/driver/ride/{ride}/confirm-cash-payment', [App\Http\Controllers\PaymentController::class, 'showCashConfirmationPage'])->name('driver.confirm.cash.payment');
-Route::post('/driver/ride/{ride}/confirm-cash-payment', [App\Http\Controllers\PaymentController::class, 'confirmCashPayment'])->name('driver.confirm.cash.payment.post');
-Route::get('/driver/ride/{ride}/payment-issue', [App\Http\Controllers\PaymentController::class, 'showPaymentIssuePage'])->name('driver.payment.issue');
-Route::post('/driver/ride/{ride}/payment-issue', [App\Http\Controllers\PaymentController::class, 'reportPaymentIssue'])->name('driver.submit.payment.issue');
+Route::get('/ride/{ride}/confirm-cash-payment', [App\Http\Controllers\PaymentController::class, 'showCashConfirmationPage'])
+        ->name('driver.confirm.cash.payment');
+    
+    // Confirm cash payment received
+    Route::post('/ride/{ride}/confirm-cash-payment', [App\Http\Controllers\PaymentController::class, 'confirmCashPayment'])
+        ->name('driver.confirm.cash.payment.post');
+    
+    // Report payment issue
+    Route::post('/ride/{ride}/payment-issue', [App\Http\Controllers\PaymentController::class, 'reportPaymentIssue'])
+        ->name('driver.submit.payment.issue');
+    
+    // Rate passenger
+    Route::get('/ride/{ride}/rate', [App\Http\Controllers\DriverController::class, 'rateRide'])
+        ->name('driver.rate.ride');
+    
+    // Submit rating
+    Route::post('/ride/{ride}/submit-rating', [App\Http\Controllers\DriverController::class, 'submitRating'])
+        ->name('driver.submit.rating');
 });
 
 
@@ -195,12 +209,36 @@ Route::post('/profile/location/remove', [App\Http\Controllers\PassengerProfileCo
  Route::post('/passenger/ride/{ride}/rate', [PassengerController::class, 'rateRide'])->name('passenger.rate.ride');
 
  // Payment routes
- Route::get('/ride/{ride}/payment', [App\Http\Controllers\PaymentController::class, 'showPaymentPage'])->name('ride.payment');
- Route::post('/ride/{ride}/process-payment', [App\Http\Controllers\PaymentController::class, 'processPayment'])->name('ride.process-payment');
- Route::get('/ride/{ride}/cash-payment', [App\Http\Controllers\PaymentController::class, 'showCashPaymentPage'])->name('cash.payment');
- Route::post('/create-setup-intent', [App\Http\Controllers\PaymentController::class, 'createSetupIntent'])->name('create-setup-intent');
- Route::delete('/payment-method/{id}', [App\Http\Controllers\PaymentController::class, 'deletePaymentMethod'])->name('delete-payment-method');
- Route::patch('/payment-method/{id}/default', [App\Http\Controllers\PaymentController::class, 'setDefaultPaymentMethod'])->name('set-default-payment-method');
+ // Ride payment page
+ Route::get('/ride/{ride}/payment', [App\Http\Controllers\PaymentController::class, 'showPaymentPage'])
+ ->name('passenger.ride.payment');
+
+// Process payment
+Route::post('/ride/{ride}/process-payment', [App\Http\Controllers\PaymentController::class, 'processPayment'])
+ ->name('passenger.ride.process-payment');
+
+// Cash payment page
+Route::get('/ride/{ride}/cash-payment', [App\Http\Controllers\PaymentController::class, 'showCashPaymentPage'])
+ ->name('passenger.cash.payment');
+
+// Rate ride
+Route::post('/ride/{ride}/rate', [App\Http\Controllers\PassengerController::class, 'rateRide'])
+ ->name('passenger.rate.ride');
+
+ Route::get('/ride/{ride}/rate', [App\Http\Controllers\PassengerController::class, 'showRateRidePage'])
+        ->name('passenger.rate.ride');
+    
+    // This route is for submitting the rating
+    Route::post('/ride/{ride}/rate', [App\Http\Controllers\PassengerController::class, 'submitRating'])
+        ->name('passenger.submit.rating');
+
+          // Display rating form
+    Route::get('/ride/{ride}/rate', [PassengerController::class, 'showRateRidePage'])
+    ->name('rate.ride');
+
+// Submit rating
+Route::post('/ride/{ride}/rate', [PassengerController::class, 'submitRating'])
+    ->name('submit.rating');
 });
 
 // Admin routes
@@ -303,3 +341,19 @@ Route::get('/test-ride-complete', function() {
         'message' => 'Test route is working'
     ]);
 });
+
+
+// Payment Status Check Route
+Route::get('/passenger/ride/{ride}/payment-status', function(App\Models\Ride $ride) {
+    // Security check - ensure the ride belongs to this passenger
+    $passenger = App\Models\Passenger::where('user_id', Auth::id())->first();
+    if ($ride->passenger_id !== $passenger->id) {
+        return response()->json(['error' => 'Unauthorized'], 403);
+    }
+    
+    return response()->json([
+        'is_paid' => $ride->is_paid,
+        'payment_status' => $ride->payment_status,
+        'payment_method' => $ride->payment_method
+    ]);
+})->middleware('auth')->name('passenger.ride.payment.status');

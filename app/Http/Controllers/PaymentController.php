@@ -195,98 +195,7 @@ class PaymentController extends Controller
     /**
      * Show cash payment confirmation page for driver
      */
-    public function showCashConfirmationPage(Ride $ride)
-    {
-        // Security check - ensure the ride belongs to this driver
-        $driver = Driver::where('user_id', Auth::id())->first();
-        if ($ride->driver_id !== $driver->id) {
-            return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to view this page.');
-        }
-        
-        return view('driver.confirmCashPayment', compact('ride'));
-    }
-    
-    /**
-     * Driver confirms cash payment received
-     */
-    public function confirmCashPayment(Request $request, Ride $ride)
-{
-    // Security check - ensure the ride belongs to this driver
-    $driver = Driver::where('user_id', Auth::id())->first();
-    if ($ride->driver_id !== $driver->id) {
-        return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to perform this action.');
-    }
-    
-    // Check if payment is pending
-    if ($ride->payment_status !== 'pending' || $ride->payment_method !== 'cash') {
-        return redirect()->route('driver.dashboard')->with('error', 'This ride payment cannot be confirmed.');
-    }
-    
-    // Start database transaction
-    DB::beginTransaction();
-    try {
-        // Update the payment record
-        $payment = Payment::where('ride_id', $ride->id)->first();
-        if ($payment) {
-            $payment->status = 'completed';
-            $payment->save();
-        }
-        
-        // Update ride payment status
-        $ride->is_paid = true;
-        $ride->payment_status = 'completed';
-        $ride->save();
-        
-        // Update driver's balance
-        $driver->balance += $ride->price;
-        $driver->save();
-        
-        // Log the successful cash payment
-        \Log::info("Cash payment confirmed for ride #{$ride->id}. Driver #{$driver->id} balance updated.");
-        
-        DB::commit();
-        
-        // Redirect to rate passenger page
-        return redirect()->route('driver.rate.ride', $ride->id)->with('success', 'Cash payment confirmed! Please rate your passenger.');
-        
-    } catch (Exception $e) {
-        DB::rollBack();
-        // Handle errors
-        return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
-    }
-
-    }
-    
-    /**
-     * Driver reports cash payment issue
-     */
-    public function reportPaymentIssue(Ride $ride)
-{
-    // Security check - ensure the ride belongs to this driver
-    $driver = Driver::where('user_id', Auth::id())->first();
-    if ($ride->driver_id !== $driver->id) {
-        return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to perform this action.');
-    }
-    
-    // Mark payment as disputed
-    $payment = Payment::where('ride_id', $ride->id)->first();
-    if ($payment) {
-        $payment->status = 'disputed';
-        $payment->save();
-    }
-    
-    // Update ride payment status
-    $ride->payment_status = 'disputed';
-    $ride->save();
-    
-    // Log the dispute
-    \Log::info("Payment dispute reported for ride #{$ride->id} by driver #{$driver->id}");
-    
-    // Notify admin (in a real app, this would involve more complex notification logic)
-    
-    return redirect()->route('driver.dashboard')->with('warning', 'Payment issue reported. Our team will contact you shortly.');
-}
-    
+   
     /**
      * Create a Setup Intent for saving a card
      */
@@ -403,4 +312,78 @@ class PaymentController extends Controller
         
         return redirect()->back()->with('success', 'Default payment method updated.');
     }
+
+    public function showCashConfirmationPage(Ride $ride)
+{
+    // Security check - ensure the ride belongs to this driver
+    $driver = Driver::where('user_id', Auth::id())->first();
+    if ($ride->driver_id !== $driver->id) {
+        return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to view this page.');
+    }
+    
+    return view('driver.confirmCashPayment', compact('ride'));
+}
+
+public function confirmCashPayment(Request $request, Ride $ride)
+{
+    // Security check - ensure the ride belongs to this driver
+    $driver = Driver::where('user_id', Auth::id())->first();
+    if ($ride->driver_id !== $driver->id) {
+        return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to perform this action.');
+    }
+    
+    // Check if payment is pending
+    if ($ride->payment_status !== 'pending' || $ride->payment_method !== 'cash') {
+        return redirect()->route('driver.dashboard')->with('error', 'This ride payment cannot be confirmed.');
+    }
+    
+    // Start database transaction
+    DB::beginTransaction();
+    try {
+        // Update the payment record
+        $payment = Payment::where('ride_id', $ride->id)->first();
+        if ($payment) {
+            $payment->status = 'completed';
+            $payment->save();
+        } else {
+            // Create a payment record if it doesn't exist
+            $payment = new Payment();
+            $payment->ride_id = $ride->id;
+            $payment->user_id = $ride->passenger->user_id;
+            $payment->amount = $ride->price;
+            $payment->payment_method = 'cash';
+            $payment->status = 'completed';
+            $payment->payment_details = json_encode(['method' => 'cash']);
+            $payment->save();
+        }
+        
+        // Update ride payment status
+        $ride->is_paid = true;
+        $ride->payment_status = 'completed';
+        $ride->save();
+        
+        // Update driver's balance
+        $driver->balance += $ride->price;
+        $driver->save();
+        
+        // Log the successful cash payment
+        \Log::info("Cash payment confirmed for ride #{$ride->id}. Driver #{$driver->id} balance updated.");
+        
+        DB::commit();
+        
+        // Redirect to rate passenger page
+        return redirect()->route('driver.rate.ride', $ride->id)->with('success', 'Cash payment confirmed! Please rate your passenger.');
+        
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error("Cash payment confirmation failed: {$e->getMessage()}", [
+            'ride_id' => $ride->id,
+            'driver_id' => $driver->id,
+            'exception' => $e->getMessage()
+        ]);
+        
+        // Handle errors
+        return redirect()->back()->with('error', 'An error occurred while confirming payment: ' . $e->getMessage());
+    }
+}
 }

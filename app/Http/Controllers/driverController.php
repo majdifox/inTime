@@ -564,6 +564,7 @@ public function completeRide(Request $request, $rideId)
             'request_data' => $request->all()
         ]);
         
+        // Find the ride
         $ride = Ride::findOrFail($rideId);
         $driver = Driver::where('user_id', Auth::id())->first();
 
@@ -574,7 +575,10 @@ public function completeRide(Request $request, $rideId)
                 'driver_id' => $driver->id,
                 'ride_driver_id' => $ride->driver_id
             ]);
-            return response()->json(['error' => 'Unauthorized', 'success' => false], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to complete this ride'
+            ], 403);
         }
 
         // Check if the ride is in the correct state to be completed
@@ -583,19 +587,20 @@ public function completeRide(Request $request, $rideId)
                 'ride_id' => $rideId
             ]);
             return response()->json([
-                'error' => 'This ride cannot be completed because it has not been started',
-                'success' => false
+                'success' => false,
+                'message' => 'This ride cannot be completed because it has not been started'
             ], 400);
         }
 
+        // Mark ride as completed
         $ride->dropoff_time = now();
         $ride->ride_status = 'completed';
         
-        // Get current location for verification
-        if ($request->has('latitude') && $request->has('longitude')) {
-            $driverLat = $request->input('latitude');
-            $driverLng = $request->input('longitude');
-            
+        // Get current location for verification (if provided)
+        $driverLat = $request->input('latitude', null);
+        $driverLng = $request->input('longitude', null);
+        
+        if ($driverLat && $driverLng) {
             // Calculate distance from dropoff point
             $distance = $this->rideMatchingService->calculateDistance(
                 $driverLat,
@@ -624,7 +629,6 @@ public function completeRide(Request $request, $rideId)
         // Calculate waiting time
         $waitTimeMinutes = 0;
         if ($ride->pickup_time && $ride->reservation_date) {
-            // Calculate waiting time
             $scheduledPickup = $ride->reservation_date;
             $actualPickup = $ride->pickup_time;
             
@@ -688,32 +692,36 @@ public function completeRide(Request $request, $rideId)
         
         // Set payment status to pending
         $ride->payment_status = 'pending';
+        $ride->payment_method = 'cash'; // Default to cash payment
         $ride->is_paid = false;
         
         // Save the ride
         $ride->save();
+        
         \Log::info('Ride completed successfully, saved with updates', [
             'ride_id' => $ride->id,
-            'final_fare' => $finalFare
+            'final_fare' => $finalFare,
+            'payment_method' => $ride->payment_method,
+            'payment_status' => $ride->payment_status
         ]);
 
-        // Important: Redirect passenger to payment page
-        // This will be handled on the frontend by redirecting to the payment route
+        // Create a default payment record for cash
+        $payment = new \App\Models\Payment();
+        $payment->ride_id = $ride->id;
+        $payment->user_id = $ride->passenger->user_id;
+        $payment->amount = $finalFare;
+        $payment->payment_method = 'cash';
+        $payment->status = 'pending';
+        $payment->payment_details = json_encode(['method' => 'cash']);
+        $payment->save();
+
+        // Return appropriate response for driver
         return response()->json([
             'success' => true,
-            'message' => 'Ride completed successfully',
+            'message' => 'Ride completed successfully. Please confirm cash payment.',
             'ride_id' => $ride->id,
-            'fare' => [
-                'base_fare' => $base_fare,
-                'distance_fare' => $distanceFare,
-                'time_fare' => $timeFare,
-                'waiting_fee' => $waitingFee,
-                'surge_multiplier' => $surgeMultiplier,
-                'final_fare' => $finalFare,
-                'distance_km' => $actualDistanceKm,
-                'duration_minutes' => $rideDurationMinutes
-            ],
-            'redirect' => route('passenger.ride.payment', $ride->id)
+            'fare' => number_format($finalFare, 2),
+            'redirect' => route('driver.confirm.cash.payment', $ride->id)
         ]);
     } catch (\Exception $e) {
         // Log the exception details
@@ -726,8 +734,8 @@ public function completeRide(Request $request, $rideId)
         // Return error response
         return response()->json([
             'success' => false,
-            'error' => 'An error occurred: ' . $e->getMessage(),
-            'message' => 'There was a problem completing this ride. Please try again or contact support.'
+            'message' => 'There was a problem completing this ride. Please try again or contact support.',
+            'details' => 'Error: ' . $e->getMessage()
         ], 500);
     }
 }
@@ -789,9 +797,11 @@ public function rateRide(Ride $ride)
     // Load passenger info
     $ride->load('passenger.user');
     
-    return view('driver.rateRide', compact('ride'));
+    // Explicitly set isDriver to true
+    $isDriver = true;
+    
+    return view('driver.rateRide', compact('ride', 'isDriver'));
 }
-
 /**
  * Submit rating for a completed ride
  * 
@@ -1301,6 +1311,56 @@ public function forceLocationRefresh(Request $request)
     }
 }
 
+/**
+ * Driver confirms cash payment received
+ */
+
+
+public function showCashConfirmationPage(Ride $ride)
+{
+    // Security check - ensure the ride belongs to this driver
+    $driver = Driver::where('user_id', Auth::id())->first();
+    if ($ride->driver_id !== $driver->id) {
+        return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to view this page.');
+    }
+    
+    return view('driver.confirmCashPayment', compact('ride'));
+}
+
+/**
+ * Driver confirms cash payment received
+ */
+
+
+/**
+ * Driver reports cash payment issue
+ */
+public function reportPaymentIssue(Ride $ride)
+{
+// Security check - ensure the ride belongs to this driver
+$driver = Driver::where('user_id', Auth::id())->first();
+if ($ride->driver_id !== $driver->id) {
+    return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to perform this action.');
+}
+
+// Mark payment as disputed
+$payment = Payment::where('ride_id', $ride->id)->first();
+if ($payment) {
+    $payment->status = 'disputed';
+    $payment->save();
+}
+
+// Update ride payment status
+$ride->payment_status = 'disputed';
+$ride->save();
+
+// Log the dispute
+\Log::info("Payment dispute reported for ride #{$ride->id} by driver #{$driver->id}");
+
+// Notify admin (in a real app, this would involve more complex notification logic)
+
+return redirect()->route('driver.dashboard')->with('warning', 'Payment issue reported. Our team will contact you shortly.');
+}
 
 
 }

@@ -141,8 +141,8 @@
     </div>
     
     <!-- Rating Form -->
-    <form method="POST" action="{{ $isDriver ? route('driver.submit.rating', $ride->id) : route('passenger.rate.ride', $ride->id) }}" class="space-y-6">
-        @csrf
+    <form method="POST" action="{{ $isDriver ? route('driver.submit.rating', $ride->id) : route('passenger.submit.rating', $ride->id) }}" class="space-y-6">
+    @csrf
         
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-3">

@@ -559,710 +559,649 @@
     </div>
 
     <!-- JavaScript for functionality -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map
-            const map = L.map('map').setView([0, 0], 15);
-            
-            // Add OpenStreetMap tile layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
-            }).addTo(map);
-            
-            // Variables
-            let watchId = null;
-            let isTrackingLocation = false;
-            let driverLocation = null;
-            let driverMarker = null;
-            let pickupMarker = null;
-            let dropoffMarker = null;
-            let routingControl = null;
-            
-            // UI elements
-            const locationSharingBtn = document.getElementById('share-location');
-            const locationStatus = document.getElementById('location-status');
-            const locationInfo = document.getElementById('location-info');
-            const toggleStatusBtn = document.getElementById('toggle-status');
-            const toggleCircle = document.getElementById('toggle-circle');
-            const toggleText = document.getElementById('toggle-text');
-            const statusIndicator = document.getElementById('status-indicator');
-            const statusText = document.getElementById('status-text');
-            const locationSharingContainer = document.getElementById('location-sharing-container');
-            
-            // Modal elements
-            const startRideModal = document.getElementById('start-ride-modal');
-            const startRideForm = document.getElementById('start-ride-form');
-            const startRideIdInput = document.getElementById('start-ride-id-input');
-            const startLatitudeInput = document.getElementById('start-latitude-input');
-            const startLongitudeInput = document.getElementById('start-longitude-input');
-            const cancelStartRideBtn = document.getElementById('cancel-start-ride');
-            
-            const completeRideModal = document.getElementById('complete-ride-modal');
-            const completeRideForm = document.getElementById('complete-ride-form');
-            const rideIdInput = document.getElementById('ride-id-input');
-            const latitudeInput = document.getElementById('latitude-input');
-            const longitudeInput = document.getElementById('longitude-input');
-            const cancelCompleteRideBtn = document.getElementById('cancel-complete-ride');
-            
-            const responseModal = document.getElementById('ride-response-modal');
-            const responseSuccessDiv = document.getElementById('response-success');
-            const responseErrorDiv = document.getElementById('response-error');
-            const successMessage = document.getElementById('success-message');
-            const errorMessage = document.getElementById('error-message');
-            const responseModalClose = document.getElementById('response-modal-close');
-            
-            // Mobile menu elements
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            const closeMobileMenuButton = document.getElementById('close-mobile-menu');
-            
-            // Profile dropdown elements
-            const profileButton = document.getElementById('profile-button');
-            const profileDropdown = document.getElementById('profile-dropdown');
-            
-            // Add event listeners
-            
-            // Toggle driver status
-            if (toggleStatusBtn) {
-                toggleStatusBtn.addEventListener('click', function() {
-                    const isCurrentlyOnline = toggleStatusBtn.classList.contains('bg-green-500');
-                    updateDriverStatus(!isCurrentlyOnline);
-                });
-            }
-            
-            // Location sharing
-            if (locationSharingBtn) {
-                locationSharingBtn.addEventListener('click', function() {
-                    if (!isTrackingLocation) {
-                        startLocationTracking();
-                    } else {
-                        stopLocationTracking();
-                    }
-                });
-            }
-            
-            // Start ride buttons
-            document.querySelectorAll('.start-ride-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const rideId = this.dataset.rideId;
-                    startRideIdInput.value = rideId;
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize map
+        const map = L.map('map').setView([0, 0], 15);
+        
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Variables
+        let watchId = null;
+        let isTrackingLocation = false;
+        let driverLocation = null;
+        let driverMarker = null;
+        let pickupMarker = null;
+        let dropoffMarker = null;
+        let routingControl = null;
+        
+        // UI elements
+        const locationSharingBtn = document.getElementById('share-location');
+        const locationStatus = document.getElementById('location-status');
+        const locationInfo = document.getElementById('location-info');
+        const toggleStatusBtn = document.getElementById('toggle-status');
+        const toggleCircle = document.getElementById('toggle-circle');
+        const toggleText = document.getElementById('toggle-text');
+        const statusIndicator = document.getElementById('status-indicator');
+        const statusText = document.getElementById('status-text');
+        const locationSharingContainer = document.getElementById('location-sharing-container');
+        
+        // Modal elements
+        const startRideModal = document.getElementById('start-ride-modal');
+        const startRideForm = document.getElementById('start-ride-form');
+        const startRideIdInput = document.getElementById('start-ride-id-input');
+        const startLatitudeInput = document.getElementById('start-latitude-input');
+        const startLongitudeInput = document.getElementById('start-longitude-input');
+        const cancelStartRideBtn = document.getElementById('cancel-start-ride');
+        
+        const completeRideModal = document.getElementById('complete-ride-modal');
+        const completeRideForm = document.getElementById('complete-ride-form');
+        const rideIdInput = document.getElementById('ride-id-input');
+        const latitudeInput = document.getElementById('latitude-input');
+        const longitudeInput = document.getElementById('longitude-input');
+        const cancelCompleteRideBtn = document.getElementById('cancel-complete-ride');
+        
+        const responseModal = document.getElementById('ride-response-modal');
+        const responseSuccessDiv = document.getElementById('response-success');
+        const responseErrorDiv = document.getElementById('response-error');
+        const successMessage = document.getElementById('success-message');
+        const errorMessage = document.getElementById('error-message');
+        const responseModalClose = document.getElementById('response-modal-close');
+        
+        // Mobile menu elements
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const closeMobileMenuButton = document.getElementById('close-mobile-menu');
+        
+        // Profile dropdown elements
+        const profileButton = document.getElementById('profile-button');
+        const profileDropdown = document.getElementById('profile-dropdown');
+        
+        // Add event listeners
+        
+        // Toggle driver status
+        if (toggleStatusBtn) {
+            toggleStatusBtn.addEventListener('click', function() {
+                const isCurrentlyOnline = toggleStatusBtn.classList.contains('bg-green-500');
+                updateDriverStatus(!isCurrentlyOnline);
+            });
+        }
+        
+        // Location sharing
+        if (locationSharingBtn) {
+            locationSharingBtn.addEventListener('click', function() {
+                if (!isTrackingLocation) {
+                    startLocationTracking();
+                } else {
+                    stopLocationTracking();
+                }
+            });
+        }
+        
+        // Start ride buttons
+        document.querySelectorAll('.start-ride-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const rideId = this.dataset.rideId;
+                startRideIdInput.value = rideId;
+                
+                // Get current location if available
+                if (driverLocation) {
+                    startLatitudeInput.value = driverLocation.lat;
+                    startLongitudeInput.value = driverLocation.lng;
+                }
+                
+                startRideModal.classList.remove('hidden');
+            });
+        });
+        
+        // Complete ride buttons
+        document.querySelectorAll('.complete-ride-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const rideId = this.dataset.rideId;
+                
+                // Show confirmation dialog
+                if (confirm('Are you sure you want to complete this ride?')) {
+                    // Show loading overlay
+                    showLoadingOverlay('Completing ride...');
                     
                     // Get current location if available
-                    if (driverLocation) {
-                        startLatitudeInput.value = driverLocation.lat;
-                        startLongitudeInput.value = driverLocation.lng;
-                    }
-                    
-                    startRideModal.classList.remove('hidden');
-                });
-            });
-            
-            // Complete ride buttons
-            document.querySelectorAll('.complete-ride-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const rideId = this.dataset.rideId;
-                    rideIdInput.value = rideId;
-                    
-                    // Get current location if available
-                    if (driverLocation) {
-                        latitudeInput.value = driverLocation.lat;
-                        longitudeInput.value = driverLocation.lng;
-                    }
-                    
-                    completeRideModal.classList.remove('hidden');
-                });
-            });
-            
-            // Navigation buttons
-            document.querySelectorAll('.navigation-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const pickupLat = parseFloat(this.dataset.pickupLat);
-                    const pickupLng = parseFloat(this.dataset.pickupLng);
-                    const dropoffLat = parseFloat(this.dataset.dropoffLat);
-                    const dropoffLng = parseFloat(this.dataset.dropoffLng);
-                    
-                    if (pickupLat && pickupLng && dropoffLat && dropoffLng) {
-                        addRouteToMap([pickupLat, pickupLng], [dropoffLat, dropoffLng]);
-                    }
-                });
-            });
-            
-            // Modal forms and buttons
-            if (startRideForm) {
-                startRideForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const rideId = startRideIdInput.value;
-                    const latitude = startLatitudeInput.value;
-                    const longitude = startLongitudeInput.value;
-                    startRide(rideId, latitude, longitude);
-                    startRideModal.classList.add('hidden');
-                });
-            }
-            
-            if (completeRideForm) {
-                completeRideForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const rideId = rideIdInput.value;
-                    const latitude = latitudeInput.value;
-                    const longitude = longitudeInput.value;
-                    completeRide(rideId, latitude, longitude);
-                    completeRideModal.classList.add('hidden');
-                });
-            }
-            
-            if (cancelStartRideBtn) {
-                cancelStartRideBtn.addEventListener('click', function() {
-                    startRideModal.classList.add('hidden');
-                });
-            }
-            
-            if (cancelCompleteRideBtn) {
-                cancelCompleteRideBtn.addEventListener('click', function() {
-                    completeRideModal.classList.add('hidden');
-                });
-            }
-            
-            if (responseModalClose) {
-                responseModalClose.addEventListener('click', function() {
-                    responseModal.classList.add('hidden');
-                });
-            }
-            
-            // Mobile menu
-            if (mobileMenuButton) {
-                mobileMenuButton.addEventListener('click', function() {
-                    mobileMenu.classList.remove('translate-x-full');
-                });
-            }
-            
-            if (closeMobileMenuButton) {
-                closeMobileMenuButton.addEventListener('click', function() {
-                    mobileMenu.classList.add('translate-x-full');
-                });
-            }
-            
-            // Profile dropdown
-            if (profileButton) {
-                profileButton.addEventListener('click', function() {
-                    profileDropdown.classList.toggle('hidden');
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(event) {
-                    if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
-                        profileDropdown.classList.add('hidden');
-                    }
-                });
-            }
-            
-            // Functions
-            
-            // Update driver status
-            function updateDriverStatus(isOnline) {
-                fetch('{{ route("driver.update.status") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        is_online: isOnline
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Update UI elements
-                        toggleCircle.classList.toggle('translate-x-1', !isOnline);
-                        toggleCircle.classList.toggle('translate-x-5', isOnline);
-                        toggleStatusBtn.classList.toggle('bg-gray-300', !isOnline);
-                        toggleStatusBtn.classList.toggle('bg-green-500', isOnline);
-                        toggleText.textContent = isOnline ? 'Go Offline' : 'Go Online';
-                        statusIndicator.classList.toggle('bg-red-500', !isOnline);
-                        statusIndicator.classList.toggle('bg-green-500', isOnline);
-                        statusText.textContent = isOnline ? 'Online' : 'Offline';
-                        
-                        // Show/hide location sharing button
-                        if (isOnline) {
-                            locationSharingContainer.classList.remove('hidden');
-                            
-                            if (data.request_location) {
-                                // Auto-start location sharing when going online
-                                startLocationTracking();
-                            }
-                        } else {
-                            locationSharingContainer.classList.add('hidden');
-                            stopLocationTracking();
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating status:', error);
-                    showResponseModal(false, 'Failed to update your online status. Please try again.');
-                });
-            }
-            
-            // Start tracking location
-            function startLocationTracking() {
-                if (navigator.geolocation) {
-                    locationStatus.textContent = 'Tracking...';
-                    locationSharingBtn.classList.add('bg-red-500');
-                    locationSharingBtn.classList.remove('bg-blue-600');
-                    locationInfo.classList.remove('hidden');
-                    
-                    watchId = navigator.geolocation.watchPosition(
-                        // Success callback
-                        position => {
-                            const lat = position.coords.latitude;
-                            const lng = position.coords.longitude;
-                            
-                            // Save current location for later use
-                            driverLocation = {lat, lng};
-                            
-                            // Update location on the server
-                            updateLocationOnServer(lat, lng);
-                            
-                            // Update map with driver location
-                            updateDriverLocationOnMap(lat, lng);
-                            
-                            isTrackingLocation = true;
-                            locationStatus.textContent = 'Location Shared';
-                        },
-                        // Error callback
-                        error => {
-                            console.error('Geolocation error:', error);
-                            stopLocationTracking();
-                            showResponseModal(false, 'Unable to access your location. Please check your device settings and try again.');
-                        },
-                        // Options
-                        {
-                            enableHighAccuracy: true,
-                            maximumAge: 0,
-                            timeout: 5000
-                        }
-                    );
-                } else {
-                    showResponseModal(false, 'Geolocation is not supported by your browser.');
-                }
-            }
-            
-            // Stop tracking location
-            function stopLocationTracking() {
-                if (watchId !== null) {
-                    navigator.geolocation.clearWatch(watchId);
-                    watchId = null;
-                }
-                
-                isTrackingLocation = false;
-                locationStatus.textContent = 'Share Location';
-                locationSharingBtn.classList.remove('bg-red-500');
-                locationSharingBtn.classList.add('bg-blue-600');
-                locationInfo.classList.add('hidden');
-            }
-            
-            // Update location on server
-            function updateLocationOnServer(latitude, longitude) {
-                fetch('{{ route("driver.update.location") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        latitude: latitude,
-                        longitude: longitude
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status !== 'success') {
-                        console.error('Error updating location on server:', data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Failed to update location:', error);
-                });
-            }
-            
-            // Update driver location on map
-            function updateDriverLocationOnMap(latitude, longitude) {
-                const driverLatLng = [latitude, longitude];
-                
-                // If marker doesn't exist yet, create it
-                if (!driverMarker) {
-                    // Create a custom icon for the driver
-                    const driverIcon = L.divIcon({
-                        className: 'driver-marker',
-                        html: '<div class="driver-marker-inner"></div>',
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12]
-                    });
-                    
-                    driverMarker = L.marker(driverLatLng, {
-                        icon: driverIcon,
-                        zIndexOffset: 1000
-                    }).addTo(map);
-                    
-                    // Center map on driver location
-                    map.setView(driverLatLng, 15);
-                } else {
-                    // Update existing marker position
-                    driverMarker.setLatLng(driverLatLng);
-                }
-            }
-            
-            // Add route to map
-            function addRouteToMap(pickupCoords, dropoffCoords) {
-                // Remove existing markers and routes
-                if (pickupMarker) map.removeLayer(pickupMarker);
-                if (dropoffMarker) map.removeLayer(dropoffMarker);
-                if (routingControl) map.removeControl(routingControl);
-                
-                // Add pickup marker
-                pickupMarker = L.marker(pickupCoords, {
-                    icon: L.divIcon({
-                        className: 'pickup-marker',
-                        html: '<div class="pickup-marker-inner"></div>',
-                        iconSize: [20, 20],
-                        iconAnchor: [10, 10]
-                    })
-                }).addTo(map);
-                
-                // Add dropoff marker
-                dropoffMarker = L.marker(dropoffCoords, {
-                    icon: L.divIcon({
-                        className: 'dropoff-marker',
-                        html: '<div class="dropoff-marker-inner"></div>',
-                        iconSize: [20, 20],
-                        iconAnchor: [10, 10]
-                    })
-                }).addTo(map);
-                
-                // Add routing
-                routingControl = L.Routing.control({
-                    waypoints: [
-                        L.latLng(pickupCoords[0], pickupCoords[1]),
-                        L.latLng(dropoffCoords[0], dropoffCoords[1])
-                    ],
-                    routeWhileDragging: false,
-                    showAlternatives: false,
-                    lineOptions: {
-                        styles: [{color: '#3B82F6', weight: 5, opacity: 0.7}]
-                    },
-                    createMarker: function() { return null; } // Don't create default markers
-                }).addTo(map);
-                
-                // Hide the routing control panel
-                routingControl.hide();
-                
-                // Fit map to show route and markers
-                const bounds = L.latLngBounds(pickupCoords, dropoffCoords);
-                map.fitBounds(bounds, {padding: [50, 50]});
-            }
-            
-            // Show response modal
-            function showResponseModal(success, message) {
-                if (success) {
-                    responseSuccessDiv.classList.remove('hidden');
-                    responseErrorDiv.classList.add('hidden');
-                    successMessage.innerHTML = message;
-                } else {
-                    responseSuccessDiv.classList.add('hidden');
-                    responseErrorDiv.classList.remove('hidden');
-                    errorMessage.textContent = message;
-                }
-                
-                responseModal.classList.remove('hidden');
-            }
-            
-            // Start ride
-            function startRide(rideId, latitude, longitude) {
-                fetch(`{{ url('driver/ride') }}/${rideId}/start`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        latitude: latitude,
-                        longitude: longitude
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showResponseModal(true, 'Ride started successfully.');
-                        
-                        // Refresh the page after a delay
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            // Success callback
+                            position => {
+                                const lat = position.coords.latitude;
+                                const lng = position.coords.longitude;
+                                completeRideWithCoordinates(rideId, lat, lng);
+                            },
+                            // Error callback
+                            error => {
+                                console.warn('Could not get location:', error.message);
+                                // Continue with empty coordinates
+                                completeRideWithCoordinates(rideId);
+                            },
+                            { timeout: 5000, enableHighAccuracy: true }
+                        );
                     } else {
-                        showResponseModal(false, data.message || 'Failed to start ride.');
+                        // Geolocation not supported, continue with empty coordinates
+                        completeRideWithCoordinates(rideId);
                     }
-                })
-                .catch(error => {
-                    console.error('Error starting ride:', error);
-                    showResponseModal(false, 'An error occurred while processing your request.');
-                });
-            }
-            
-            function completeRide(rideId, latitude, longitude) {
-    // Get the CSRF token
-    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    
-    // Create the request payload
-    const payload = {
-        latitude: latitude || 0,
-        longitude: longitude || 0
-    };
-    
-    // Show loading state
-    showLoadingOverlay('Completing ride...');
-    
-    // Send the request
-    fetch(`/driver/ride/${rideId}/complete`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': token
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Server returned error status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        hideLoadingOverlay();
+                }
+            });
+        });
         
-        if (data.success) {
-            // Show success message
-            showSuccessMessage('Ride completed successfully!');
-            
-            // For cash payments, redirect driver to cash confirmation page
-            if (data.payment_method === 'cash') {
-                setTimeout(() => {
-                    window.location.href = `/driver/ride/${rideId}/confirm-cash-payment`;
-                }, 1500);
-            } else {
-                // Card payments will be handled by the passenger
-                // Show a message that passenger will complete payment
-                showSuccessMessage('The passenger will now complete payment. You will be notified when payment is complete.');
-                
-                // Redirect back to dashboard after a delay
-                setTimeout(() => {
-                    window.location.href = '/driver/dashboard';
-                }, 3000);
-            }
-        } else {
-            showErrorMessage(data.message || 'Failed to complete ride');
-        }
-    })
-    .catch(error => {
-        hideLoadingOverlay();
-        console.error('Error completing ride:', error);
-        showErrorMessage('An error occurred. Please try again or contact support.');
-    });
-}
-function showLoadingOverlay(message) {
-    // Create loading overlay if it doesn't exist
-    if (!document.getElementById('loading-overlay')) {
-        const overlay = document.createElement('div');
-        overlay.id = 'loading-overlay';
-        overlay.className = 'fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50';
-        overlay.innerHTML = `
-            <div class="bg-white p-6 rounded-lg shadow-lg text-center">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p id="loading-message" class="mt-4 text-lg font-medium"></p>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-    }
-    
-    // Show and update message
-    const overlay = document.getElementById('loading-overlay');
-    const messageEl = document.getElementById('loading-message');
-    messageEl.textContent = message;
-    overlay.classList.remove('hidden');
-}
-
-function hideLoadingOverlay() {
-    const overlay = document.getElementById('loading-overlay');
-    if (overlay) {
-        overlay.classList.add('hidden');
-    }
-}
-
-function showSuccessMessage(message) {
-    // You can use your existing response modal or create a simpler notification
-    if (window.showResponseModal) {
-        window.showResponseModal(true, message);
-    } else {
-        alert(message);
-    }
-}
-
-function showErrorMessage(message) {
-    if (window.showResponseModal) {
-        window.showResponseModal(false, message);
-    } else {
-        alert(`Error: ${message}`);
-    }
-}
-// No need for the proceedWithCompleteRide function
-
-function proceedWithCompleteRide(rideId, latitude, longitude) {
-    // Show a simple alert to confirm function is being called
-    alert("Attempting to complete ride: " + rideId);
-    
-    // Get the CSRF token
-    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    
-    // Log for debugging
-    console.log(`Completing ride ${rideId} at coordinates: ${latitude}, ${longitude}`);
-    console.log('CSRF Token:', token);
-    
-    // Create the request payload
-    const payload = {
-        latitude: latitude,
-        longitude: longitude
-    };
-    
-    console.log('Sending payload:', payload);
-    
-    // Send the request
-    fetch(`/driver/ride/${rideId}/complete`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': token
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(response => {
-        console.log('Response status:', response.status);
-        console.log('Response headers:', [...response.headers.entries()]);
-        
-        // Check if the response is ok (status in the range 200-299)
-        if (!response.ok) {
-            console.error('Server returned error status:', response.status);
-        }
-        // Try to get response text first
-        return response.text();
-    })
-    .then(text => {
-        console.log('Raw response text length:', text.length);
-        console.log('Raw response first 100 chars:', text.substring(0, 100));
-        
-        // Try to parse as JSON
-        let data;
-        try {
-            data = JSON.parse(text);
-            console.log('Successfully parsed JSON');
-        } catch (e) {
-            console.error('Failed to parse response as JSON:', e);
-            alert('Failed to parse server response as JSON');
-            showResponseModal(false, 'Server returned an invalid response. Please try again.');
-            return;
-        }
-        
-        console.log('Parsed response data:', data);
-        
-        // ... rest of the function
-    })
-    .catch(error => {
-        console.error('Fetch error:', error);
-        alert('Error: ' + error.message);
-        showResponseModal(false, 'An error occurred while processing your request: ' + error.message);
-    });
-}
-            
-            // Check for active rides with coordinates and add to map
-            const activeRideElements = document.querySelectorAll('.navigation-btn');
-            if (activeRideElements.length > 0) {
-                // Get the first active ride to display on map
-                const firstRide = activeRideElements[0];
-                const pickupLat = parseFloat(firstRide.dataset.pickupLat);
-                const pickupLng = parseFloat(firstRide.dataset.pickupLng);
-                const dropoffLat = parseFloat(firstRide.dataset.dropoffLat);
-                const dropoffLng = parseFloat(firstRide.dataset.dropoffLng);
+        // Navigation buttons
+        document.querySelectorAll('.navigation-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const pickupLat = parseFloat(this.dataset.pickupLat);
+                const pickupLng = parseFloat(this.dataset.pickupLng);
+                const dropoffLat = parseFloat(this.dataset.dropoffLat);
+                const dropoffLng = parseFloat(this.dataset.dropoffLng);
                 
                 if (pickupLat && pickupLng && dropoffLat && dropoffLng) {
                     addRouteToMap([pickupLat, pickupLng], [dropoffLat, dropoffLng]);
                 }
-            } else {
-                // If no active rides, get current location and center map there
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        position => {
-                            const lat = position.coords.latitude;
-                            const lng = position.coords.longitude;
-                            
-                            // Center map on current location
-                            map.setView([lat, lng], 15);
-                            
-                            // Add driver marker
-                            updateDriverLocationOnMap(lat, lng);
-                            
-                            // Save location for later use
-                            driverLocation = {lat, lng};
-                        },
-                        error => {
-                            console.log('Unable to retrieve your location');
-                        }
-                    );
-                }
-            }
-            
-            // Add CSS for markers
-            const style = document.createElement('style');
-            style.textContent = `
-                .driver-marker {
-                    background: transparent;
-                    border: none;
-                }
-                .driver-marker-inner {
-                    width: 24px;
-                    height: 24px;
-                    background-color: #3B82F6;
-                    border: 3px solid #EFF6FF;
-                    border-radius: 50%;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                }
-                .pickup-marker-inner {
-                    width: 20px;
-                    height: 20px;
-                    background-color: #10B981;
-                    border: 2px solid white;
-                    border-radius: 50%;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                }
-                .dropoff-marker-inner {
-                    width: 20px;
-                    height: 20px;
-                    background-color: #EF4444;
-                    border: 2px solid white;
-                    border-radius: 50%;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                }
-            `;
-            document.head.appendChild(style);
-            
-            // Auto-start location tracking if online
-            if ({{ Auth::user()->is_online ? 'true' : 'false' }}) {
-                startLocationTracking();
-            }
-            
-            // Handle window resize
-            window.addEventListener('resize', function() {
-                map.invalidateSize();
             });
         });
-    </script>
+        
+        // Modal forms and buttons
+        if (startRideForm) {
+            startRideForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const rideId = startRideIdInput.value;
+                const latitude = startLatitudeInput.value;
+                const longitude = startLongitudeInput.value;
+                startRide(rideId, latitude, longitude);
+                startRideModal.classList.add('hidden');
+            });
+        }
+        
+        if (completeRideForm) {
+            completeRideForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const rideId = rideIdInput.value;
+                const latitude = latitudeInput.value;
+                const longitude = longitudeInput.value;
+                completeRideWithCoordinates(rideId, latitude, longitude);
+                completeRideModal.classList.add('hidden');
+            });
+        }
+        
+        if (cancelStartRideBtn) {
+            cancelStartRideBtn.addEventListener('click', function() {
+                startRideModal.classList.add('hidden');
+            });
+        }
+        
+        if (cancelCompleteRideBtn) {
+            cancelCompleteRideBtn.addEventListener('click', function() {
+                completeRideModal.classList.add('hidden');
+            });
+        }
+        
+        if (responseModalClose) {
+            responseModalClose.addEventListener('click', function() {
+                responseModal.classList.add('hidden');
+            });
+        }
+        
+        // Mobile menu
+        if (mobileMenuButton) {
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.remove('translate-x-full');
+            });
+        }
+        
+        if (closeMobileMenuButton) {
+            closeMobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.add('translate-x-full');
+            });
+        }
+        
+        // Profile dropdown
+        if (profileButton) {
+            profileButton.addEventListener('click', function() {
+                profileDropdown.classList.toggle('hidden');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
+                    profileDropdown.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Functions
+        
+        // Update driver status
+        function updateDriverStatus(isOnline) {
+            fetch('{{ route("driver.update.status") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    is_online: isOnline
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update UI elements
+                    toggleCircle.classList.toggle('translate-x-1', !isOnline);
+                    toggleCircle.classList.toggle('translate-x-5', isOnline);
+                    toggleStatusBtn.classList.toggle('bg-gray-300', !isOnline);
+                    toggleStatusBtn.classList.toggle('bg-green-500', isOnline);
+                    toggleText.textContent = isOnline ? 'Go Offline' : 'Go Online';
+                    statusIndicator.classList.toggle('bg-red-500', !isOnline);
+                    statusIndicator.classList.toggle('bg-green-500', isOnline);
+                    statusText.textContent = isOnline ? 'Online' : 'Offline';
+                    
+                    // Show/hide location sharing button
+                    if (isOnline) {
+                        locationSharingContainer.classList.remove('hidden');
+                        
+                        if (data.request_location) {
+                            // Auto-start location sharing when going online
+                            startLocationTracking();
+                        }
+                    } else {
+                        locationSharingContainer.classList.add('hidden');
+                        stopLocationTracking();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error updating status:', error);
+                showResponseModal(false, 'Failed to update your online status. Please try again.');
+            });
+        }
+        
+        // Start tracking location
+        function startLocationTracking() {
+            if (navigator.geolocation) {
+                locationStatus.textContent = 'Tracking...';
+                locationSharingBtn.classList.add('bg-red-500');
+                locationSharingBtn.classList.remove('bg-blue-600');
+                locationInfo.classList.remove('hidden');
+                
+                watchId = navigator.geolocation.watchPosition(
+                    // Success callback
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        // Save current location for later use
+                        driverLocation = {lat, lng};
+                        
+                        // Update location on the server
+                        updateLocationOnServer(lat, lng);
+                        
+                        // Update map with driver location
+                        updateDriverLocationOnMap(lat, lng);
+                        
+                        isTrackingLocation = true;
+                        locationStatus.textContent = 'Location Shared';
+                    },
+                    // Error callback
+                    error => {
+                        console.error('Geolocation error:', error);
+                        stopLocationTracking();
+                        showResponseModal(false, 'Unable to access your location. Please check your device settings and try again.');
+                    },
+                    // Options
+                    {
+                        enableHighAccuracy: true,
+                        maximumAge: 0,
+                        timeout: 5000
+                    }
+                );
+            } else {
+                showResponseModal(false, 'Geolocation is not supported by your browser.');
+            }
+        }
+        
+        // Stop tracking location
+        function stopLocationTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            
+            isTrackingLocation = false;
+            locationStatus.textContent = 'Share Location';
+            locationSharingBtn.classList.remove('bg-red-500');
+            locationSharingBtn.classList.add('bg-blue-600');
+            locationInfo.classList.add('hidden');
+        }
+        
+        // Update location on server
+        function updateLocationOnServer(latitude, longitude) {
+            fetch('{{ route("driver.update.location") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    latitude: latitude,
+                    longitude: longitude
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== 'success') {
+                    console.error('Error updating location on server:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Failed to update location:', error);
+            });
+        }
+        
+        // Update driver location on map
+        function updateDriverLocationOnMap(latitude, longitude) {
+            const driverLatLng = [latitude, longitude];
+            
+            // If marker doesn't exist yet, create it
+            if (!driverMarker) {
+                // Create a custom icon for the driver
+                const driverIcon = L.divIcon({
+                    className: 'driver-marker',
+                    html: '<div class="driver-marker-inner"></div>',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+                
+                driverMarker = L.marker(driverLatLng, {
+                    icon: driverIcon,
+                    zIndexOffset: 1000
+                }).addTo(map);
+                
+                // Center map on driver location
+                map.setView(driverLatLng, 15);
+            } else {
+                // Update existing marker position
+                driverMarker.setLatLng(driverLatLng);
+            }
+        }
+        
+        // Add route to map
+        function addRouteToMap(pickupCoords, dropoffCoords) {
+            // Remove existing markers and routes
+            if (pickupMarker) map.removeLayer(pickupMarker);
+            if (dropoffMarker) map.removeLayer(dropoffMarker);
+            if (routingControl) map.removeControl(routingControl);
+            
+            // Add pickup marker
+            pickupMarker = L.marker(pickupCoords, {
+                icon: L.divIcon({
+                    className: 'pickup-marker',
+                    html: '<div class="pickup-marker-inner"></div>',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                })
+            }).addTo(map);
+            
+            // Add dropoff marker
+            dropoffMarker = L.marker(dropoffCoords, {
+                icon: L.divIcon({
+                    className: 'dropoff-marker',
+                    html: '<div class="dropoff-marker-inner"></div>',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                })
+            }).addTo(map);
+            
+            // Add routing
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(pickupCoords[0], pickupCoords[1]),
+                    L.latLng(dropoffCoords[0], dropoffCoords[1])
+                ],
+                routeWhileDragging: false,
+                showAlternatives: false,
+                lineOptions: {
+                    styles: [{color: '#3B82F6', weight: 5, opacity: 0.7}]
+                },
+                createMarker: function() { return null; } // Don't create default markers
+            }).addTo(map);
+            
+            // Hide the routing control panel
+            routingControl.hide();
+            
+            // Fit map to show route and markers
+            const bounds = L.latLngBounds(pickupCoords, dropoffCoords);
+            map.fitBounds(bounds, {padding: [50, 50]});
+        }
+        
+        // Show response modal
+        function showResponseModal(success, message) {
+            if (success) {
+                responseSuccessDiv.classList.remove('hidden');
+                responseErrorDiv.classList.add('hidden');
+                successMessage.innerHTML = message;
+            } else {
+                responseSuccessDiv.classList.add('hidden');
+                responseErrorDiv.classList.remove('hidden');
+                errorMessage.textContent = message;
+            }
+            
+            responseModal.classList.remove('hidden');
+        }
+        
+        // Start ride
+        function startRide(rideId, latitude, longitude) {
+            fetch(`{{ url('driver/ride') }}/${rideId}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    latitude: latitude,
+                    longitude: longitude
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResponseModal(true, 'Ride started successfully.');
+                    
+                    // Refresh the page after a delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showResponseModal(false, data.message || 'Failed to start ride.');
+                }
+            })
+            .catch(error => {
+                console.error('Error starting ride:', error);
+                showResponseModal(false, 'An error occurred while processing your request.');
+            });
+        }
+        
+        // Complete ride with coordinates
+        function completeRideWithCoordinates(rideId, latitude = null, longitude = null) {
+            // Get the CSRF token
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
+            // Create request data
+            const requestData = {
+                latitude: latitude,
+                longitude: longitude
+            };
+            
+            console.log('Sending ride completion request:', {
+                rideId: rideId,
+                requestData: requestData
+            });
+            
+            // Send the request
+            fetch(`/driver/ride/${rideId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                // Check for HTTP errors
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Ride completion response:', data);
+                
+                if (data.success) {
+                    // Success: show message and redirect
+                    alert("Ride completed successfully!");
+                    
+                    // Hide loading overlay
+                    hideLoadingOverlay();
+                    
+                    // Redirect to the specified URL
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        // Fallback if no redirect URL provided
+                        window.location.href = '/driver/dashboard';
+                    }
+                } else {
+                    // Error with response
+                    hideLoadingOverlay();
+                    alert(data.message || "Failed to complete ride.");
+                }
+            })
+            .catch(error => {
+                console.error('Error completing ride:', error);
+                hideLoadingOverlay();
+                alert("An error occurred while completing the ride. Please try again or contact support.");
+            });
+        }
+        
+        // Helper functions for showing/hiding loading overlay
+        function showLoadingOverlay(message) {
+            // Create loading overlay if it doesn't exist
+            if (!document.getElementById('loading-overlay')) {
+                const overlay = document.createElement('div');
+                overlay.id = 'loading-overlay';
+                overlay.className = 'fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50';
+                overlay.innerHTML = `
+                    <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p id="loading-message" class="mt-4 text-lg font-medium"></p>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+            }
+            
+            // Show and update message
+            const overlay = document.getElementById('loading-overlay');
+            const messageEl = document.getElementById('loading-message');
+            messageEl.textContent = message;
+            overlay.classList.remove('hidden');
+        }
+        
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+            }
+        }
+        
+        // Check for active rides with coordinates and add to map
+        const activeRideElements = document.querySelectorAll('.navigation-btn');
+        if (activeRideElements.length > 0) {
+            // Get the first active ride to display on map
+            const firstRide = activeRideElements[0];
+            const pickupLat = parseFloat(firstRide.dataset.pickupLat);
+            const pickupLng = parseFloat(firstRide.dataset.pickupLng);
+            const dropoffLat = parseFloat(firstRide.dataset.dropoffLat);
+            const dropoffLng = parseFloat(firstRide.dataset.dropoffLng);
+            
+            if (pickupLat && pickupLng && dropoffLat && dropoffLng) {
+                addRouteToMap([pickupLat, pickupLng], [dropoffLat, dropoffLng]);
+            }
+        } else {
+            // If no active rides, get current location and center map there
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        // Center map on current location
+                        map.setView([lat, lng], 15);
+                        
+                        // Add driver marker
+                        updateDriverLocationOnMap(lat, lng);
+                        
+                        // Save location for later use
+                        driverLocation = {lat, lng};
+                    },
+                    error => {
+                        console.log('Unable to retrieve your location');
+                    }
+                );
+            }
+        }
+        
+        // Add CSS for markers
+        const style = document.createElement('style');
+        style.textContent = `
+            .driver-marker {
+                background: transparent;
+                border: none;
+            }
+            .driver-marker-inner {
+                width: 24px;
+                height: 24px;
+                background-color: #3B82F6;
+                border: 3px solid #EFF6FF;
+                border-radius: 50%;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
+            .pickup-marker-inner {
+                width: 20px;
+                height: 20px;
+                background-color: #10B981;
+                border: 2px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
+            .dropoff-marker-inner {
+                width: 20px;
+                height: 20px;
+                background-color: #EF4444;
+                border: 2px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Auto-start location tracking if online
+        if ({{ Auth::user()->is_online ? 'true' : 'false' }}) {
+            startLocationTracking();
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            map.invalidateSize();
+        });
+    });
+</script>
 </body>
 </html>
 
