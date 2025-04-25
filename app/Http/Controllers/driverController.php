@@ -686,6 +686,10 @@ public function completeRide(Request $request, $rideId)
         $ride->price = $finalFare;
         $ride->ride_cost = $finalFare; // For backward compatibility
         
+        // Set payment status to pending
+        $ride->payment_status = 'pending';
+        $ride->is_paid = false;
+        
         // Save the ride
         $ride->save();
         \Log::info('Ride completed successfully, saved with updates', [
@@ -693,17 +697,7 @@ public function completeRide(Request $request, $rideId)
             'final_fare' => $finalFare
         ]);
 
-        // Update driver stats
-        $driver->completed_rides += 1;
-        $driver->balance += $finalFare;
-        $driver->save();
-
-        // Update user total income
-        $user = User::find(Auth::id());
-        $user->total_income = ($user->total_income ?? 0) + $finalFare;
-        $user->save();
-
-        // Success response
+        // Success response - redirect to passenger payment page
         return response()->json([
             'success' => true,
             'message' => 'Ride completed successfully',
@@ -718,7 +712,7 @@ public function completeRide(Request $request, $rideId)
                 'distance_km' => $actualDistanceKm,
                 'duration_minutes' => $rideDurationMinutes
             ],
-            'redirect' => route('driver.rate.ride', ['ride' => $ride->id])
+            'redirect' => route('passenger.ride.payment', $ride->id)
         ]);
     } catch (\Exception $e) {
         // Log the exception details
@@ -735,15 +729,6 @@ public function completeRide(Request $request, $rideId)
             'message' => 'There was a problem completing this ride. Please try again or contact support.'
         ], 500);
     }
-    // Add payment method (default to cash if not specified)
-    $ride->payment_method = $ride->payment_method ?? 'cash';
-    $ride->payment_status = 'pending';
-    $ride->save();
-    
-    // Based on payment method, determine redirection
-    $responseData = $this->handlePostRideCompletion($ride);
-    
-    return response()->json($responseData);
 }
 
 protected function handlePostRideCompletion(Ride $ride)
