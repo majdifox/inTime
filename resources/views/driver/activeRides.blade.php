@@ -1068,7 +1068,27 @@
         showErrorMessage('An error occurred. Please try again or contact support.');
     });
 }
-
+function showLoadingOverlay(message) {
+    // Create loading overlay if it doesn't exist
+    if (!document.getElementById('loading-overlay')) {
+        const overlay = document.createElement('div');
+        overlay.id = 'loading-overlay';
+        overlay.className = 'fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50';
+        overlay.innerHTML = `
+            <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p id="loading-message" class="mt-4 text-lg font-medium"></p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    
+    // Show and update message
+    const overlay = document.getElementById('loading-overlay');
+    const messageEl = document.getElementById('loading-message');
+    messageEl.textContent = message;
+    overlay.classList.remove('hidden');
+}
 // No need for the proceedWithCompleteRide function
 
 function proceedWithCompleteRide(rideId, latitude, longitude) {
