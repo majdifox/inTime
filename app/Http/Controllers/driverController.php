@@ -735,6 +735,34 @@ public function completeRide(Request $request, $rideId)
             'message' => 'There was a problem completing this ride. Please try again or contact support.'
         ], 500);
     }
+    // Add payment method (default to cash if not specified)
+    $ride->payment_method = $ride->payment_method ?? 'cash';
+    $ride->payment_status = 'pending';
+    $ride->save();
+    
+    // Based on payment method, determine redirection
+    $responseData = $this->handlePostRideCompletion($ride);
+    
+    return response()->json($responseData);
+}
+
+protected function handlePostRideCompletion(Ride $ride)
+{
+    // If payment method is cash, redirect driver to cash confirmation page
+    if ($ride->payment_method === 'cash') {
+        return [
+            'success' => true,
+            'message' => 'Ride completed successfully. Please confirm cash payment.',
+            'redirect' => route('driver.confirm.cash.payment', $ride->id)
+        ];
+    }
+    
+    // For card payments, redirect to rating page directly
+    return [
+        'success' => true,
+        'message' => 'Ride completed successfully.',
+        'redirect' => route('driver.rate.ride', $ride->id)
+    ];
 }
 
 /**
