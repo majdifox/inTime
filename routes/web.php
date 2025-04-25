@@ -186,6 +186,14 @@ Route::post('/profile/location/remove', [App\Http\Controllers\PassengerProfileCo
  ->name('profile.remove.location');
 
  Route::post('/passenger/ride/{ride}/rate', [PassengerController::class, 'rateRide'])->name('passenger.rate.ride');
+
+ // Payment routes
+ Route::get('/ride/{ride}/payment', [App\Http\Controllers\PaymentController::class, 'showPaymentPage'])->name('ride.payment');
+ Route::post('/ride/{ride}/process-payment', [App\Http\Controllers\PaymentController::class, 'processPayment'])->name('ride.process-payment');
+ Route::get('/ride/{ride}/cash-payment', [App\Http\Controllers\PaymentController::class, 'showCashPaymentPage'])->name('cash.payment');
+ Route::post('/create-setup-intent', [App\Http\Controllers\PaymentController::class, 'createSetupIntent'])->name('create-setup-intent');
+ Route::delete('/payment-method/{id}', [App\Http\Controllers\PaymentController::class, 'deletePaymentMethod'])->name('delete-payment-method');
+ Route::patch('/payment-method/{id}/default', [App\Http\Controllers\PaymentController::class, 'setDefaultPaymentMethod'])->name('set-default-payment-method');
 });
 
 // Admin routes
