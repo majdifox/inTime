@@ -117,6 +117,13 @@ Route::post('/driver/ride/{id}/complete', [DriverController::class, 'completeRid
 // Driver rating system
 Route::get('/driver/ride/{ride}/rate', [DriverController::class, 'rateRide'])->name('driver.rate.ride');
 Route::post('/driver/ride/{ride}/submit-rating', [DriverController::class, 'submitRating'])->name('driver.submit.rating');
+
+
+// Payment routes
+Route::get('/driver/ride/{ride}/confirm-cash-payment', [App\Http\Controllers\PaymentController::class, 'showCashConfirmationPage'])->name('driver.confirm.cash.payment');
+Route::post('/driver/ride/{ride}/confirm-cash-payment', [App\Http\Controllers\PaymentController::class, 'confirmCashPayment'])->name('driver.confirm.cash.payment.post');
+Route::get('/driver/ride/{ride}/payment-issue', [App\Http\Controllers\PaymentController::class, 'showPaymentIssuePage'])->name('driver.payment.issue');
+Route::post('/driver/ride/{ride}/payment-issue', [App\Http\Controllers\PaymentController::class, 'reportPaymentIssue'])->name('driver.submit.payment.issue');
 });
 
 
