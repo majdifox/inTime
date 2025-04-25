@@ -1089,6 +1089,13 @@ function showLoadingOverlay(message) {
     messageEl.textContent = message;
     overlay.classList.remove('hidden');
 }
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.classList.add('hidden');
+    }
+}
 // No need for the proceedWithCompleteRide function
 
 function proceedWithCompleteRide(rideId, latitude, longitude) {
