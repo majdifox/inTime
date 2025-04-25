@@ -1258,4 +1258,67 @@ public function clearSessionData()
     ]);
 }
 
+public function showPaymentPage(Ride $ride)
+{
+    // Security check - ensure the ride belongs to this passenger
+    $passenger = Passenger::where('user_id', Auth::id())->first();
+    if ($ride->passenger_id !== $passenger->id) {
+        return redirect()->route('passenger.dashboard')->with('error', 'You are not authorized to view this page.');
+    }
+    
+    // Check if ride is completed and not already paid
+    if ($ride->ride_status !== 'completed') {
+        return redirect()->route('passenger.dashboard')->with('error', 'This ride cannot be paid for yet.');
+    }
+    
+    if ($ride->is_paid) {
+        // If already paid, redirect to review page
+        return redirect()->route('passenger.rate.ride', $ride->id)
+            ->with('info', 'This ride has already been paid for. Please leave a review for your driver.');
+    }
+    
+    // Get the passenger's saved payment methods
+    $savedCards = PaymentMethod::where('user_id', Auth::id())->get();
+    
+    return view('passenger.ridePayment', compact('ride', 'savedCards'));
+}
+
+/**
+ * Show cash payment page for passenger
+ */
+public function showCashPaymentPage(Ride $ride)
+{
+    // Security check - ensure the ride belongs to this passenger
+    $passenger = Passenger::where('user_id', Auth::id())->first();
+    if ($ride->passenger_id !== $passenger->id) {
+        return redirect()->route('passenger.dashboard')->with('error', 'You are not authorized to view this page.');
+    }
+    
+    // Check if ride payment method is cash
+    if ($ride->payment_method !== 'cash') {
+        return redirect()->route('passenger.dashboard')->with('error', 'This ride is not set for cash payment.');
+    }
+    
+    return view('passenger.cashPayment', compact('ride'));
+}
+
+/**
+ * Show cash payment confirmation page for driver
+ */
+public function showCashConfirmationPage(Ride $ride)
+{
+    // Security check - ensure the ride belongs to this driver
+    $driver = Driver::where('user_id', Auth::id())->first();
+    if ($ride->driver_id !== $driver->id) {
+        return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to view this page.');
+    }
+    
+    // Check if payment method is cash and status is pending
+    if ($ride->payment_method !== 'cash' || $ride->payment_status !== 'pending') {
+        return redirect()->route('driver.dashboard')->with('error', 'This ride does not require cash payment confirmation.');
+    }
+    
+    return view('driver.confirmCashPayment', compact('ride'));
+}
+
 }
