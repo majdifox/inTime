@@ -1012,8 +1012,14 @@
     // Get the CSRF token
     const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     
-    // Show a simple message
-    alert("Completing ride. You will be redirected to rate your passenger.");
+    // Create the request payload
+    const payload = {
+        latitude: latitude || 0,
+        longitude: longitude || 0
+    };
+    
+    // Show loading state
+    showLoadingOverlay('Completing ride...');
     
     // Send the request
     fetch(`/driver/ride/${rideId}/complete`, {
@@ -1022,26 +1028,44 @@
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': token
         },
-        body: JSON.stringify({
-            latitude: latitude || 0,
-            longitude: longitude || 0
-        })
+        body: JSON.stringify(payload)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server returned error status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
-        if (data.success && data.redirect) {
-            // Redirect to the rating page
-            window.location.href = data.redirect;
+        hideLoadingOverlay();
+        
+        if (data.success) {
+            // Show success message
+            showSuccessMessage('Ride completed successfully!');
+            
+            // For cash payments, redirect driver to cash confirmation page
+            if (data.payment_method === 'cash') {
+                setTimeout(() => {
+                    window.location.href = `/driver/ride/${rideId}/confirm-cash-payment`;
+                }, 1500);
+            } else {
+                // Card payments will be handled by the passenger
+                // Show a message that passenger will complete payment
+                showSuccessMessage('The passenger will now complete payment. You will be notified when payment is complete.');
+                
+                // Redirect back to dashboard after a delay
+                setTimeout(() => {
+                    window.location.href = '/driver/dashboard';
+                }, 3000);
+            }
         } else {
-            // If we get a success: true but no redirect, or some other error
-            alert("Ride completed! You will now be redirected to rate your passenger.");
-            window.location.href = `/driver/ride/${rideId}/rate`;
+            showErrorMessage(data.message || 'Failed to complete ride');
         }
     })
-    .catch(() => {
-        // Even if there's an error, try to redirect to the rating page anyway
-        alert("Ride marked as completed. You will now be redirected to rate your passenger.");
-        window.location.href = `/driver/ride/${rideId}/rate`;
+    .catch(error => {
+        hideLoadingOverlay();
+        console.error('Error completing ride:', error);
+        showErrorMessage('An error occurred. Please try again or contact support.');
     });
 }
 
