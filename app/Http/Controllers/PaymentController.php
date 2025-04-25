@@ -55,123 +55,128 @@ class PaymentController extends Controller
      * Process payment for a ride
      */
     public function processPayment(Request $request, Ride $ride)
-    {
-        // Security check - ensure the ride belongs to this passenger
-        $passenger = Passenger::where('user_id', Auth::id())->first();
-        if ($ride->passenger_id !== $passenger->id) {
-            return redirect()->route('passenger.dashboard')->with('error', 'You are not authorized to make this payment.');
-        }
-        
-        // Check if ride is completed and not already paid
-        if ($ride->ride_status !== 'completed' || $ride->is_paid) {
-            return redirect()->route('passenger.dashboard')->with('error', 'This ride cannot be paid for.');
-        }
-        
-        // Validate request
-        $validated = $request->validate([
-            'payment_method_type' => 'required|in:card,cash',
-            'payment_method_id' => 'nullable|string',
-            'setup_intent_id' => 'nullable|string',
-        ]);
-        
-        // Start database transaction
-        DB::beginTransaction();
-        try {
-            // Create a payment record
-            $payment = new Payment();
-            $payment->ride_id = $ride->id;
-            $payment->user_id = Auth::id();
-            $payment->amount = $ride->price;
-            $payment->payment_method = $validated['payment_method_type'];
-            
-            if ($validated['payment_method_type'] === 'card') {
-                // Process card payment through Stripe
-                if (!empty($validated['payment_method_id'])) {
-                    // Check if saving a new card
-                    if (!empty($validated['setup_intent_id'])) {
-                        // Save the payment method for future use
-                        $this->savePaymentMethod($validated['payment_method_id'], $validated['setup_intent_id']);
-                    }
-                    
-                    // Create a payment intent
-                    $intent = PaymentIntent::create([
-                        'amount' => round($ride->price * 100), // Stripe requires amount in cents
-                        'currency' => 'mad', // Moroccan Dirham
-                        'payment_method' => $validated['payment_method_id'],
-                        'confirm' => true,
-                        'description' => 'Ride payment: #' . $ride->id,
-                        'metadata' => [
-                            'ride_id' => $ride->id,
-                            'user_id' => Auth::id(),
-                        ],
-                    ]);
-                    
-                    // Update payment record with Stripe data
-                    $payment->stripe_payment_id = $intent->id;
-                    $payment->status = 'completed';
-                    $payment->payment_details = json_encode([
-                        'card_brand' => $intent->charges->data[0]->payment_method_details->card->brand,
-                        'card_last4' => $intent->charges->data[0]->payment_method_details->card->last4,
-                        'receipt_url' => $intent->charges->data[0]->receipt_url,
-                    ]);
-                } else {
-                    throw new Exception('No payment method provided');
-                }
-            } else {
-                // Cash payment - mark as pending until driver confirms
-                $payment->status = 'pending';
-                $payment->payment_details = json_encode(['method' => 'cash']);
-            }
-            
-            // Save the payment record
-            $payment->save();
-            
-            // Update ride payment status
-            if ($validated['payment_method_type'] === 'card') {
-                $ride->is_paid = true;
-                $ride->payment_method = 'card';
-                $ride->payment_status = 'completed';
-            } else {
-                $ride->is_paid = false;
-                $ride->payment_method = 'cash';
-                $ride->payment_status = 'pending';
-            }
-            $ride->save();
-            
-            // Update driver's balance for card payments
-            if ($validated['payment_method_type'] === 'card') {
-                $driver = $ride->driver;
-                $driver->balance += $ride->price;
-                $driver->save();
-            }
-            
-            DB::commit();
-            
-            // Redirect based on payment type
-            if ($validated['payment_method_type'] === 'card') {
-                // For card payments, redirect to rating page
-                return redirect()->route('passenger.rate.ride', $ride->id)->with('success', 'Payment successful! Please rate your ride.');
-            } else {
-                // For cash payments, show cash payment page
-                return redirect()->route('passenger.cash.payment', $ride->id);
-            }
-            
-        } catch (CardException $e) {
-            DB::rollBack();
-            // Handle card errors
-            return redirect()->back()->with('error', 'Card error: ' . $e->getMessage());
-            
-        } catch (ApiErrorException $e) {
-            DB::rollBack();
-            // Handle Stripe API errors
-            return redirect()->back()->with('error', 'Payment error: ' . $e->getMessage());
-            
-        } catch (Exception $e) {
-            DB::rollBack();
-            // Handle other errors
-            return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
-        }
+{
+    // Security check - ensure the ride belongs to this passenger
+    $passenger = Passenger::where('user_id', Auth::id())->first();
+    if ($ride->passenger_id !== $passenger->id) {
+        return redirect()->route('passenger.dashboard')->with('error', 'You are not authorized to make this payment.');
     }
+    
+    // Check if ride is completed and not already paid
+    if ($ride->ride_status !== 'completed' || $ride->is_paid) {
+        return redirect()->route('passenger.dashboard')->with('error', 'This ride cannot be paid for.');
+    }
+    
+    // Validate request
+    $validated = $request->validate([
+        'payment_method_type' => 'required|in:card,cash',
+        'payment_method_id' => 'nullable|string',
+        'setup_intent_id' => 'nullable|string',
+    ]);
+    
+    // Start database transaction
+    DB::beginTransaction();
+    try {
+        // Create a payment record
+        $payment = new Payment();
+        $payment->ride_id = $ride->id;
+        $payment->user_id = Auth::id();
+        $payment->amount = $ride->price;
+        $payment->payment_method = $validated['payment_method_type'];
+        
+        if ($validated['payment_method_type'] === 'card') {
+            // Process card payment through Stripe
+            if (!empty($validated['payment_method_id'])) {
+                // Check if saving a new card
+                if (!empty($validated['setup_intent_id'])) {
+                    // Save the payment method for future use
+                    $this->savePaymentMethod($validated['payment_method_id'], $validated['setup_intent_id']);
+                }
+                
+                // Create a payment intent
+                $intent = PaymentIntent::create([
+                    'amount' => round($ride->price * 100), // Stripe requires amount in cents
+                    'currency' => 'mad', // Moroccan Dirham
+                    'payment_method' => $validated['payment_method_id'],
+                    'confirm' => true,
+                    'description' => 'Ride payment: #' . $ride->id,
+                    'metadata' => [
+                        'ride_id' => $ride->id,
+                        'user_id' => Auth::id(),
+                    ],
+                ]);
+                
+                // Update payment record with Stripe data
+                $payment->stripe_payment_id = $intent->id;
+                $payment->status = 'completed';
+                $payment->payment_details = json_encode([
+                    'card_brand' => $intent->charges->data[0]->payment_method_details->card->brand,
+                    'card_last4' => $intent->charges->data[0]->payment_method_details->card->last4,
+                    'receipt_url' => $intent->charges->data[0]->receipt_url,
+                ]);
+            } else {
+                throw new Exception('No payment method provided');
+            }
+        } else {
+            // Cash payment - mark as pending until driver confirms
+            $payment->status = 'pending';
+            $payment->payment_details = json_encode(['method' => 'cash']);
+        }
+        
+        // Save the payment record
+        $payment->save();
+        
+        // Update ride payment status
+        if ($validated['payment_method_type'] === 'card') {
+            $ride->is_paid = true;
+            $ride->payment_method = 'card';
+            $ride->payment_status = 'completed';
+        } else {
+            $ride->is_paid = false;
+            $ride->payment_method = 'cash';
+            $ride->payment_status = 'pending';
+        }
+        $ride->save();
+        
+        // Update driver's balance for card payments
+        if ($validated['payment_method_type'] === 'card') {
+            $driver = $ride->driver;
+            $driver->balance += $ride->price;
+            $driver->save();
+            
+            // Notify the driver about completed payment
+            // In a real app, you would use a notification system here
+            // For now, we'll just log it
+            \Log::info("Card payment completed for ride #{$ride->id}. Driver #{$driver->id} balance updated.");
+        }
+        
+        DB::commit();
+        
+        // Redirect based on payment type
+        if ($validated['payment_method_type'] === 'card') {
+            // For card payments, redirect to rating page
+            return redirect()->route('passenger.rate.ride', $ride->id)->with('success', 'Payment successful! Please rate your ride.');
+        } else {
+            // For cash payments, show cash payment instructions page
+            return redirect()->route('passenger.cash.payment', $ride->id);
+        }
+        
+    } catch (CardException $e) {
+        DB::rollBack();
+        // Handle card errors
+        return redirect()->back()->with('error', 'Card error: ' . $e->getMessage());
+        
+    } catch (ApiErrorException $e) {
+        DB::rollBack();
+        // Handle Stripe API errors
+        return redirect()->back()->with('error', 'Payment error: ' . $e->getMessage());
+        
+    } catch (Exception $e) {
+        DB::rollBack();
+        // Handle other errors
+        return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
+    }
+}
     
     /**
      * Show cash payment page for passenger
@@ -205,75 +210,82 @@ class PaymentController extends Controller
      * Driver confirms cash payment received
      */
     public function confirmCashPayment(Request $request, Ride $ride)
-    {
-        // Security check - ensure the ride belongs to this driver
-        $driver = Driver::where('user_id', Auth::id())->first();
-        if ($ride->driver_id !== $driver->id) {
-            return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to perform this action.');
+{
+    // Security check - ensure the ride belongs to this driver
+    $driver = Driver::where('user_id', Auth::id())->first();
+    if ($ride->driver_id !== $driver->id) {
+        return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to perform this action.');
+    }
+    
+    // Check if payment is pending
+    if ($ride->payment_status !== 'pending' || $ride->payment_method !== 'cash') {
+        return redirect()->route('driver.dashboard')->with('error', 'This ride payment cannot be confirmed.');
+    }
+    
+    // Start database transaction
+    DB::beginTransaction();
+    try {
+        // Update the payment record
+        $payment = Payment::where('ride_id', $ride->id)->first();
+        if ($payment) {
+            $payment->status = 'completed';
+            $payment->save();
         }
         
-        // Check if payment is pending
-        if ($ride->payment_status !== 'pending' || $ride->payment_method !== 'cash') {
-            return redirect()->route('driver.dashboard')->with('error', 'This ride payment cannot be confirmed.');
-        }
+        // Update ride payment status
+        $ride->is_paid = true;
+        $ride->payment_status = 'completed';
+        $ride->save();
         
-        // Start database transaction
-        DB::beginTransaction();
-        try {
-            // Update the payment record
-            $payment = Payment::where('ride_id', $ride->id)->first();
-            if ($payment) {
-                $payment->status = 'completed';
-                $payment->save();
-            }
-            
-            // Update ride payment status
-            $ride->is_paid = true;
-            $ride->payment_status = 'completed';
-            $ride->save();
-            
-            // Update driver's balance
-            $driver->balance += $ride->price;
-            $driver->save();
-            
-            DB::commit();
-            
-            // Redirect to rate passenger page
-            return redirect()->route('driver.rate.ride', $ride->id)->with('success', 'Cash payment confirmed! Please rate your passenger.');
-            
-        } catch (Exception $e) {
-            DB::rollBack();
-            // Handle errors
-            return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
-        }
+        // Update driver's balance
+        $driver->balance += $ride->price;
+        $driver->save();
+        
+        // Log the successful cash payment
+        \Log::info("Cash payment confirmed for ride #{$ride->id}. Driver #{$driver->id} balance updated.");
+        
+        DB::commit();
+        
+        // Redirect to rate passenger page
+        return redirect()->route('driver.rate.ride', $ride->id)->with('success', 'Cash payment confirmed! Please rate your passenger.');
+        
+    } catch (Exception $e) {
+        DB::rollBack();
+        // Handle errors
+        return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
+    }
+
     }
     
     /**
      * Driver reports cash payment issue
      */
     public function reportPaymentIssue(Ride $ride)
-    {
-        // Security check - ensure the ride belongs to this driver
-        $driver = Driver::where('user_id', Auth::id())->first();
-        if ($ride->driver_id !== $driver->id) {
-            return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to perform this action.');
-        }
-        
-        // Mark payment as disputed
-        $payment = Payment::where('ride_id', $ride->id)->first();
-        if ($payment) {
-            $payment->status = 'disputed';
-            $payment->save();
-        }
-        
-        // Update ride payment status
-        $ride->payment_status = 'disputed';
-        $ride->save();
-        
-        // Notify admin (in a real app, this would involve more complex notification logic)
-        
-        return redirect()->route('driver.dashboard')->with('warning', 'Payment issue reported. Our team will contact you shortly.');
+{
+    // Security check - ensure the ride belongs to this driver
+    $driver = Driver::where('user_id', Auth::id())->first();
+    if ($ride->driver_id !== $driver->id) {
+        return redirect()->route('driver.dashboard')->with('error', 'You are not authorized to perform this action.');
     }
+    
+    // Mark payment as disputed
+    $payment = Payment::where('ride_id', $ride->id)->first();
+    if ($payment) {
+        $payment->status = 'disputed';
+        $payment->save();
+    }
+    
+    // Update ride payment status
+    $ride->payment_status = 'disputed';
+    $ride->save();
+    
+    // Log the dispute
+    \Log::info("Payment dispute reported for ride #{$ride->id} by driver #{$driver->id}");
+    
+    // Notify admin (in a real app, this would involve more complex notification logic)
+    
+    return redirect()->route('driver.dashboard')->with('warning', 'Payment issue reported. Our team will contact you shortly.');
+}
     
     /**
      * Create a Setup Intent for saving a card

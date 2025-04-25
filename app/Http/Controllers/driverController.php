@@ -697,7 +697,8 @@ public function completeRide(Request $request, $rideId)
             'final_fare' => $finalFare
         ]);
 
-        // Success response - redirect to passenger payment page
+        // Important: Redirect passenger to payment page
+        // This will be handled on the frontend by redirecting to the payment route
         return response()->json([
             'success' => true,
             'message' => 'Ride completed successfully',
@@ -777,6 +778,12 @@ public function rateRide(Ride $ride)
         
     if ($reviewed) {
         return redirect()->route('driver.dashboard')->with('info', 'You have already rated this ride.');
+    }
+    
+    // Check if payment is confirmed for cash rides
+    if ($ride->payment_method === 'cash' && $ride->payment_status !== 'completed') {
+        return redirect()->route('driver.confirm.cash.payment', $ride->id)
+            ->with('warning', 'Please confirm payment before rating the passenger.');
     }
     
     // Load passenger info
