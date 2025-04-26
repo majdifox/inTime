@@ -238,22 +238,26 @@ class PaymentController extends Controller
     }
 }
 
-    /**
-     * Create a Setup Intent for saving a card
-     */
-    public function createSetupIntent()
-    {
-        try {
-            $setupIntent = SetupIntent::create([
-                'customer' => $this->getOrCreateStripeCustomer(),
-                'usage' => 'off_session',
-            ]);
-            
-            return response()->json(['client_secret' => $setupIntent->client_secret]);
-        } catch (Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+/**
+ * Create a Setup Intent for saving a card
+ */
+public function createSetupIntent()
+{
+    try {
+        $setupIntent = SetupIntent::create([
+            'customer' => $this->getOrCreateStripeCustomer(),
+            'usage' => 'off_session',
+            'automatic_payment_methods' => [
+                'enabled' => true,
+                'allow_redirects' => 'never'
+            ]
+        ]);
+        
+        return response()->json(['client_secret' => $setupIntent->client_secret]);
+    } catch (Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
     }
+}
     
     /**
      * Get or create a Stripe customer for the current user
