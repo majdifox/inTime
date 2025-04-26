@@ -165,50 +165,25 @@
                     </div>
                 </div>
             </div>
-            @csrf
+            
             <!-- Payment Methods -->
             <div class="p-6">
-                <h2 class="text-lg font-medium mb-4">Payment Method</h2>
-                
-                <div id="payment-selection" class="space-y-4">
-                    <!-- Payment method selection -->
-                    <div class="flex flex-col space-y-3">
-                        <label class="relative bg-white border rounded-lg p-4 cursor-pointer hover:border-blue-500 transition flex items-center">
-                            <input type="radio" name="payment_method" value="card" class="h-5 w-5 text-blue-600" checked>
-                            <div class="ml-3">
-                                <span class="font-medium">Credit or Debit Card</span>
-                                <p class="text-sm text-gray-500">Pay securely with your card</p>
-                            </div>
-                            <div class="ml-auto flex items-center space-x-2">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" class="h-8">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" alt="Mastercard" class="h-8">
-                            </div>
-                        </label>
-                        
-                        <label class="relative bg-white border rounded-lg p-4 cursor-pointer hover:border-blue-500 transition flex items-center">
-                            <input type="radio" name="payment_method" value="cash" class="h-5 w-5 text-blue-600">
-                            <div class="ml-3">
-                                <span class="font-medium">Cash</span>
-                                <p class="text-sm text-gray-500">Pay directly to the driver</p>
-                            </div>
-                            <div class="ml-auto">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-                
-                <!-- Card Payment Section -->
-                <div id="card-payment-section" class="mt-6">
-                    <div id="saved-cards-section" class="mb-4 {{ count($savedCards) ? '' : 'hidden' }}">
+                <form id="payment-form" action="{{ route('passenger.ride.process-payment', $ride->id) }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="payment_method_id" id="payment_method_id" value="">
+                    <input type="hidden" name="setup_intent_id" id="setup_intent_id" value="">
+                    <input type="hidden" id="setup-intent-route" value="{{ route('create-setup-intent') }}">
+                    
+                    <h2 class="text-lg font-medium mb-4">Payment Method</h2>
+                    
+                    <!-- Saved Cards Section -->
+                    <div id="saved-cards-section" class="mb-6 {{ count($savedCards) ? '' : 'hidden' }}">
                         <h3 class="text-md font-medium mb-2">Your Cards</h3>
                         
                         <div class="space-y-2">
                             @foreach($savedCards as $card)
                             <label class="relative bg-white border rounded-lg p-3 cursor-pointer hover:border-blue-500 transition flex items-center">
-                                <input type="radio" name="saved_card" value="{{ $card->id }}" class="h-5 w-5 text-blue-600" {{ $loop->first ? 'checked' : '' }}>
+                                <input type="radio" name="saved_card" value="{{ $card->stripe_payment_method_id }}" class="h-5 w-5 text-blue-600" {{ $loop->first ? 'checked' : '' }}>
                                 <div class="ml-3 flex items-center">
                                     @if($card->brand == 'visa')
                                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" class="h-7 mr-2">
@@ -227,14 +202,15 @@
                             </label>
                             @endforeach
                         </div>
+                        
+                        <div class="flex items-center my-4">
+                            <hr class="flex-grow border-gray-200">
+                            <span class="px-2 text-sm text-gray-500">or</span>
+                            <hr class="flex-grow border-gray-200">
+                        </div>
                     </div>
                     
-                    <div class="flex items-center mb-4">
-                        <hr class="flex-grow border-gray-200">
-                        <span class="px-2 text-sm text-gray-500">or</span>
-                        <hr class="flex-grow border-gray-200">
-                    </div>
-                    
+                    <!-- New Card Section -->
                     <div id="new-card-section">
                         <h3 class="text-md font-medium mb-2">Add New Card</h3>
                         
@@ -251,36 +227,9 @@
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Cash Payment Section -->
-                <div id="cash-payment-section" class="mt-6 hidden">
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-yellow-800">Cash Payment</h3>
-                                <div class="mt-2 text-sm text-yellow-700">
-                                    <p>
-                                        You will need to pay MAD {{ number_format($ride->price, 2) }} directly to the driver. The driver will confirm your payment.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Action Buttons -->
-                <div class="mt-8">
-    <form id="payment-form" action="{{ route('passenger.ride.process-payment', $ride->id) }}" method="POST">
-        @csrf
-        <input type="hidden" name="payment_method_type" id="payment_method_type" value="card">
-<input type="hidden" name="payment_method_id" id="payment_method_id" value="">
-<input type="hidden" name="setup_intent_id" id="setup_intent_id" value="">
+                    
+                    <!-- Action Buttons -->
+                    <div class="mt-8">
                         <div class="flex flex-col space-y-3">
                             <button type="submit" id="submit-button" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
                                 Pay MAD {{ number_format($ride->price, 2) }}
@@ -290,8 +239,8 @@
                                 Cancel
                             </a>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </main>
@@ -309,124 +258,177 @@
         </div>
     </div>
 
+    <!-- Stripe Integration Script -->
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-    const stripe = Stripe('{{ config('services.stripe.key') }}');
-    const elements = stripe.elements();
-    const createSetupIntentUrl = document.getElementById('setup-intent-route').value;
-    // Create card element
-    const cardElement = elements.create('card', {
-        style: {
-            base: {
-                color: '#32325d',
-                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-                fontSmoothing: 'antialiased',
-                fontSize: '16px',
-                '::placeholder': {
-                    color: '#aab7c4'
-                }
-            },
-            invalid: {
-                color: '#fa755a',
-                iconColor: '#fa755a'
-            }
-        }
-    });
-    
-    // Mount the card element
-    cardElement.mount('#card-element');
-    
-    // Handle real-time validation errors
-    cardElement.on('change', function(event) {
-        const displayError = document.getElementById('card-errors');
-        if (event.error) {
-            displayError.textContent = event.error.message;
-        } else {
-            displayError.textContent = '';
-        }
-    });
-
-    // Payment method type toggle
-    const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
-    const cardPaymentSection = document.getElementById('card-payment-section');
-    const cashPaymentSection = document.getElementById('cash-payment-section');
-    const paymentMethodTypeInput = document.getElementById('payment_method_type');
-    
-    paymentMethodRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (this.value === 'card') {
-                cardPaymentSection.classList.remove('hidden');
-                cashPaymentSection.classList.add('hidden');
-                paymentMethodTypeInput.value = 'card';
-            } else {
-                cardPaymentSection.classList.add('hidden');
-                cashPaymentSection.classList.remove('hidden');
-                paymentMethodTypeInput.value = 'cash';
-            }
-        });
-    });
-
-    // Form submission handler
-    const form = document.getElementById('payment-form');
-    const submitButton = document.getElementById('submit-button');
-    const loadingOverlay = document.getElementById('loading-overlay');
-
-    form.addEventListener('submit', async function(event) {
-    event.preventDefault();
-    
-    // Disable submit button and show loading
-    submitButton.disabled = true;
-    loadingOverlay.classList.remove('hidden');
-
-    const paymentMethodType = document.querySelector('input[name="payment_method_type"]').value;
-    
-    try {
-        if (paymentMethodType === 'card') {
-            // Check if using a saved card
-            const savedCardRadio = document.querySelector('input[name="saved_card"]:checked');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Stripe
+            const stripe = Stripe('{{ config("services.stripe.key") }}');
+            const elements = stripe.elements();
             
-            if (savedCardRadio) {
-                // Using a saved card
-                document.getElementById('payment_method_id').value = savedCardRadio.value;
-            } else {
-                // Creating a new card payment method
-                const { paymentMethod, error } = await stripe.createPaymentMethod({
-                    type: 'card',
-                    card: cardElement,
-                    billing_details: {
-                        name: '{{ Auth::user()->name }}'
+            // Create card element
+            const cardElement = elements.create('card', {
+                style: {
+                    base: {
+                        color: '#32325d',
+                        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                        fontSmoothing: 'antialiased',
+                        fontSize: '16px',
+                        '::placeholder': {
+                            color: '#aab7c4'
+                        }
+                    },
+                    invalid: {
+                        color: '#fa755a',
+                        iconColor: '#fa755a'
                     }
+                }
+            });
+            
+            // Mount the card element
+            cardElement.mount('#card-element');
+            
+            // Handle real-time validation errors
+            cardElement.on('change', function(event) {
+                const displayError = document.getElementById('card-errors');
+                if (event.error) {
+                    displayError.textContent = event.error.message;
+                } else {
+                    displayError.textContent = '';
+                }
+            });
+            
+            // Form submission handler
+            const form = document.getElementById('payment-form');
+            const submitButton = document.getElementById('submit-button');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const saveCardCheckbox = document.getElementById('save-card');
+            const setupIntentRoute = document.getElementById('setup-intent-route').value;
+            
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                
+                // Disable submit button and show loading
+                submitButton.disabled = true;
+                loadingOverlay.classList.remove('hidden');
+                
+                try {
+                    // Check if using a saved card
+                    const savedCardRadio = document.querySelector('input[name="saved_card"]:checked');
+                    
+                    if (savedCardRadio) {
+                        // Using a saved card
+                        document.getElementById('payment_method_id').value = savedCardRadio.value;
+                        form.submit();
+                    } else {
+                        // Create Setup Intent if saving card
+                        if (saveCardCheckbox.checked) {
+                            const response = await fetch(setupIntentRoute, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                }
+                            });
+                            
+                            const setupData = await response.json();
+                            
+                            if (setupData.error) {
+                                throw new Error(setupData.error);
+                            }
+                            
+                            const setupIntent = setupData.client_secret;
+                            
+                            // Create payment method and confirm setup intent
+                            const result = await stripe.confirmCardSetup(setupIntent, {
+                                payment_method: {
+                                    card: cardElement,
+                                    billing_details: {
+                                        name: '{{ Auth::user()->name }}'
+                                    }
+                                }
+                            });
+                            
+                            if (result.error) {
+                                throw result.error;
+                            }
+                            
+                            document.getElementById('payment_method_id').value = result.setupIntent.payment_method;
+                            document.getElementById('setup_intent_id').value = result.setupIntent.id;
+                        } else {
+                            // Just create a payment method without saving
+                            const { paymentMethod, error } = await stripe.createPaymentMethod({
+                                type: 'card',
+                                card: cardElement,
+                                billing_details: {
+                                    name: '{{ Auth::user()->name }}'
+                                }
+                            });
+                            
+                            if (error) {
+                                throw error;
+                            }
+                            
+                            document.getElementById('payment_method_id').value = paymentMethod.id;
+                        }
+                        
+                        // Submit the form
+                        form.submit();
+                    }
+                } catch (error) {
+                    console.error('Payment error:', error);
+                    
+                    // Show error to user
+                    const cardErrors = document.getElementById('card-errors');
+                    cardErrors.textContent = error.message || 'An error occurred. Please try again.';
+                    
+                    // Reset UI
+                    submitButton.disabled = false;
+                    loadingOverlay.classList.add('hidden');
+                }
+            });
+            
+            // Handle saved card selection
+            const savedCardInputs = document.querySelectorAll('input[name="saved_card"]');
+            if (savedCardInputs.length > 0) {
+                savedCardInputs.forEach(input => {
+                    input.addEventListener('change', function() {
+                        if (this.checked) {
+                            // Hide card element if a saved card is selected
+                            document.getElementById('new-card-section').style.display = 'none';
+                        }
+                    });
                 });
                 
-                if (error) {
-                    throw error;
-                }
+                // Show "Add new card" option
+                const newCardRadio = document.createElement('label');
+                newCardRadio.className = 'relative bg-white border rounded-lg p-3 cursor-pointer hover:border-blue-500 transition flex items-center mt-2';
+                newCardRadio.innerHTML = `
+                    <input type="radio" name="use_new_card" class="h-5 w-5 text-blue-600">
+                    <div class="ml-3 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span>Add a new card</span>
+                    </div>
+                `;
                 
-                document.getElementById('payment_method_id').value = paymentMethod.id;
+                document.querySelector('#saved-cards-section .space-y-2').appendChild(newCardRadio);
+                
+                // Hide new card section by default when saved cards exist
+                document.getElementById('new-card-section').style.display = 'none';
+                
+                // Show card element when "Add new card" is selected
+                newCardRadio.querySelector('input').addEventListener('change', function() {
+                    if (this.checked) {
+                        document.getElementById('new-card-section').style.display = 'block';
+                        // Uncheck all saved cards
+                        savedCardInputs.forEach(input => {
+                            input.checked = false;
+                        });
+                    }
+                });
             }
-        }
-        
-        // Ensure payment method ID is not empty
-        const paymentMethodId = document.getElementById('payment_method_id').value;
-        if (!paymentMethodId && paymentMethodType === 'card') {
-            throw new Error('No payment method provided');
-        }
-        
-        // Submit form
-        form.submit();
-        
-    } catch (error) {
-        console.error('Payment method creation error:', error);
-        
-        // Show error to user
-        const cardErrors = document.getElementById('card-errors');
-        cardErrors.textContent = error.message || 'An error occurred. Please try again.';
-        
-        // Reset UI
-        submitButton.disabled = false;
-        loadingOverlay.classList.add('hidden');
-    }
-});
+        });
     </script>
 </body>
 </html>
