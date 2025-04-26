@@ -897,6 +897,34 @@
         `;
         document.head.appendChild(style);
     });
+    function checkRideStatus() {
+    @if($activeRide->id)
+    // Only perform check if ride is active (not yet dropped off)
+    @if(!$activeRide->dropoff_time)
+    fetch('/passenger/ride/{{ $activeRide->id }}/payment-status')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Ride status check:', data);
+            
+            // If ride is completed but not paid, redirect to payment page
+            if (data.ride_status === 'completed' && data.payment_status === 'pending' && !data.is_paid) {
+                console.log('Ride completed, redirecting to payment page...');
+                // Use the correct route name
+                window.location.href = '/passenger/ride/{{ $activeRide->id }}/payment';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking ride status:', error);
+        });
+    @endif
+    @endif
+}
+
+// Check status every 10 seconds
+setInterval(checkRideStatus, 10000);
+
+// Also check immediately on page load
+checkRideStatus();
 </script>
 </body>
 </html>

@@ -570,11 +570,6 @@ public function completeRide(Request $request, $rideId)
 
         // Check if this ride belongs to this driver
         if ($ride->driver_id !== $driver->id) {
-            \Log::warning('Unauthorized driver attempting to complete ride', [
-                'ride_id' => $rideId,
-                'driver_id' => $driver->id,
-                'ride_driver_id' => $ride->driver_id
-            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'You are not authorized to complete this ride'
@@ -583,69 +578,23 @@ public function completeRide(Request $request, $rideId)
 
         // Check if the ride is in the correct state to be completed
         if ($ride->pickup_time === null) {
-            \Log::warning('Attempted to complete a ride that has not been started', [
-                'ride_id' => $rideId
-            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'This ride cannot be completed because it has not been started'
             ], 400);
         }
+        
+        // Important: Check if ride is already completed
+        if ($ride->dropoff_time !== null && $ride->ride_status === 'completed') {
+            return response()->json([
+                'success' => true,
+                'message' => 'This ride is already completed',
+            ]);
+        }
 
         // Mark ride as completed
         $ride->dropoff_time = now();
         $ride->ride_status = 'completed';
-        
-        // Get current location for verification (if provided)
-        $driverLat = $request->input('latitude', null);
-        $driverLng = $request->input('longitude', null);
-        
-        if ($driverLat && $driverLng) {
-            // Calculate distance from dropoff point
-            $distance = $this->rideMatchingService->calculateDistance(
-                $driverLat,
-                $driverLng,
-                $ride->dropoff_latitude,
-                $ride->dropoff_longitude
-            );
-            
-            // If driver is too far from dropoff location (more than 300m), log but allow completion
-            if ($distance > 0.3) {
-                \Log::warning("Driver completed ride from {$distance}km away from dropoff location. Ride ID: {$ride->id}");
-            }
-        }
-        
-        // Calculate actual distance traveled
-        $actualDistanceKm = $this->rideMatchingService->calculateDistance(
-            $ride->pickup_latitude,
-            $ride->pickup_longitude,
-            $ride->dropoff_latitude,
-            $ride->dropoff_longitude
-        );
-        
-        // Update ride with actual distance
-        $ride->distance_in_km = $actualDistanceKm;
-        
-        // Calculate waiting time
-        $waitTimeMinutes = 0;
-        if ($ride->pickup_time && $ride->reservation_date) {
-            $scheduledPickup = $ride->reservation_date;
-            $actualPickup = $ride->pickup_time;
-            
-            // If driver arrived late, don't charge for waiting time
-            if ($actualPickup > $scheduledPickup) {
-                $waitTimeMinutes = 0;
-            } else {
-                // Calculate time passenger kept the driver waiting
-                $waitTimeMinutes = max(0, Carbon::parse($actualPickup)->diffInMinutes($scheduledPickup));
-            }
-        }
-        
-        // Add waiting time to the ride
-        $ride->wait_time_minutes = $waitTimeMinutes;
-        
-        // Calculate ride duration for time-based fare component
-        $rideDurationMinutes = Carbon::parse($ride->pickup_time)->diffInMinutes($ride->dropoff_time);
         
         // Get fare settings for the vehicle type
         $vehicleType = $ride->vehicle_type ?? $driver->vehicle->type ?? 'basic';
@@ -655,44 +604,37 @@ public function completeRide(Request $request, $rideId)
             // Fallback to default pricing if no fare settings found
             $base_fare = 50;
             $per_km_price = 15;
-            $per_minute_price = 0;
         } else {
             $base_fare = $fareSetting->base_fare;
             $per_km_price = $fareSetting->per_km_price;
-            $per_minute_price = $fareSetting->per_minute_price ?? 0;
         }
         
-        // Record the fare components
-        $ride->base_fare = $base_fare;
-        $ride->per_km_price = $per_km_price;
+        // Calculate distance
+        $actualDistanceKm = $this->rideMatchingService->calculateDistance(
+            $ride->pickup_latitude,
+            $ride->pickup_longitude,
+            $ride->dropoff_latitude,
+            $ride->dropoff_longitude
+        );
         
-        // Calculate waiting fee
-        $waitingFeePerMinute = 0.5; // 0.5 MAD per minute of waiting time
-        $waitingFee = $waitTimeMinutes * $waitingFeePerMinute;
-        
-        // Calculate fare components
+        // Calculate fare
         $distanceFare = $actualDistanceKm * $per_km_price;
-        $timeFare = $rideDurationMinutes * $per_minute_price;
-        
-        // Calculate basic fare
-        $baseFare = $base_fare + $distanceFare + $timeFare;
+        $totalFare = $base_fare + $distanceFare;
         
         // Apply surge pricing if applicable
         $surgeMultiplier = $ride->surge_multiplier ?? 1.0;
-        $finalFare = ($baseFare * $surgeMultiplier) + $waitingFee;
-        
-        // Ensure minimum fare
-        if ($fareSetting && $finalFare < $fareSetting->minimum_fare) {
-            $finalFare = $fareSetting->minimum_fare;
-        }
+        $finalFare = $totalFare * $surgeMultiplier;
         
         // Update ride with final price
         $ride->price = $finalFare;
-        $ride->ride_cost = $finalFare; // For backward compatibility
+        $ride->ride_cost = $finalFare;
+        $ride->distance_in_km = $actualDistanceKm;
+        $ride->base_fare = $base_fare;
+        $ride->per_km_price = $per_km_price;
         
-        // Set payment status to pending
+        // Set payment status to pending and method to card (since we only support card now)
         $ride->payment_status = 'pending';
-        $ride->payment_method = 'cash'; // Default to cash payment
+        $ride->payment_method = 'card';
         $ride->is_paid = false;
         
         // Save the ride
@@ -701,27 +643,15 @@ public function completeRide(Request $request, $rideId)
         \Log::info('Ride completed successfully, saved with updates', [
             'ride_id' => $ride->id,
             'final_fare' => $finalFare,
-            'payment_method' => $ride->payment_method,
             'payment_status' => $ride->payment_status
         ]);
 
-        // Create a default payment record for cash
-        $payment = new \App\Models\Payment();
-        $payment->ride_id = $ride->id;
-        $payment->user_id = $ride->passenger->user_id;
-        $payment->amount = $finalFare;
-        $payment->payment_method = 'cash';
-        $payment->status = 'pending';
-        $payment->payment_details = json_encode(['method' => 'cash']);
-        $payment->save();
-
-        // Return appropriate response for driver
+        // Return appropriate response to driver
         return response()->json([
             'success' => true,
-            'message' => 'Ride completed successfully. Please confirm cash payment.',
+            'message' => 'Ride completed successfully. Waiting for passenger payment.',
             'ride_id' => $ride->id,
-            'fare' => number_format($finalFare, 2),
-            'redirect' => route('driver.confirm.cash.payment', $ride->id)
+            'fare' => number_format($finalFare, 2)
         ]);
     } catch (\Exception $e) {
         // Log the exception details

@@ -165,7 +165,7 @@
                     </div>
                 </div>
             </div>
-            
+            @csrf
             <!-- Payment Methods -->
             <div class="p-6">
                 <h2 class="text-lg font-medium mb-4">Payment Method</h2>
@@ -276,12 +276,11 @@
                 
                 <!-- Action Buttons -->
                 <div class="mt-8">
-                    <form id="payment-form" action="{{ route('passenger.ride.process-payment', $ride->id) }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="payment_method_type" id="payment_method_type" value="card">
-                        <input type="hidden" name="payment_method_id" id="payment_method_id" value="">
-                        <input type="hidden" name="setup_intent_id" id="setup_intent_id" value="">
-                        
+    <form id="payment-form" action="{{ route('passenger.ride.process-payment', $ride->id) }}" method="POST">
+        @csrf
+        <input type="hidden" name="payment_method_type" id="payment_method_type" value="card">
+<input type="hidden" name="payment_method_id" id="payment_method_id" value="">
+<input type="hidden" name="setup_intent_id" id="setup_intent_id" value="">
                         <div class="flex flex-col space-y-3">
                             <button type="submit" id="submit-button" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
                                 Pay MAD {{ number_format($ride->price, 2) }}
@@ -311,169 +310,123 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set up Stripe client
-            const stripe = Stripe('{{ config('services.stripe.key') }}');
-            const elements = stripe.elements();
-            
-            // Create card element
-            const cardElement = elements.create('card', {
-                style: {
-                    base: {
-                        color: '#32325d',
-                        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-                        fontSmoothing: 'antialiased',
-                        fontSize: '16px',
-                        '::placeholder': {
-                            color: '#aab7c4'
-                        }
-                    },
-                    invalid: {
-                        color: '#fa755a',
-                        iconColor: '#fa755a'
-                    }
+    document.addEventListener('DOMContentLoaded', function() {
+    const stripe = Stripe('{{ config('services.stripe.key') }}');
+    const elements = stripe.elements();
+    const createSetupIntentUrl = document.getElementById('setup-intent-route').value;
+    // Create card element
+    const cardElement = elements.create('card', {
+        style: {
+            base: {
+                color: '#32325d',
+                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                fontSmoothing: 'antialiased',
+                fontSize: '16px',
+                '::placeholder': {
+                    color: '#aab7c4'
                 }
-            });
+            },
+            invalid: {
+                color: '#fa755a',
+                iconColor: '#fa755a'
+            }
+        }
+    });
+    
+    // Mount the card element
+    cardElement.mount('#card-element');
+    
+    // Handle real-time validation errors
+    cardElement.on('change', function(event) {
+        const displayError = document.getElementById('card-errors');
+        if (event.error) {
+            displayError.textContent = event.error.message;
+        } else {
+            displayError.textContent = '';
+        }
+    });
+
+    // Payment method type toggle
+    const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
+    const cardPaymentSection = document.getElementById('card-payment-section');
+    const cashPaymentSection = document.getElementById('cash-payment-section');
+    const paymentMethodTypeInput = document.getElementById('payment_method_type');
+    
+    paymentMethodRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'card') {
+                cardPaymentSection.classList.remove('hidden');
+                cashPaymentSection.classList.add('hidden');
+                paymentMethodTypeInput.value = 'card';
+            } else {
+                cardPaymentSection.classList.add('hidden');
+                cashPaymentSection.classList.remove('hidden');
+                paymentMethodTypeInput.value = 'cash';
+            }
+        });
+    });
+
+    // Form submission handler
+    const form = document.getElementById('payment-form');
+    const submitButton = document.getElementById('submit-button');
+    const loadingOverlay = document.getElementById('loading-overlay');
+
+    form.addEventListener('submit', async function(event) {
+    event.preventDefault();
+    
+    // Disable submit button and show loading
+    submitButton.disabled = true;
+    loadingOverlay.classList.remove('hidden');
+
+    const paymentMethodType = document.querySelector('input[name="payment_method_type"]').value;
+    
+    try {
+        if (paymentMethodType === 'card') {
+            // Check if using a saved card
+            const savedCardRadio = document.querySelector('input[name="saved_card"]:checked');
             
-            // Mount the card element
-            cardElement.mount('#card-element');
-            
-            // Handle card validation errors
-            cardElement.on('change', function(event) {
-                const displayError = document.getElementById('card-errors');
-                if (event.error) {
-                    displayError.textContent = event.error.message;
-                } else {
-                    displayError.textContent = '';
-                }
-            });
-            
-            // Toggle payment sections based on selected method
-            const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
-            const cardPaymentSection = document.getElementById('card-payment-section');
-            const cashPaymentSection = document.getElementById('cash-payment-section');
-            const paymentMethodTypeInput = document.getElementById('payment_method_type');
-            
-            paymentMethodRadios.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    if (this.value === 'card') {
-                        cardPaymentSection.classList.remove('hidden');
-                        cashPaymentSection.classList.add('hidden');
-                        paymentMethodTypeInput.value = 'card';
-                    } else if (this.value === 'cash') {
-                        cardPaymentSection.classList.add('hidden');
-                        cashPaymentSection.classList.remove('hidden');
-                        paymentMethodTypeInput.value = 'cash';
+            if (savedCardRadio) {
+                // Using a saved card
+                document.getElementById('payment_method_id').value = savedCardRadio.value;
+            } else {
+                // Creating a new card payment method
+                const { paymentMethod, error } = await stripe.createPaymentMethod({
+                    type: 'card',
+                    card: cardElement,
+                    billing_details: {
+                        name: '{{ Auth::user()->name }}'
                     }
                 });
-            });
-            
-            // Handle form submission
-            const form = document.getElementById('payment-form');
-            const submitButton = document.getElementById('submit-button');
-            const loadingOverlay = document.getElementById('loading-overlay');
-            
-            form.addEventListener('submit', async function(event) {
-                event.preventDefault();
                 
-                const paymentMethodType = paymentMethodTypeInput.value;
-                
-                // Show loading overlay
-                loadingOverlay.classList.remove('hidden');
-                submitButton.disabled = true;
-                
-                if (paymentMethodType === 'card') {
-                    // Check if using saved card
-                    const savedCardRadios = document.querySelectorAll('input[name="saved_card"]');
-                    let savedCardId = null;
-                    
-                    for (const radio of savedCardRadios) {
-                        if (radio.checked) {
-                            savedCardId = radio.value;
-                            break;
-                        }
-                    }
-                    
-                    if (savedCardId) {
-                        // Using saved card
-                        document.getElementById('payment_method_id').value = savedCardId;
-                        form.submit();
-                    } else {
-                        // Using new card
-                        const saveCard = document.getElementById('save-card').checked;
-                        
-                        if (saveCard) {
-                            // Create a SetupIntent if the user wants to save the card
-                            try {
-                                const response = await fetch('{{ route("passenger.create-setup-intent") }}', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                    }
-                                });
-                                
-                                const data = await response.json();
-                                
-                                if (data.client_secret) {
-                                    const result = await stripe.confirmCardSetup(data.client_secret, {
-                                        payment_method: {
-                                            card: cardElement,
-                                            billing_details: {
-                                                name: '{{ Auth::user()->name }}'
-                                            }
-                                        }
-                                    });
-                                    
-                                    if (result.error) {
-                                        // Show error to customer
-                                        const errorElement = document.getElementById('card-errors');
-                                        errorElement.textContent = result.error.message;
-                                        loadingOverlay.classList.add('hidden');
-                                        submitButton.disabled = false;
-                                    } else {
-                                        // The setup was successful, set the payment method ID
-                                        document.getElementById('payment_method_id').value = result.setupIntent.payment_method;
-                                        document.getElementById('setup_intent_id').value = result.setupIntent.id;
-                                        form.submit();
-                                    }
-                                }
-                            } catch (error) {
-                                console.error('Error:', error);
-                                const errorElement = document.getElementById('card-errors');
-                                errorElement.textContent = 'An error occurred. Please try again.';
-                                loadingOverlay.classList.add('hidden');
-                                submitButton.disabled = false;
-                            }
-                        } else {
-                            // Just create a PaymentMethod for a one-time use
-                            stripe.createPaymentMethod({
-                                type: 'card',
-                                card: cardElement,
-                                billing_details: {
-                                    name: '{{ Auth::user()->name }}'
-                                }
-                            }).then(function(result) {
-                                if (result.error) {
-                                    // Show error to customer
-                                    const errorElement = document.getElementById('card-errors');
-                                    errorElement.textContent = result.error.message;
-                                    loadingOverlay.classList.add('hidden');
-                                    submitButton.disabled = false;
-                                } else {
-                                    // The payment method was created, set the payment method ID
-                                    document.getElementById('payment_method_id').value = result.paymentMethod.id;
-                                    form.submit();
-                                }
-                            });
-                        }
-                    }
-                } else if (paymentMethodType === 'cash') {
-                    // For cash payment, just submit the form
-                    form.submit();
+                if (error) {
+                    throw error;
                 }
-            });
-        });
+                
+                document.getElementById('payment_method_id').value = paymentMethod.id;
+            }
+        }
+        
+        // Ensure payment method ID is not empty
+        const paymentMethodId = document.getElementById('payment_method_id').value;
+        if (!paymentMethodId && paymentMethodType === 'card') {
+            throw new Error('No payment method provided');
+        }
+        
+        // Submit form
+        form.submit();
+        
+    } catch (error) {
+        console.error('Payment method creation error:', error);
+        
+        // Show error to user
+        const cardErrors = document.getElementById('card-errors');
+        cardErrors.textContent = error.message || 'An error occurred. Please try again.';
+        
+        // Reset UI
+        submitButton.disabled = false;
+        loadingOverlay.classList.add('hidden');
+    }
+});
     </script>
 </body>
 </html>

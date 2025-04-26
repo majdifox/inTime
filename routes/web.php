@@ -7,6 +7,8 @@ use App\Http\Controllers\DriverController;
 use App\Http\Controllers\PassengerController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DriverProfileController;
+use App\Http\Controllers\PaymentController;
+
 
 
 use App\Http\Controllers\Auth\GoogleLoginController;
@@ -239,7 +241,30 @@ Route::post('/ride/{ride}/rate', [App\Http\Controllers\PassengerController::clas
 // Submit rating
 Route::post('/ride/{ride}/rate', [PassengerController::class, 'submitRating'])
     ->name('submit.rating');
-});
+
+    // Ride payment page
+Route::get('/ride/{ride}/payment', [App\Http\Controllers\PaymentController::class, 'showPaymentPage'])
+->name('ride.payment');
+
+// Process payment
+Route::post('/ride/{ride}/process-payment', [App\Http\Controllers\PaymentController::class, 'processPayment'])
+->name('ride.process-payment');
+
+// Cash payment page
+Route::get('/ride/{ride}/cash-payment', [App\Http\Controllers\PaymentController::class, 'showCashPaymentPage'])
+->name('cash.payment');
+
+// Rate ride page (make sure this exists and comes AFTER payment)
+Route::get('/ride/{ride}/rate', [App\Http\Controllers\PassengerController::class, 'showRateRidePage'])
+->name('rate.ride');
+
+// Submit rating
+Route::post('/ride/{ride}/rate', [App\Http\Controllers\PassengerController::class, 'submitRating'])
+->name('submit.rating');
+
+Route::post('/create-setup-intent', [PaymentController::class, 'createSetupIntent'])
+    ->name('create-setup-intent')
+    ->middleware('web');});
 
 // Admin routes
 Route::middleware(['auth', 'isadmin'])->prefix('admin')->group(function () {
@@ -354,6 +379,8 @@ Route::get('/passenger/ride/{ride}/payment-status', function(App\Models\Ride $ri
     return response()->json([
         'is_paid' => $ride->is_paid,
         'payment_status' => $ride->payment_status,
-        'payment_method' => $ride->payment_method
+        'payment_method' => $ride->payment_method,
+        'ride_status' => $ride->ride_status,
+        'has_dropoff_time' => $ride->dropoff_time ? true : false
     ]);
 })->middleware('auth')->name('passenger.ride.payment.status');
