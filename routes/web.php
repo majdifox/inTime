@@ -120,7 +120,22 @@ Route::post('/driver/ride/{id}/complete', [DriverController::class, 'completeRid
 Route::get('/driver/ride/{ride}/rate', [DriverController::class, 'rateRide'])->name('driver.rate.ride');
 Route::post('/driver/ride/{ride}/submit-rating', [DriverController::class, 'submitRating'])->name('driver.submit.rating');
 
-
+Route::get('/driver/ride/{ride}/payment-status', function(App\Models\Ride $ride) {
+    // Security check - ensure the ride belongs to this driver
+    $driver = App\Models\Driver::where('user_id', Auth::id())->first();
+    if ($ride->driver_id !== $driver->id) {
+        return response()->json(['error' => 'Unauthorized'], 403);
+    }
+    
+    return response()->json([
+        'ride_id' => $ride->id,
+        'ride_status' => $ride->ride_status,
+        'is_paid' => $ride->is_paid,
+        'payment_status' => $ride->payment_status,
+        'is_reviewed_by_driver' => $ride->is_reviewed_by_driver,
+        'dropoff_time' => $ride->dropoff_time ? $ride->dropoff_time->toIso8601String() : null
+    ]);
+})->middleware('auth')->name('driver.ride.payment.status');
 // Payment routes
 Route::get('/ride/{ride}/confirm-cash-payment', [App\Http\Controllers\PaymentController::class, 'showCashConfirmationPage'])
         ->name('driver.confirm.cash.payment');

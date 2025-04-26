@@ -601,9 +601,20 @@ public function completeRide(Request $request, $rideId)
         
         // Important: Check if ride is already completed
         if ($ride->dropoff_time !== null && $ride->ride_status === 'completed') {
+            // If completed and paid, redirect to rating
+            if ($ride->is_paid && !$ride->is_reviewed_by_driver) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'This ride is completed and paid. Please rate your passenger.',
+                    'redirect' => route('driver.rate.ride', $ride->id)
+                ]);
+            }
+            
+            // If completed but not paid yet
             return response()->json([
                 'success' => true,
-                'message' => 'This ride is already completed',
+                'message' => 'This ride is already completed. Waiting for passenger payment.',
+                'redirect' => route('driver.dashboard')
             ]);
         }
 
@@ -647,7 +658,7 @@ public function completeRide(Request $request, $rideId)
         $ride->base_fare = $base_fare;
         $ride->per_km_price = $per_km_price;
         
-        // Set payment status to pending and method to card (since we only support card now)
+        // Set payment status to pending and method to card
         $ride->payment_status = 'pending';
         $ride->payment_method = 'card';
         $ride->is_paid = false;
@@ -660,13 +671,20 @@ public function completeRide(Request $request, $rideId)
             'final_fare' => $finalFare,
             'payment_status' => $ride->payment_status
         ]);
+        
+        // Set a session flag to remind the driver to check for passenger payment
+        session()->flash('check_payment_status', [
+            'ride_id' => $ride->id,
+            'message' => 'Ride completed successfully. The passenger will be prompted to pay. Please check back to rate the passenger once payment is complete.'
+        ]);
 
         // Return appropriate response to driver
         return response()->json([
             'success' => true,
             'message' => 'Ride completed successfully. Waiting for passenger payment.',
             'ride_id' => $ride->id,
-            'fare' => number_format($finalFare, 2)
+            'fare' => number_format($finalFare, 2),
+            'redirect' => route('driver.dashboard')
         ]);
     } catch (\Exception $e) {
         // Log the exception details

@@ -1201,6 +1201,42 @@
             map.invalidateSize();
         });
     });
+    // Function to check payment status for rides
+function checkRidesPaymentStatus() {
+    // Get all ride IDs from the page
+    const rideElements = document.querySelectorAll('[data-ride-id]');
+    const rideIds = Array.from(rideElements).map(el => el.dataset.rideId);
+    
+    // For each completed ride, check if payment has been made
+    rideIds.forEach(rideId => {
+        // Fetch payment status
+        fetch(`/driver/ride/${rideId}/payment-status`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Checking payment status for ride ${rideId}:`, data);
+            
+            // If ride is completed and paid, redirect to rating page
+            if (data.ride_status === 'completed' && data.is_paid && !data.is_reviewed_by_driver) {
+                console.log(`Ride ${rideId} is completed and paid. Redirecting to rating...`);
+                window.location.href = `/driver/ride/${rideId}/rate`;
+            }
+        })
+        .catch(error => {
+            console.error('Error checking payment status:', error);
+        });
+    });
+}
+
+// Start polling for payment status every 30 seconds
+setInterval(checkRidesPaymentStatus, 30000);
+
+// Also check immediately
+document.addEventListener('DOMContentLoaded', checkRidesPaymentStatus);
 </script>
 </body>
 </html>
