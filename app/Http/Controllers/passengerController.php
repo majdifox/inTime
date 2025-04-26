@@ -1581,11 +1581,16 @@ public function showRateRidePage(Ride $ride)
             ->with('error', 'Please complete payment before rating this ride.');
     }
     
-    // Set isDriver flag to false since this is for passengers
+    // Load passenger info
+    $ride->load('driver.user');
+    
+    // Explicitly set isDriver flag to false since this is for passengers
     $isDriver = false;
     
     return view('passenger.rateRide', compact('ride', 'isDriver'));
 }
+
+
 public function submitRating(Request $request, Ride $ride)
 {
     // Validate the incoming request
