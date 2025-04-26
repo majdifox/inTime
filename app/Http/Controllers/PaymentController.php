@@ -164,15 +164,31 @@ class PaymentController extends Controller
                 // Update payment record with Stripe data
                 $payment->stripe_payment_id = $intent->id;
                 $payment->status = 'completed';
-                $payment->payment_details = json_encode([
-                    'card_brand' => $intent->charges->data[0]->payment_method_details->card->brand,
-                    'card_last4' => $intent->charges->data[0]->payment_method_details->card->last4,
-                    'receipt_url' => $intent->charges->data[0]->receipt_url,
-                ]);
+                
+                // Check if charges exist and are accessible
+                if ($intent->status === 'succeeded' && isset($intent->charges) && !empty($intent->charges->data)) {
+                    $charge = $intent->charges->data[0];
+                    $paymentDetails = [
+                        'card_brand' => $charge->payment_method_details->card->brand ?? 'unknown',
+                        'card_last4' => $charge->payment_method_details->card->last4 ?? '****',
+                        'receipt_url' => $charge->receipt_url ?? null,
+                    ];
+                } else {
+                    // Fallback if charges data isn't accessible yet
+                    $paymentMethod = \Stripe\PaymentMethod::retrieve($validated['payment_method_id']);
+                    $paymentDetails = [
+                        'card_brand' => $paymentMethod->card->brand ?? 'unknown',
+                        'card_last4' => $paymentMethod->card->last4 ?? '****',
+                        'receipt_url' => null,
+                    ];
+                }
+                
+                $payment->payment_details = json_encode($paymentDetails);
                 
                 \Log::info('Card payment processed successfully', [
                     'ride_id' => $ride->id,
-                    'stripe_payment_id' => $intent->id
+                    'stripe_payment_id' => $intent->id,
+                    'payment_status' => $intent->status
                 ]);
             } else {
                 throw new Exception('No payment method provided');

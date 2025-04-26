@@ -1582,12 +1582,9 @@ public function showRateRidePage(Ride $ride)
     }
     
     // Load passenger info
-    $ride->load('driver.user');
+    $ride->load('driver.user', 'driver.vehicle');
     
-    // Explicitly set isDriver flag to false since this is for passengers
-    $isDriver = false;
-    
-    return view('passenger.rateRide', compact('ride', 'isDriver'));
+    return view('passenger.rateRide', compact('ride'));
 }
 
 
