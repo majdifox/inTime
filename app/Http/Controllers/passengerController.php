@@ -1635,6 +1635,9 @@ public function submitRating(Request $request, Ride $ride)
     $ride->is_reviewed = true;
     $ride->save();
     
+    // Log the successful review submission
+    \Log::info("Passenger #{$passenger->id} submitted rating for ride #{$ride->id}");
+    
     return redirect()->route('passenger.dashboard')->with('success', 'Thank you for your rating and feedback!');
 }
 
