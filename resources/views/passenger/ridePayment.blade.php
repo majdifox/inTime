@@ -172,7 +172,7 @@
                     @csrf
                     <input type="hidden" name="payment_method_id" id="payment_method_id" value="">
                     <input type="hidden" name="setup_intent_id" id="setup_intent_id" value="">
-                    <input type="hidden" id="setup-intent-route" value="{{ route('create-setup-intent') }}">
+                    <input type="hidden" id="setup-intent-route" value="{{ route('passenger.create-setup-intent') }}">
                     
                     <h2 class="text-lg font-medium mb-4">Payment Method</h2>
                     

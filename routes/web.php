@@ -264,7 +264,11 @@ Route::post('/ride/{ride}/rate', [App\Http\Controllers\PassengerController::clas
 
 Route::post('/create-setup-intent', [PaymentController::class, 'createSetupIntent'])
     ->name('create-setup-intent')
-    ->middleware('web');});
+    ->middleware('web');
+
+    Route::post('/create-setup-intent', [App\Http\Controllers\PaymentController::class, 'createSetupIntent'])
+        ->name('create-setup-intent');
+});
 
 // Admin routes
 Route::middleware(['auth', 'isadmin'])->prefix('admin')->group(function () {
