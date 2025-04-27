@@ -1517,6 +1517,9 @@ public function processPayment(Request $request, Ride $ride)
         ]);
         return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
     }
+    $passenger = Passenger::where('user_id', Auth::id())->first();
+    $passenger->total_rides = $passenger->total_rides + 1;
+    $passenger->save();
 }
 
 /**
@@ -1631,6 +1634,9 @@ public function submitRating(Request $request, Ride $ride)
     // Mark the ride as reviewed
     $ride->is_reviewed = true;
     $ride->save();
+
+    $passenger->total_rides = $passenger->total_rides + 1;
+    $passenger->save();
     
     // Log the successful review submission
     \Log::info("Passenger #{$passenger->id} submitted rating for ride #{$ride->id}");

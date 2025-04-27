@@ -58,6 +58,48 @@
                 <span id="status-indicator" class="w-3 h-3 rounded-full {{ Auth::user()->is_online ? 'bg-green-500' : 'bg-red-500' }} mr-2"></span>
                 <span id="status-text" class="text-sm font-medium">{{ Auth::user()->is_online ? 'Online' : 'Offline' }}</span>
             </div>
+            <!-- Check for rides that need rating -->
+@if(session('check_payment_status'))
+<div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded shadow" role="alert">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+            </svg>
+        </div>
+        <div class="ml-3">
+            <p class="text-sm">{{ session('check_payment_status')['message'] }}</p>
+            <p class="text-sm mt-2">
+                <button type="button" class="check-payment-status font-medium underline" 
+                        data-ride-id="{{ session('check_payment_status')['ride_id'] }}">
+                    Check payment status now
+                </button>
+            </p>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Notification for rides that need rating -->
+@if(isset($ridesToRate) && $ridesToRate->count() > 0)
+<div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow" role="alert">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+        </div>
+        <div class="ml-3">
+            <p class="text-sm">You have {{ $ridesToRate->count() }} {{ Str::plural('ride', $ridesToRate->count()) }} that need to be rated.</p>
+            <p class="text-sm mt-2">
+                <a href="{{ route('driver.rate.ride', $ridesToRate->first()->id) }}" class="font-medium underline">
+                    Rate your passenger now
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+@endif
             
             <div class="relative">
                 <button type="button" class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden" id="profile-button">
@@ -1937,6 +1979,88 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+        // Add event listener for payment status check buttons
+        const checkPaymentButtons = document.querySelectorAll('.check-payment-status');
+        checkPaymentButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const rideId = this.dataset.rideId;
+                checkRidePaymentStatus(rideId);
+            });
+        });
+        
+        // Function to check payment status for a ride
+        function checkRidePaymentStatus(rideId) {
+            // Show loading state
+            const button = document.querySelector(`.check-payment-status[data-ride-id="${rideId}"]`);
+            const originalText = button.innerText;
+            button.innerText = 'Checking...';
+            button.disabled = true;
+            
+            // Fetch payment status
+            fetch(`/driver/ride/${rideId}/payment-status`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(`Payment status for ride ${rideId}:`, data);
+                
+                // If ride is completed and paid, redirect to rating page
+                if (data.ride_status === 'completed' && data.is_paid && !data.is_reviewed_by_driver) {
+                    window.location.href = `/driver/ride/${rideId}/rate`;
+                } else {
+                    // Update button text based on status
+                    if (data.is_paid) {
+                        button.innerText = 'Payment received! Redirecting...';
+                        setTimeout(() => {
+                            window.location.href = `/driver/ride/${rideId}/rate`;
+                        }, 1000);
+                    } else {
+                        button.innerText = 'Not paid yet. Try again later.';
+                        setTimeout(() => {
+                            button.innerText = originalText;
+                            button.disabled = false;
+                        }, 3000);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking payment status:', error);
+                button.innerText = 'Error checking payment';
+                setTimeout(() => {
+                    button.innerText = originalText;
+                    button.disabled = false;
+                }, 3000);
+            });
+        }
+        
+        // Auto-check payment status every 30 seconds if notification is present
+        const paymentNotification = document.querySelector('[data-ride-id]');
+        if (paymentNotification) {
+            const rideId = paymentNotification.dataset.rideId;
+            setInterval(() => {
+                fetch(`/driver/ride/${rideId}/payment-status`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ride_status === 'completed' && data.is_paid && !data.is_reviewed_by_driver) {
+                        window.location.href = `/driver/ride/${rideId}/rate`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error in auto-check:', error);
+                });
+            }, 30000); // Check every 30 seconds
+        }
+    });
     </script>
 </body>
 </html>
