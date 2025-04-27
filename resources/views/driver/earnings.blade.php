@@ -10,8 +10,8 @@
     <!-- Vite Assets -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
-    <!-- Chart.js for earnings visualization -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js for earnings visualization - use defer to prevent blocking -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 </head>
 <body class="bg-gray-50">
     <!-- Header/Navigation -->
@@ -23,7 +23,7 @@
             
             <!-- Navigation Links -->
             <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('driver.awaiting.rides') }}" class="font-medium hover:text-blue-600 transition">Awaiting Rides</a>
+           
                 <a href="{{ route('driver.active.rides') }}" class="font-medium hover:text-blue-600 transition">Active Rides</a>
                 <a href="{{ route('driver.history') }}" class="font-medium hover:text-blue-600 transition">History</a>
                 <a href="{{ route('driver.earnings') }}" class="font-medium text-blue-600 transition">Earnings</a>
@@ -86,7 +86,6 @@
                 <div class="mt-6">
                     <nav class="grid gap-y-4">
                         <a href="{{ route('driver.dashboard') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Dashboard</a>
-                        <a href="{{ route('driver.awaiting.rides') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Awaiting Rides</a>
                         <a href="{{ route('driver.active.rides') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Active Rides</a>
                         <a href="{{ route('driver.history') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">History</a>
                         <a href="{{ route('driver.earnings') }}" class="font-medium px-3 py-2 rounded-md bg-blue-50 text-blue-600">Earnings</a>
@@ -285,263 +284,256 @@
                     </div>
                 </div>
                 
-                <!-- Earnings Distribution Card -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">Earnings Distribution</h2>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Vehicle Type Distribution -->
-                        <div>
-                            <h3 class="text-lg font-medium mb-3">By Vehicle Type</h3>
-                            <canvas id="vehicleTypeChart" height="200"></canvas>
-                        </div>
-                        
-                        <!-- Time of Day Distribution -->
-                        <div>
-                            <h3 class="text-lg font-medium mb-3">By Time of Day</h3>
-                            <canvas id="timeOfDayChart" height="200"></canvas>
-                        </div>
-                    </div>
-                </div>
+       
             </div>
         </div>
     </main>
 
-    <!-- JavaScript for functionality -->
+    <!-- JavaScript for functionality with performance optimizations -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Mobile menu toggle
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            const closeMobileMenuButton = document.getElementById('close-mobile-menu');
-            
-            if (mobileMenuButton) {
-                mobileMenuButton.addEventListener('click', function() {
-                    mobileMenu.classList.remove('translate-x-full');
-                });
-            }
-            
-            if (closeMobileMenuButton) {
-                closeMobileMenuButton.addEventListener('click', function() {
-                    mobileMenu.classList.add('translate-x-full');
-                });
-            }
-            
-            // Profile dropdown toggle
-            const profileButton = document.getElementById('profile-button');
-            const profileDropdown = document.getElementById('profile-dropdown');
-            
-            if (profileButton) {
-                profileButton.addEventListener('click', function() {
-                    profileDropdown.classList.toggle('hidden');
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(event) {
-                    if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
-                        profileDropdown.classList.add('hidden');
-                    }
-                });
-            }
-            
-            // Daily earnings chart
-            const dailyEarningsData = @json($dailyEarnings);
-            const dates = dailyEarningsData.map(item => item.date);
-            const earnings = dailyEarningsData.map(item => item.total);
-            
-            // Create daily earnings chart
-            const earningsCtx = document.getElementById('earningsChart').getContext('2d');
-            const earningsChart = new Chart(earningsCtx, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: 'Daily Earnings (MAD)',
-                        data: earnings,
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        borderWidth: 2,
-                        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 1,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                        tension: 0.1,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                            padding: 10,
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
-                            cornerRadius: 4,
-                            displayColors: false,
-                            callbacks: {
-                                label: function(context) {
-                                    return `MAD ${context.parsed.y.toFixed(2)}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 45
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return 'MAD ' + value;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            
-            // Chart period selector
-            const chartPeriodSelect = document.getElementById('chart-period');
-            if (chartPeriodSelect) {
-                chartPeriodSelect.addEventListener('change', function() {
-                    const period = parseInt(this.value);
-                    
-                    // Filter data based on selected period
-                    const filteredDates = dates.slice(-period);
-                    const filteredEarnings = earnings.slice(-period);
-                    
-                    // Update chart data
-                    earningsChart.data.labels = filteredDates;
-                    earningsChart.data.datasets[0].data = filteredEarnings;
-                    earningsChart.update();
-                });
-            }
-            
-            // Sample data for other charts (replace with actual data in production)
-            
-            // Weekday chart
-            const weekdayCtx = document.getElementById('weekdayChart').getContext('2d');
-            new Chart(weekdayCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-                    datasets: [{
-                        label: 'Average Earnings',
-                        data: [350, 380, 400, 430, 500, 550, 420],
-                        backgroundColor: [
-                            'rgba(59, 130, 246, 0.6)',
-                            'rgba(59, 130, 246, 0.6)',
-                            'rgba(59, 130, 246, 0.6)',
-                            'rgba(59, 130, 246, 0.6)',
-                            'rgba(59, 130, 246, 0.6)',
-                            'rgba(59, 130, 246, 0.8)',
-                            'rgba(59, 130, 246, 0.7)'
-                        ],
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        borderWidth: 1,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `MAD ${context.parsed.y.toFixed(2)}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return 'MAD ' + value;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            
-            // Vehicle type chart
-            const vehicleTypeCtx = document.getElementById('vehicleTypeChart').getContext('2d');
-            new Chart(vehicleTypeCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Comfort', 'Share', 'Women', 'WAV', 'Black'],
-                    datasets: [{
-                        data: [40, 25, 15, 10, 10],
-                        backgroundColor: [
-                            'rgba(59, 130, 246, 0.8)',
-                            'rgba(16, 185, 129, 0.8)',
-                            'rgba(236, 72, 153, 0.8)',
-                            'rgba(245, 158, 11, 0.8)',
-                            'rgba(31, 41, 55, 0.8)'
-                        ],
-                        borderColor: 'white',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-            
-            // Time of day chart
-            const timeOfDayCtx = document.getElementById('timeOfDayChart').getContext('2d');
-            new Chart(timeOfDayCtx, {
-                type: 'pie',
-                data: {
-                    labels: ['Morning (6AM-12PM)', 'Afternoon (12PM-6PM)', 'Evening (6PM-12AM)', 'Night (12AM-6AM)'],
-                    datasets: [{
-                        data: [30, 35, 25, 10],
-                        backgroundColor: [
-                            'rgba(251, 191, 36, 0.8)',
-                            'rgba(59, 130, 246, 0.8)',
-                            'rgba(79, 70, 229, 0.8)',
-                            'rgba(31, 41, 55, 0.8)'
-                        ],
-                        borderColor: 'white',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
+// Wait for document to be fully loaded before initializing charts
+document.addEventListener('DOMContentLoaded', function() {
+    // Mobile menu toggle - delegated event handlers
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const closeMobileMenuButton = document.getElementById('close-mobile-menu');
+    
+    if (mobileMenuButton) {
+        mobileMenuButton.addEventListener('click', function() {
+            mobileMenu.classList.remove('translate-x-full');
         });
-    </script>
+    }
+    
+    if (closeMobileMenuButton) {
+        closeMobileMenuButton.addEventListener('click', function() {
+            mobileMenu.classList.add('translate-x-full');
+        });
+    }
+    
+    // Profile dropdown toggle with optimized event handling
+    const profileButton = document.getElementById('profile-button');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    
+    if (profileButton && profileDropdown) {
+        profileButton.addEventListener('click', function(event) {
+            profileDropdown.classList.toggle('hidden');
+            event.stopPropagation(); // Prevent document click from immediately closing it
+        });
+        
+        // Use a single document click handler
+        document.addEventListener('click', function(event) {
+            if (profileButton && profileDropdown && 
+                !profileButton.contains(event.target) && 
+                !profileDropdown.contains(event.target)) {
+                profileDropdown.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Chart initialization using requestAnimationFrame for better performance
+    requestAnimationFrame(() => {
+        initializeCharts();
+    });
+    
+    function initializeCharts() {
+        // Daily earnings chart
+        const dailyEarningsData = @json($dailyEarnings);
+        const earningsCtx = document.getElementById('earningsChart');
+        
+        if (!earningsCtx) return; // Guard clause if element doesn't exist
+        
+        // Process data once
+        const dates = dailyEarningsData.map(item => item.date);
+        const earnings = dailyEarningsData.map(item => item.total);
+        
+        // Create daily earnings chart with simplified options
+        const earningsChart = new Chart(earningsCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Daily Earnings (MAD)',
+                    data: earnings,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1,
+                    pointRadius: 3,           // Reduced from 4
+                    pointHoverRadius: 5,      // Reduced from 6
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 500 // Reduced animation time
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        padding: 10,
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        cornerRadius: 4,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `MAD ${context.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: {
+                                size: 10 // Smaller font size
+                            },
+                            maxTicksLimit: 15 // Limit the number of ticks
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'MAD ' + value;
+                            },
+                            font: {
+                                size: 10 // Smaller font size
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Chart period selector with debounced handling
+        const chartPeriodSelect = document.getElementById('chart-period');
+        if (chartPeriodSelect) {
+            chartPeriodSelect.addEventListener('change', function() {
+                const period = parseInt(this.value);
+                
+                // Filter data based on selected period
+                const filteredDates = dates.slice(-period);
+                const filteredEarnings = earnings.slice(-period);
+                
+                // Update chart data
+                earningsChart.data.labels = filteredDates;
+                earningsChart.data.datasets[0].data = filteredEarnings;
+                earningsChart.update();
+            });
+        }
+        
+        // Create other charts with requestAnimationFrame for better performance
+        requestAnimationFrame(() => {
+            createWeekdayChart();
+            
+            // Lazy load the remaining charts when the user scrolls near them
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        createDistributionCharts();
+                        observer.disconnect(); // Only need to create these once
+                    }
+                });
+            }, {
+                rootMargin: '100px' // Load when within 100px of viewport
+            });
+            
+            const distributionSection = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2');
+            if (distributionSection) {
+                observer.observe(distributionSection);
+            }
+        });
+    }
+    
+    function createWeekdayChart() {
+        const weekdayCtx = document.getElementById('weekdayChart');
+        if (!weekdayCtx) return;
+        
+        // Use actual data from backend or sample data for now
+        const weekdayData = {
+            labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+            values: [350, 380, 400, 430, 500, 550, 420]
+        };
+        
+        new Chart(weekdayCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: weekdayData.labels,
+                datasets: [{
+                    label: 'Average Earnings',
+                    data: weekdayData.values,
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 500 // Reduced animation time
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `MAD ${context.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'MAD ' + value;
+                            },
+                            font: {
+                                size: 10 // Smaller font
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 10 // Smaller font
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    
+    
+    // Preload Chart.js to ensure it's ready
+    if (typeof Chart === 'undefined') {
+        const chartScript = document.createElement('script');
+        chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        chartScript.onload = initializeCharts;
+        document.head.appendChild(chartScript);
+    }
+});
+                    </script>
 </body>
 </html>

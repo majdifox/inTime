@@ -29,7 +29,9 @@ class DriverProfileController extends Controller
             $driver = Driver::with(['user', 'vehicle', 'vehicle.features'])
                 ->where('id', $id)
                 ->firstOrFail();
-            
+
+                $driver->updateCompletedRidesCount();
+
             // Use raw query to ensure we only get reviews with valid relationships
             $validReviewIds = DB::table('reviews')
                 ->join('rides', 'reviews.ride_id', '=', 'rides.id')
@@ -265,7 +267,7 @@ public function privateProfile()
 {
     $user = Auth::user();
     $driver = Driver::with(['vehicle', 'vehicle.features'])->where('user_id', $user->id)->firstOrFail();
-    
+    $driver->updateCompletedRidesCount();
     // Get recent earnings data for graph
     $recentEarnings = Ride::where('driver_id', $driver->id)
         ->where('ride_status', 'completed')
@@ -278,6 +280,19 @@ public function privateProfile()
         ->orderBy('date', 'asc')
         ->get();
     
+    // Calculate statistics from actual database data
+    $completedRides = Ride::where('driver_id', $driver->id)
+        ->where('ride_status', 'completed')
+        ->count();
+        
+    $totalEarnings = Ride::where('driver_id', $driver->id)
+        ->where('ride_status', 'completed')
+        ->where('is_paid', true)
+        ->sum('price');
+    
+    // Assign values to driver object
+    $driver->completed_rides = $completedRides;
+    
     // Get statistics
     $stats = [
         'today' => $recentEarnings->where('date', now()->format('Y-m-d'))->sum('total'),
@@ -289,9 +304,9 @@ public function privateProfile()
             ->where('ride_status', 'completed')
             ->where('dropoff_time', '>=', now()->startOfMonth())
             ->sum('price'),
-        'total' => $driver->balance,
-        'completed_rides' => $driver->completed_rides,
-        'avg_rating' => $driver->rating
+        'total' => $totalEarnings,
+        'completed_rides' => $completedRides,
+        'avg_rating' => $driver->rating ?? 0
     ];
     
     // Calculate response rate

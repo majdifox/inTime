@@ -211,8 +211,13 @@ class DriverController extends Controller
         
         // Get driver statistics
         $stats = [
-            'completed_rides' => $driver->completed_rides ?? 0,
-            'total_income' => $user->total_income ?? 0,
+            'completed_rides' => Ride::where('driver_id', $driver->id)
+                ->where('ride_status', 'completed')
+                ->count(),
+            'total_income' => Ride::where('driver_id', $driver->id)
+                ->where('ride_status', 'completed')
+                ->where('is_paid', true)
+                ->sum('price'),
             'rating' => $driver->rating ?? 0,
         ];
         
@@ -665,7 +670,11 @@ public function completeRide(Request $request, $rideId)
         
         // Save the ride
         $ride->save();
-        
+        $driver->updateCompletedRidesCount();
+
+// Log the updated count
+\Log::info("Updated driver #{$driver->id} completed_rides count to {$driver->completed_rides}");
+
         \Log::info('Ride completed successfully, saved with updates', [
             'ride_id' => $ride->id,
             'final_fare' => $finalFare,

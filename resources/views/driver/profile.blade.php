@@ -23,8 +23,11 @@
                         <a href="{{ route('passenger.dashboard') }}" class="font-medium">Dashboard</a>
                         <a href="{{ route('passenger.history') }}" class="font-medium">Ride History</a>
                     @elseif(Auth::user()->role === 'driver')
-                        <a href="{{ route('driver.dashboard') }}" class="font-medium">Dashboard</a>
-                        <a href="{{ route('driver.history') }}" class="font-medium">Ride History</a>
+                  
+                <a href="{{ route('driver.active.rides') }}" class="font-medium text-blue-600 transition">Active Rides</a>
+                <a href="{{ route('driver.history') }}" class="font-medium hover:text-blue-600 transition">History</a>
+                <a href="{{ route('driver.earnings') }}" class="font-medium hover:text-blue-600 transition">Earnings</a>
+           
                     @endif
                 @endauth
             </nav>
@@ -213,32 +216,7 @@
                         @endif
                     </div>
                     
-                    <!-- Areas Served -->
-                    @if(count($recentLocations) > 0)
-                        <div class="bg-white rounded-lg shadow-md p-6">
-                            <h2 class="text-lg font-semibold mb-4">Areas Frequently Served</h2>
-                            <div class="flex flex-wrap gap-2">
-                                @php $areas = []; @endphp
-                                @foreach($recentLocations as $location)
-                                    @if(!in_array($location['pickup'], $areas))
-                                        @php $areas[] = $location['pickup']; @endphp
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                            {{ $location['pickup'] }}
-                                        </span>
-                                    @endif
-                                    @if(!in_array($location['dropoff'], $areas))
-                                        @php $areas[] = $location['dropoff']; @endphp
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                            {{ $location['dropoff'] }}
-                                        </span>
-                                    @endif
-                                    @if(count($areas) >= 8)
-                                        @php break; @endphp
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
+               
                 </div>
                 
                 <!-- Right Column - Reviews & Ratings -->

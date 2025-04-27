@@ -318,4 +318,18 @@ class Driver extends Model
     {
         return $this->getCancelledRidesLastTwoHoursCount() >= 3;
     }
+
+    public function updateCompletedRidesCount()
+{
+    $completedRidesCount = $this->rides()
+        ->where('ride_status', 'completed')
+        ->count();
+    
+    if ($this->completed_rides !== $completedRidesCount) {
+        $this->completed_rides = $completedRidesCount;
+        $this->save();
+    }
+    
+    return $this->completed_rides;
+}
 }

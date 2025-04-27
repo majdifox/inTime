@@ -19,17 +19,13 @@
             
             <!-- Navigation Links -->
             <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('driver.dashboard') }}" class="font-medium">Dashboard</a>
-                <a href="{{ route('driver.active.rides') }}" class="font-medium">Active Rides</a>
-                <a href="{{ route('driver.history') }}" class="font-medium">Ride History</a>
+                <a href="{{ route('driver.active.rides') }}" class="font-medium text-blue-600 transition">Active Rides</a>
+                <a href="{{ route('driver.history') }}" class="font-medium hover:text-blue-600 transition">History</a>
+                <a href="{{ route('driver.earnings') }}" class="font-medium hover:text-blue-600 transition">Earnings</a>
             </nav>
         </div>
         
-        <div class="flex justify-center space-x-4">
-            <a href="{{ route('driver.dashboard') }}" class="bg-black text-white py-2 px-6 rounded-md font-medium hover:bg-gray-800 transition">
-                Back to Dashboard
-            </a>
-        </div>
+
         
         <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
             @if(Auth::user()->profile_picture)
@@ -59,32 +55,7 @@
         <div class="flex flex-col lg:flex-row gap-6">
             <!-- Left Column - Navigation and User Info -->
             <div class="w-full lg:w-1/3 flex flex-col gap-6">
-                <!-- Profile Navigation -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">Profile Settings</h2>
-                    
-                    <nav class="space-y-2">
-                        <a href="#profile-section" class="block px-3 py-2 rounded-md bg-blue-50 text-blue-600 font-medium">
-                            Driver Profile
-                        </a>
-                        <a href="#vehicle-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
-                            Vehicle Information
-                        </a>
-                        <a href="#stats-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
-                            Statistics & Earnings
-                        </a>
-                        <a href="#documents-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
-                            Documents & Verification
-                        </a>
-                        <a href="#password-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
-                            Change Password
-                        </a>
-                        <a href="{{ route('driver.public.profile', $driver->id) }}" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition text-blue-600">
-                            View Public Profile
-                        </a>
-                    </nav>
-                </div>
-                
+                   
                 <!-- User Info Card -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <div class="flex items-center space-x-4 mb-4">
@@ -172,8 +143,35 @@
                         </a>
                     </div>
                 </div>
+                  <!-- Profile Navigation -->
+                  <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">Profile Settings</h2>
+                    
+                    <nav class="space-y-2">
+                        <a href="#profile-section" class="block px-3 py-2 rounded-md bg-blue-50 text-blue-600 font-medium">
+                            Driver Profile
+                        </a>
+                        <a href="#vehicle-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
+                            Vehicle Information
+                        </a>
+                        <a href="#stats-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
+                            Statistics & Earnings
+                        </a>
+                        <a href="#documents-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
+                            Documents & Verification
+                        </a>
+                        <a href="#password-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
+                            Change Password
+                        </a>
+                        <a href="{{ route('driver.public.profile', $driver->id) }}" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition text-blue-600">
+                            View Public Profile
+                        </a>
+                    </nav>
+                </div>
             </div>
             
+              
+             
             <!-- Right Column - Settings Forms -->
             <div class="w-full lg:w-2/3">
                 <!-- Driver Profile Section -->
@@ -206,188 +204,34 @@
                                         </div>
                                     </div>
                                 </div>
+                              
                                 
-                                <div>
-                                    <label for="bio" class="block text-sm font-medium text-gray-700">Bio</label>
-                                    <div class="mt-1">
-                                        <textarea id="bio" name="bio" rows="4" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ $driver->bio ?? '' }}</textarea>
-                                        <p class="mt-1 text-xs text-gray-500">Brief description about yourself that passengers will see on your profile (max 500 characters).</p>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Languages</label>
-                                    <div class="mt-1 grid grid-cols-2 gap-4">
-                                        @php
-                                            $availableLanguages = [
-                                                'english' => 'English',
-                                                'arabic' => 'Arabic',
-                                                'french' => 'French',
-                                                'spanish' => 'Spanish',
-                                                'german' => 'German'
-                                            ];
-                                        @endphp
-                                        
-                                        @foreach($availableLanguages as $key => $language)
-                                            <div class="flex items-start">
-                                                <div class="flex items-center h-5">
-                                                    <input id="language_{{ $key }}" name="languages[]" type="checkbox" value="{{ $key }}" 
-                                                        {{ isset($driver->languages) && in_array($key, $driver->languages) ? 'checked' : '' }}
-                                                        class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
-                                                </div>
-                                                <div class="ml-3 text-sm">
-                                                    <label for="language_{{ $key }}" class="font-medium text-gray-700">{{ $language }}</label>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                    <p class="mt-1 text-xs text-gray-500">Select languages you speak fluently.</p>
+                                   
                                 </div>
                             </div>
-                        </div>
                         
                         <!-- Women-Only Driver Setting (for female drivers only) -->
                         @if(Auth::user()->gender === 'female')
-                            <div class="border-t border-gray-200 pt-6">
-                                <h3 class="text-lg font-medium mb-3">Service Preferences</h3>
+                            <div class="border-t border-white pt-1">
+                                
                                 
                                 <div class="space-y-4">
                                     <div class="flex items-start">
-                                        <div class="flex items-center h-5">
-                                            <input id="women_only_driver" name="women_only_driver" type="checkbox" value="1" 
-                                                {{ $driver->women_only_driver ? 'checked' : '' }}
-                                                class="focus:ring-pink-500 h-4 w-4 text-pink-600 border-gray-300 rounded">
-                                        </div>
+                               
                                         <div class="ml-3">
-                                            <label for="women_only_driver" class="font-medium text-gray-700">Women-Only Driver</label>
-                                            <p class="text-sm text-gray-500">When enabled, you'll only receive ride requests from female passengers.</p>
+                                           
                                             
-                                            @if($driver->women_only_driver && $driver->vehicle && $driver->vehicle->type !== 'women')
-                                                <div class="mt-2 bg-yellow-100 p-2 rounded text-sm text-yellow-700">
-                                                    <span class="font-medium">Note:</span> For consistent matching, consider updating your vehicle type to "Women".
-                                                </div>
-                                            @endif
+                                            
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         @endif
                         
-                        <div class="border-t border-gray-200 pt-6">
-                            <button type="submit" class="w-full md:w-auto bg-blue-600 text-white py-2 px-6 rounded-md font-medium hover:bg-blue-700 transition">
-                                Save Profile Changes
-                            </button>
-                        </div>
-                    </form>
+                       
                 </div>
                 
-                <!-- Vehicle Information Section -->
-                <div id="vehicle-section" class="bg-white rounded-lg shadow-md p-6 mb-6">
-                    <h2 class="text-xl font-bold mb-4">Vehicle Information</h2>
-                    
-                    <form action="{{ route('driver.vehicle.update') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
-                        @csrf
-                        @method('PATCH')
-                        
-                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                            <div>
-                                <label for="make" class="block text-sm font-medium text-gray-700">Make</label>
-                                <input type="text" id="make" name="make" value="{{ $driver->vehicle->make ?? '' }}" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                            </div>
-                            
-                            <div>
-                                <label for="model" class="block text-sm font-medium text-gray-700">Model</label>
-                                <input type="text" id="model" name="model" value="{{ $driver->vehicle->model ?? '' }}" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                            </div>
-                            
-                            <div>
-                                <label for="year" class="block text-sm font-medium text-gray-700">Year</label>
-                                <input type="number" id="year" name="year" value="{{ $driver->vehicle->year ?? '' }}" min="2005" max="{{ date('Y') + 1 }}" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                            </div>
-                            
-                            <div>
-                                <label for="color" class="block text-sm font-medium text-gray-700">Color</label>
-                                <input type="text" id="color" name="color" value="{{ $driver->vehicle->color ?? '' }}" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                            </div>
-                            
-                            <div>
-                                <label for="plate_number" class="block text-sm font-medium text-gray-700">License Plate</label>
-                                <input type="text" id="plate_number" name="plate_number" value="{{ $driver->vehicle->plate_number ?? '' }}" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                            </div>
-                            
-                            <div>
-                                <label for="type" class="block text-sm font-medium text-gray-700">Vehicle Type</label>
-                                <select id="type" name="type" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                                    <option value="basic" {{ ($driver->vehicle->type ?? '') == 'basic' ? 'selected' : '' }}>Basic</option>
-                                    <option value="comfort" {{ ($driver->vehicle->type ?? '') == 'comfort' ? 'selected' : '' }}>Comfort</option>
-                                    <option value="black" {{ ($driver->vehicle->type ?? '') == 'black' ? 'selected' : '' }}>Black</option>
-                                    <option value="wav" {{ ($driver->vehicle->type ?? '') == 'wav' ? 'selected' : '' }}>WAV (Wheelchair Accessible)</option>
-                                    @if(Auth::user()->gender === 'female')
-                                        <option value="women" {{ ($driver->vehicle->type ?? '') == 'women' ? 'selected' : '' }}>Women-Only</option>
-                                    @endif
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label for="capacity" class="block text-sm font-medium text-gray-700">Passenger Capacity</label>
-                                <input type="number" id="capacity" name="capacity" value="{{ $driver->vehicle->capacity ?? 4 }}" min="1" max="50" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                            </div>
-                            
-                            <div>
-                                <label for="vehicle_photo" class="block text-sm font-medium text-gray-700">Vehicle Photo</label>
-                                <input type="file" id="vehicle_photo" name="vehicle_photo" accept="image/*" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                                @if($driver->vehicle && $driver->vehicle->vehicle_photo)
-                                    <div class="mt-2">
-                                        <img src="{{ asset('storage/' . $driver->vehicle->vehicle_photo) }}" alt="Vehicle Photo" class="h-24 w-auto rounded">
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                        
-                        <div class="border-t border-gray-200 pt-6">
-                            <h3 class="text-lg font-medium mb-3">Vehicle Features</h3>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                @php
-                                    $availableFeatures = [
-                                        'ac' => 'Air Conditioning',
-                                        'wifi' => 'WiFi',
-                                        'child_seat' => 'Child Seat',
-                                        'usb_charger' => 'USB Charger',
-                                        'pet_friendly' => 'Pet Friendly',
-                                        'luggage_carrier' => 'Luggage Carrier'
-                                    ];
-                                    
-                                    // Get existing feature values for the vehicle
-                                    $existingFeatures = [];
-                                    if ($driver->vehicle && $driver->vehicle->features) {
-                                        foreach ($driver->vehicle->features as $feature) {
-                                            $existingFeatures[] = $feature->feature;
-                                        }
-                                    }
-                                @endphp
-                                
-                                @foreach($availableFeatures as $key => $label)
-                                    <div class="flex items-start">
-                                        <div class="flex items-center h-5">
-                                            <input id="feature_{{ $key }}" name="features[]" type="checkbox" value="{{ $key }}" 
-                                                {{ in_array($key, $existingFeatures) ? 'checked' : '' }}
-                                                class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
-                                        </div>
-                                        <div class="ml-3 text-sm">
-                                            <label for="feature_{{ $key }}" class="font-medium text-gray-700">{{ $label }}</label>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                        
-                        <div class="border-t border-gray-200 pt-6">
-                            <button type="submit" class="w-full md:w-auto bg-blue-600 text-white py-2 px-6 rounded-md font-medium hover:bg-blue-700 transition">
-                                Update Vehicle Information
-                            </button>
-                        </div>
-                    </form>
-                </div>
+
                 
                 <!-- Documents Section -->
                 <div id="documents-section" class="bg-white rounded-lg shadow-md p-6 mb-6">

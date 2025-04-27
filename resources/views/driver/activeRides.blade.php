@@ -32,7 +32,6 @@
             
             <!-- Navigation Links -->
             <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('driver.awaiting.rides') }}" class="font-medium hover:text-blue-600 transition">Awaiting Rides</a>
                 <a href="{{ route('driver.active.rides') }}" class="font-medium text-blue-600 transition">Active Rides</a>
                 <a href="{{ route('driver.history') }}" class="font-medium hover:text-blue-600 transition">History</a>
                 <a href="{{ route('driver.earnings') }}" class="font-medium hover:text-blue-600 transition">Earnings</a>
@@ -95,7 +94,6 @@
                 <div class="mt-6">
                     <nav class="grid gap-y-4">
                         <a href="{{ route('driver.dashboard') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Dashboard</a>
-                        <a href="{{ route('driver.awaiting.rides') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Awaiting Rides</a>
                         <a href="{{ route('driver.active.rides') }}" class="font-medium px-3 py-2 rounded-md bg-blue-50 text-blue-600">Active Rides</a>
                         <a href="{{ route('driver.history') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">History</a>
                         <a href="{{ route('driver.earnings') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Earnings</a>
@@ -131,8 +129,25 @@
             <!-- Left Column - Map -->
             <div class="w-full lg:w-1/2 flex flex-col gap-6">
                 <!-- Map Container -->
+                 
                 <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    
                     <div class="h-96" id="map"></div>
+                                 <!-- Location tracking status info -->
+                                 <div id="location-info" class="hidden mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    Your location is being shared. Passengers can now see your position on the map.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Location Sharing Toggle -->
@@ -165,28 +180,19 @@
                             </div>
                             
                             <!-- Location Sharing Button -->
-                            <div id="driver-message-container" class="bg-gray-50 rounded-md text-black py-2 px-4 rounded-md font-medium hover:bg-yellow-400 transition">
+                            <div id="driver-message-container" class="bg-red-500 rounded-md text-black py-2 px-4 rounded-md font-medium hover:bg-yellow-400 transition">
     <span id="driver-message">Drive with kindness, stay professional, and treat every passenger with respect — it all comes back to you. Stay focused, stay safe, and take pride in every ride.</span>
 </div>
 
                         </div>
                     </div>
-                    
-                    <!-- Location tracking status info -->
-                    <div id="location-info" class="hidden mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-sm text-blue-700">
-                                    Your location is being shared. Passengers can now see your position on the map.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    <div id="location-sharing-container" class="{{ Auth::user()->is_online ? '' : 'hidden' }}" style="display: none;">
+    <button id="share-location" class="bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition {{ Auth::user()->is_online ? '' : 'opacity-50 cursor-not-allowed' }}" {{ Auth::user()->is_online ? '' : 'disabled' }}>
+        <span id="location-status">Share Location</span>
+    </button>
+</div>
+
+                   
                 </div>
             </div>
             
@@ -194,6 +200,7 @@
             <div class="w-full lg:w-1/2 flex flex-col gap-6">
                 <!-- En Route Rides -->
                 <div class="bg-white rounded-lg shadow-md p-6">
+                    
                     <h2 class="text-xl font-bold mb-4">En Route to Pickup</h2>
                     
                     @if(count($enRouteRides) === 0)
