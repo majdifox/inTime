@@ -1644,4 +1644,78 @@ public function submitRating(Request $request, Ride $ride)
     return redirect()->route('passenger.dashboard')->with('success', 'Thank you for your rating and feedback!');
 }
 
+public function updateWomenOnly(Request $request)
+{
+    $validated = $request->validate([
+        'women_only_rides' => 'required|boolean'
+    ]);
+    
+    // Get the current user
+    $user = Auth::user();
+    
+    // Make sure this is a female user
+    if ($user->gender !== 'female' && $validated['women_only_rides']) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Women-only rides are only available for female passengers'
+        ], 400);
+    }
+    
+    // Update the preference
+    $user->women_only_rides = $validated['women_only_rides'];
+    $user->save();
+    
+    // Also update in passenger preferences if they exist
+    $passenger = Passenger::where('user_id', $user->id)->first();
+    if ($passenger) {
+        if (!$passenger->ride_preferences) {
+            $passenger->ride_preferences = [];
+        }
+        
+        $preferences = $passenger->ride_preferences;
+        $preferences['women_only_rides'] = $validated['women_only_rides'];
+        $passenger->ride_preferences = $preferences;
+        $passenger->save();
+    }
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Preference updated successfully'
+    ]);
+}
+
+public function simpleToggleWomenOnly(Request $request)
+{
+    // Check if user is female
+    $user = Auth::user();
+    if ($user->gender !== 'female') {
+        return response()->json([
+            'success' => false,
+            'message' => 'Only female users can enable women-only rides'
+        ], 400);
+    }
+    
+    // Toggle the setting
+    $user->women_only_rides = !$user->women_only_rides;
+    $user->save();
+    
+    // Also update in passenger preferences
+    $passenger = Passenger::where('user_id', $user->id)->first();
+    if ($passenger) {
+        if (!$passenger->ride_preferences) {
+            $passenger->ride_preferences = [];
+        }
+        
+        $preferences = $passenger->ride_preferences;
+        $preferences['women_only_rides'] = $user->women_only_rides;
+        $passenger->ride_preferences = $preferences;
+        $passenger->save();
+    }
+    
+    return response()->json([
+        'success' => true,
+        'is_enabled' => $user->women_only_rides
+    ]);
+}
+
 }

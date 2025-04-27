@@ -32,17 +32,7 @@
             </nav>
         </div>
         
-        <div class="flex justify-center space-x-4">
-            <a href="{{ route('passenger.book') }}" class="bg-black text-white py-2 px-6 rounded-md font-medium hover:bg-gray-800 transition">
-                Back to Booking
-            </a>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="bg-red-500 text-white py-2 px-6 rounded-md font-medium hover:bg-red-600 transition">
-                    {{ __('Log Out') }}
-                </button>
-            </form>
-        </div>
+       
         
         <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
             @if(Auth::user()->profile_picture)

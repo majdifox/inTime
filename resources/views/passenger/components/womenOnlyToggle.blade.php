@@ -33,57 +33,78 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Toggle women-only mode
-        const womenOnlyToggle = document.getElementById('women-only-toggle');
-        const womenOnlyCircle = document.getElementById('women-only-circle');
-        
-        if (womenOnlyToggle) {
-            womenOnlyToggle.addEventListener('click', function() {
-                const isCurrentlyEnabled = womenOnlyToggle.classList.contains('bg-pink-500');
-                const newState = !isCurrentlyEnabled;
+   document.addEventListener('DOMContentLoaded', function() {
+    const toggleButton = document.getElementById('women-only-toggle');
+    
+    if (toggleButton) {
+        toggleButton.addEventListener('click', function() {
+            // Get CSRF token
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
+            // Get current state visually
+            const isCurrentlyEnabled = toggleButton.classList.contains('bg-pink-500');
+            
+            // Update UI immediately
+            if (isCurrentlyEnabled) {
+                // Currently enabled, switching to disabled
+                toggleButton.classList.remove('bg-pink-500');
+                toggleButton.classList.add('bg-gray-300');
+                document.getElementById('women-only-toggle-dot').classList.remove('translate-x-5');
+                document.getElementById('women-only-toggle-dot').classList.add('translate-x-1');
+                document.getElementById('women-only-status').innerHTML = 'Status: <span class="text-gray-600 font-medium">Disabled</span>';
+            } else {
+                // Currently disabled, switching to enabled
+                toggleButton.classList.remove('bg-gray-300');
+                toggleButton.classList.add('bg-pink-500');
+                document.getElementById('women-only-toggle-dot').classList.remove('translate-x-1');
+                document.getElementById('women-only-toggle-dot').classList.add('translate-x-5');
+                document.getElementById('women-only-status').innerHTML = 'Status: <span class="text-pink-600 font-medium">Enabled</span>';
+            }
+            
+            // Send the AJAX request using the simple route
+            fetch('/simple-toggle-women-only', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Toggle successful:', data);
+                // No need to update UI here since we already did it
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 
-                // Update UI immediately for responsiveness
-                womenOnlyCircle.classList.toggle('translate-x-1', !newState);
-                womenOnlyCircle.classList.toggle('translate-x-5', newState);
-                womenOnlyToggle.classList.toggle('bg-gray-300', !newState);
-                womenOnlyToggle.classList.toggle('bg-pink-500', newState);
+                // Revert UI on error
+                if (isCurrentlyEnabled) {
+                    // Revert back to enabled
+                    toggleButton.classList.add('bg-pink-500');
+                    toggleButton.classList.remove('bg-gray-300');
+                    document.getElementById('women-only-toggle-dot').classList.add('translate-x-5');
+                    document.getElementById('women-only-toggle-dot').classList.remove('translate-x-1');
+                    document.getElementById('women-only-status').innerHTML = 'Status: <span class="text-pink-600 font-medium">Enabled</span>';
+                } else {
+                    // Revert back to disabled
+                    toggleButton.classList.add('bg-gray-300');
+                    toggleButton.classList.remove('bg-pink-500');
+                    document.getElementById('women-only-toggle-dot').classList.add('translate-x-1');
+                    document.getElementById('women-only-toggle-dot').classList.remove('translate-x-5');
+                    document.getElementById('women-only-status').innerHTML = 'Status: <span class="text-gray-600 font-medium">Disabled</span>';
+                }
                 
-                // Send AJAX request to update preference
-                fetch('{{ route("passenger.toggle.women.only") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        women_only_rides: newState
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.success) {
-                        // If the update failed, revert the UI changes
-                        womenOnlyCircle.classList.toggle('translate-x-1', isCurrentlyEnabled);
-                        womenOnlyCircle.classList.toggle('translate-x-5', !isCurrentlyEnabled);
-                        womenOnlyToggle.classList.toggle('bg-gray-300', isCurrentlyEnabled);
-                        womenOnlyToggle.classList.toggle('bg-pink-500', !isCurrentlyEnabled);
-                        
-                        alert('Failed to update preference. Please try again.');
-                    }
-                })
-                .catch(error => {
-                    // If there was an error, revert the UI changes
-                    womenOnlyCircle.classList.toggle('translate-x-1', isCurrentlyEnabled);
-                    womenOnlyCircle.classList.toggle('translate-x-5', !isCurrentlyEnabled);
-                    womenOnlyToggle.classList.toggle('bg-gray-300', isCurrentlyEnabled);
-                    womenOnlyToggle.classList.toggle('bg-pink-500', !isCurrentlyEnabled);
-                    
-                    console.error('Error updating preference:', error);
-                    alert('An error occurred while updating your preference');
-                });
+                // Show error message
+                alert('Failed to update preference. Please try again.');
             });
-        }
-    });
+        });
+    }
+});
 </script>
 @endif

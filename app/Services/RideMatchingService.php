@@ -614,101 +614,102 @@ class RideMatchingService
      * @return array List of available drivers
      */
     public function getAvailableDriversForSelection(float $pickupLat, float $pickupLng, string $vehicleType, User $passenger): array
-{
-    // Check for fully available drivers (online, location shared, not on a ride)
-    $query = Driver::with(['user', 'vehicle', 'driverLocation'])
-        ->whereHas('user', function($q) {
-            $q->where('is_online', true)
-              ->where('account_status', 'activated');
-        })
-        ->where('is_verified', true)
-        ->whereHas('driverLocation', function($q) {
-            // FIXED: Increased time window from 5 to 10 minutes to be more lenient
-            $q->where('last_updated', '>', now()->subMinutes(10));
-        })
-        ->whereHas('vehicle', function($q) use ($vehicleType) {
-            $q->where('type', $vehicleType)
-              ->where('is_active', true);
-        });
-    
-    // FIXED: Revised gender filtering logic to be simpler and more accurate
-    // Apply gender filtering based on passenger preferences
-    if ($passenger->women_only_rides && $passenger->gender === 'female') {
-        // Female passenger with women_only_rides wants only female drivers with women_only_driver
-        $query->where('women_only_driver', true)
-              ->whereHas('user', function($q) {
-                  $q->where('gender', 'female');
-              });
-    } else if ($passenger->gender !== 'female') {
-        // Male passengers can't see female drivers with women_only_driver enabled
-        $query->where(function($q) {
-            $q->where('women_only_driver', false)
-              ->orWhereHas('user', function($sq) {
-                  $sq->where('gender', '!=', 'female');
-              });
-        });
-    }
-    
-    // Get drivers
-    $drivers = $query->get();
-    
-    // ADDED: Debug logging
-    \Log::info("Found " . $drivers->count() . " drivers for passenger {$passenger->id} with vehicle type {$vehicleType}");
-    
-    // Calculate distance and ETA for each driver
-    $result = [];
-    foreach ($drivers as $driver) {
-        if (!$driver->driverLocation) {
-            \Log::warning("Driver #{$driver->id} has no location data");
-            continue;
+    {
+        // Check for fully available drivers (online, location shared, not on a ride)
+        $query = Driver::with(['user', 'vehicle', 'driverLocation'])
+            ->whereHas('user', function($q) {
+                $q->where('is_online', true)
+                  ->where('account_status', 'activated');
+            })
+            ->where('is_verified', true)
+            ->whereHas('driverLocation', function($q) {
+                $q->where('last_updated', '>', now()->subMinutes(10));
+            })
+            ->whereHas('vehicle', function($q) use ($vehicleType) {
+                $q->where('type', $vehicleType)
+                  ->where('is_active', true);
+            });
+        
+        // UPDATED LOGIC:
+        if ($passenger->gender === 'female') {
+            if ($passenger->women_only_rides) {
+                // Female passenger with women_only_rides wants only female drivers with women_only_driver
+                $query->whereHas('user', function($q) {
+                    $q->where('gender', 'female');
+                });
+            } else {
+                // Female passenger without women_only_rides can see all drivers PLUS female drivers that have women_only_driver
+                // This means no filtering needed for female passengers without the preference
+            }
+        } else {
+            // Non-female passengers can't see female drivers with women_only_driver enabled
+            $query->where(function($q) {
+                $q->where('women_only_driver', false)
+                  ->orWhereHas('user', function($sq) {
+                      $sq->where('gender', '!=', 'female');
+                  });
+            });
         }
         
-        $distance = $this->calculateDistance(
-            $pickupLat, 
-            $pickupLng, 
-            $driver->driverLocation->latitude, 
-            $driver->driverLocation->longitude
-        );
+        // Get drivers
+        $drivers = $query->get();
         
-        $eta = $this->calculateETA(
-            $driver->driverLocation->latitude, 
-            $driver->driverLocation->longitude,
-            $pickupLat,
-            $pickupLng
-        );
+        // Debug logging
+        \Log::info("Found " . $drivers->count() . " drivers for passenger {$passenger->id} with vehicle type {$vehicleType}, gender={$passenger->gender}, women_only_rides=".($passenger->women_only_rides?'true':'false'));
         
-        // FIXED: Increased distance threshold from 20km to 30km
-        if ($distance <= 30) {
-            $result[] = [
-                'id' => $driver->id,
-                'name' => $driver->user->name,
-                'gender' => $driver->user->gender,
-                'profile_picture' => $driver->user->profile_picture,
-                'women_only_driver' => $driver->women_only_driver,
-                'rating' => $driver->rating ?? 5.0,
-                'completed_rides' => $driver->completed_rides ?? 0,
-                'vehicle' => [
-                    'make' => $driver->vehicle->make,
-                    'model' => $driver->vehicle->model,
-                    'color' => $driver->vehicle->color,
-                    'plate_number' => $driver->vehicle->plate_number,
-                    'type' => $driver->vehicle->type
-                ],
-                'location' => [
-                    'latitude' => $driver->driverLocation->latitude,
-                    'longitude' => $driver->driverLocation->longitude
-                ],
-                'distance_km' => round($distance, 2),
-                'eta_minutes' => $eta
-            ];
+        // Calculate distance and ETA for each driver
+        $result = [];
+        foreach ($drivers as $driver) {
+            if (!$driver->driverLocation) {
+                \Log::warning("Driver #{$driver->id} has no location data");
+                continue;
+            }
+            
+            $distance = $this->calculateDistance(
+                $pickupLat, 
+                $pickupLng, 
+                $driver->driverLocation->latitude, 
+                $driver->driverLocation->longitude
+            );
+            
+            $eta = $this->calculateETA(
+                $driver->driverLocation->latitude, 
+                $driver->driverLocation->longitude,
+                $pickupLat,
+                $pickupLng
+            );
+            
+            if ($distance <= 30) {
+                $result[] = [
+                    'id' => $driver->id,
+                    'name' => $driver->user->name,
+                    'gender' => $driver->user->gender,
+                    'profile_picture' => $driver->user->profile_picture,
+                    'women_only_driver' => $driver->women_only_driver,
+                    'rating' => $driver->rating ?? 5.0,
+                    'completed_rides' => $driver->completed_rides ?? 0,
+                    'vehicle' => [
+                        'make' => $driver->vehicle->make,
+                        'model' => $driver->vehicle->model,
+                        'color' => $driver->vehicle->color,
+                        'plate_number' => $driver->vehicle->plate_number,
+                        'type' => $driver->vehicle->type
+                    ],
+                    'location' => [
+                        'latitude' => $driver->driverLocation->latitude,
+                        'longitude' => $driver->driverLocation->longitude
+                    ],
+                    'distance_km' => round($distance, 2),
+                    'eta_minutes' => $eta
+                ];
+            }
         }
+        
+        // Sort by distance (closest first)
+        usort($result, function($a, $b) {
+            return $a['distance_km'] <=> $b['distance_km'];
+        });
+        
+        return $result;
     }
-    
-    // Sort by distance (closest first)
-    usort($result, function($a, $b) {
-        return $a['distance_km'] <=> $b['distance_km'];
-    });
-    
-    return $result;
-}
 }

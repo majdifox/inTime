@@ -283,8 +283,16 @@ Route::post('/create-setup-intent', [PaymentController::class, 'createSetupInten
 
     Route::post('/create-setup-intent', [App\Http\Controllers\PaymentController::class, 'createSetupIntent'])
         ->name('create-setup-intent');
+        Route::post('/toggle-women-only', [PassengerController::class, 'updateWomenOnly'])->name('toggle.women.only');
 });
 
+
+Route::post('/simple-toggle-women-only', [App\Http\Controllers\PassengerController::class, 'simpleToggleWomenOnly'])
+    ->middleware('auth')
+    ->name('simple.toggle.women.only');
+
+
+    
 // Admin routes
 Route::middleware(['auth', 'isadmin'])->prefix('admin')->group(function () {
     // Dashboard
