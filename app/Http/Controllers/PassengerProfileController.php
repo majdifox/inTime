@@ -146,16 +146,7 @@ class PassengerProfileController extends Controller
         $user = Auth::user();
         
         // Initialize ride_preferences if it doesn't exist
-        if (!$passenger->ride_preferences) {
-            $passenger->ride_preferences = [];
-        }
-        
-        // Update ride preferences
-        foreach ($validated as $key => $value) {
-            if ($value !== null) {
-                $passenger->ride_preferences[$key] = $value;
-            }
-        }
+
         
         // Specifically handle women_only_rides in the user model as well
         if (isset($validated['women_only_rides'])) {
