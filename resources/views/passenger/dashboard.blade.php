@@ -48,13 +48,33 @@
             </form>
         </div>
         
-        <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
-            @if(Auth::user()->profile_picture)
-                <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
-            @else
-                <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
-            @endif
-        </div>
+       <!-- Profile Dropdown -->
+<div class="relative ml-3">
+    <div>
+        <button type="button" class="flex rounded-full bg-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2" id="profile-menu-button" aria-expanded="false" aria-haspopup="true">
+            <span class="sr-only">Open user menu</span>
+            <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
+                @if(Auth::user()->profile_picture)
+                    <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
+                @else
+                    <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
+                @endif
+            </div>
+        </button>
+    </div>
+
+    <!-- Dropdown menu, show/hide based on menu state -->
+    <div class="hidden absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="profile-menu-button" tabindex="-1" id="profile-dropdown-menu">
+        <!-- Active: "bg-gray-100", Not Active: "" -->
+        <a href="{{ route('passenger.profile.private') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">My Profile</a>
+        <form method="POST" action="{{ route('logout') }}" class="block">
+            @csrf
+            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                Log Out
+            </button>
+        </form>
+    </div>
+</div>
     </header>
 
     <!-- Main Content -->
@@ -477,6 +497,21 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 maxZoom: 19
             }).addTo(map);
+
+            const profileButton = document.getElementById('profile-menu-button');
+            const dropdownMenu = document.getElementById('profile-dropdown-menu');
+             // Toggle dropdown when clicking the profile button
+        profileButton.addEventListener('click', function() {
+            dropdownMenu.classList.toggle('hidden');
+        });
+        
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(event) {
+            if (!profileButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+    
             
             // Variables for modals
             const rateRideModal = document.getElementById('rate-ride-modal');
