@@ -165,7 +165,7 @@
                             </div>
                             
                             <!-- Location Sharing Button -->
-                            <div id="driver-message-container" class="bg-red-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition">
+                            <div id="driver-message-container" class="bg-gray-50 rounded-md text-black py-2 px-4 rounded-md font-medium hover:bg-yellow-400 transition">
     <span id="driver-message">Drive with kindness, stay professional, and treat every passenger with respect — it all comes back to you. Stay focused, stay safe, and take pride in every ride.</span>
 </div>
 
