@@ -36,19 +36,8 @@
             </nav>
         </div>
         
-        <div class="flex justify-center space-x-4">
-            <a href="{{ route('home') }}" class="bg-black text-white py-2 px-6 rounded-md font-medium hover:bg-gray-800 transition">
-                Return to Home
-            </a>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="bg-red-500 text-white py-2 px-6 rounded-md font-medium hover:bg-red-600 transition">
-                    {{ __('Log Out') }}
-                </button>
-            </form>
-        </div>
         
-       <!-- Profile Dropdown -->
+<!-- Profile Dropdown -->
 <div class="relative ml-3">
     <div>
         <button type="button" class="flex rounded-full bg-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2" id="profile-menu-button" aria-expanded="false" aria-haspopup="true">
@@ -63,8 +52,8 @@
         </button>
     </div>
 
-    <!-- Dropdown menu, show/hide based on menu state -->
-    <div class="hidden absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="profile-menu-button" tabindex="-1" id="profile-dropdown-menu">
+    <!-- Dropdown menu with fixed positioning -->
+    <div class="hidden fixed top-16 right-4 z-[1000] w-48 rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="profile-menu-button" tabindex="-1" id="profile-dropdown-menu">
         <!-- Active: "bg-gray-100", Not Active: "" -->
         <a href="{{ route('passenger.profile.private') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">My Profile</a>
         <form method="POST" action="{{ route('logout') }}" class="block">
