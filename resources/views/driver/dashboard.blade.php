@@ -34,7 +34,6 @@
             
             <!-- Navigation Links -->
             <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('driver.awaiting.rides') }}" class="font-medium hover:text-blue-600 transition">Awaiting Rides</a>
                 <a href="{{ route('driver.active.rides') }}" class="font-medium hover:text-blue-600 transition">Active Rides</a>
                 <a href="{{ route('driver.history') }}" class="font-medium hover:text-blue-600 transition">History</a>
                 <a href="{{ route('driver.earnings') }}" class="font-medium hover:text-blue-600 transition">Earnings</a>

@@ -136,28 +136,39 @@
                 </div>
                 
                 <!-- Location Sharing Toggle -->
-                <div class="bg-white rounded-lg shadow-md p-6">
+         <!-- Online/Offline Toggle and Location Sharing -->
+         <div class="bg-white rounded-lg shadow-md p-6">
+         <div class="flex items-center space-x-2">
+
+         <svg width="32px" height="32px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 10V13" stroke="red" stroke-width="2" stroke-linecap="round"/>
+  <path d="M12 16V15.9888" stroke="red" stroke-width="2" stroke-linecap="round"/>
+  <path d="M10.2518 5.147L3.6508 17.0287C2.91021 18.3618 3.87415 20 5.39912 20H18.6011C20.126 20 21.09 18.3618 20.3494 17.0287L13.7484 5.147C12.9864 3.77538 11.0138 3.77538 10.2518 5.147Z" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+                            <h2 class="text-2xl font-medium">Pro Tips for a Great Ride</h2>
+                            </div>
                     <div class="flex flex-col space-y-4">
+                        
                         <div>
-                            <h2 class="text-xl font-bold">Driver Status</h2>
-                            <p class="text-gray-600">Toggle your availability to receive ride requests</p>
+                                <!-- Warning Triangle Icon -->
+                                
                         </div>
                         
                         <div class="flex items-center justify-between">
                             <!-- Online/Offline Toggle Button -->
                             <div class="flex items-center">
-                                <button id="toggle-status" class="relative inline-flex h-6 w-11 items-center rounded-full {{ Auth::user()->is_online ? 'bg-green-500' : 'bg-gray-300' }} transition-colors duration-300">
+                                <!-- <button id="toggle-status" class="relative inline-flex h-6 w-11 items-center rounded-full {{ Auth::user()->is_online ? 'bg-green-500' : 'bg-gray-300' }} transition-colors duration-300">
                                     <span id="toggle-circle" class="inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 {{ Auth::user()->is_online ? 'translate-x-5' : 'translate-x-1' }}"></span>
-                                </button>
-                                <span id="toggle-text" class="ml-2 font-medium">{{ Auth::user()->is_online ? 'Go Offline' : 'Go Online' }}</span>
+                                </button> -->
+                                <!-- <span id="toggle-text" class="ml-2 font-medium">{{ Auth::user()->is_online ? 'Go Offline' : 'Go Online' }}</span> -->
                             </div>
                             
                             <!-- Location Sharing Button -->
-                            <div id="location-sharing-container" class="{{ Auth::user()->is_online ? '' : 'hidden' }}">
-                                <button id="share-location" class="bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition {{ Auth::user()->is_online ? '' : 'opacity-50 cursor-not-allowed' }}" {{ Auth::user()->is_online ? '' : 'disabled' }}>
-                                    <span id="location-status">Share Location</span>
-                                </button>
-                            </div>
+                            <div id="driver-message-container" class="bg-red-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition">
+    <span id="driver-message">Drive with kindness, stay professional, and treat every passenger with respect — it all comes back to you. Stay focused, stay safe, and take pride in every ride.</span>
+</div>
+
                         </div>
                     </div>
                     
