@@ -475,584 +475,266 @@
     <!-- JavaScript for functionality -->
   <!-- Add this right before the closing </body> tag in dashboard.blade.php -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize map
-        const map = L.map('map').setView([31.63, -8.0], 13); // Default center on Marrakech, Morocco
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map
+    const map = L.map('map').setView([31.63, -8.0], 13); // Default center on Marrakech, Morocco
+    
+    // Add OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
+    
+    // Variables for modals
+    const rateRideModal = document.getElementById('rate-ride-modal');
+    const rateRideForm = document.getElementById('rate-ride-form');
+    const cancelRatingBtn = document.getElementById('cancel-rating');
+    const ratingStars = document.querySelectorAll('.rating-star');
+    const ratingValue = document.getElementById('rating-value');
+    
+    // Variables for markers
+    let userMarker = null;
+    let driverMarker = null;
+    let pickupMarker = null;
+    let dropoffMarker = null;
+    let routingControl = null;
+    
+    // Check for user location and center map
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                const userCoords = [position.coords.latitude, position.coords.longitude];
+                
+                // Add user location marker
+                userMarker = L.marker(userCoords).addTo(map);
+                userMarker.bindPopup('Your current location').openPopup();
+                
+                // Center map on user location
+                map.setView(userCoords, 14);
+            },
+            error => {
+                console.error("Error getting location:", error);
+            }
+        );
+    }
+    
+    // Function to show ride on map
+    function showRideOnMap(pickupLat, pickupLng, dropoffLat, dropoffLng, pickupName, dropoffName) {
+        const pickupCoords = [pickupLat, pickupLng];
+        const dropoffCoords = [dropoffLat, dropoffLng];
         
-        // Add OpenStreetMap tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
+        // Add pickup marker
+        pickupMarker = L.marker(pickupCoords, {
+            alt: 'Pickup Location'
+        }).addTo(map);
+        pickupMarker.bindPopup(`<strong>Pickup</strong><br>${pickupName}`);
+        
+        // Add dropoff marker
+        dropoffMarker = L.marker(dropoffCoords, {
+            alt: 'Dropoff Location'
+        }).addTo(map);
+        dropoffMarker.bindPopup(`<strong>Dropoff</strong><br>${dropoffName}`);
+        
+        // Create a bounds object and fit the map to show all markers
+        const bounds = L.latLngBounds(pickupCoords, dropoffCoords);
+        map.fitBounds(bounds, { padding: [50, 50] });
+        
+        // Add routing between pickup and dropoff
+        routingControl = L.Routing.control({
+            waypoints: [
+                L.latLng(pickupCoords[0], pickupCoords[1]),
+                L.latLng(dropoffCoords[0], dropoffCoords[1])
+            ],
+            routeWhileDragging: false,
+            showAlternatives: false,
+            fitSelectedRoutes: false,
+            lineOptions: {
+                styles: [
+                    { color: '#6366F1', opacity: 0.8, weight: 6 },
+                    { color: '#4F46E5', opacity: 0.5, weight: 2 }
+                ]
+            },
+            createMarker: function() { return null; } // Don't create default markers
         }).addTo(map);
         
-        // Variables for modals
-        const rateRideModal = document.getElementById('rate-ride-modal');
-        const rateRideForm = document.getElementById('rate-ride-form');
-        const cancelRatingBtn = document.getElementById('cancel-rating');
-        const ratingStars = document.querySelectorAll('.rating-star');
-        const ratingValue = document.getElementById('rating-value');
-        
-        const preferencesModal = document.getElementById('preferences-modal');
-        const openPreferencesBtn = document.getElementById('open-preferences-modal');
-        const closePreferencesBtn = document.getElementById('close-preferences-modal');
-        const cancelPreferencesBtn = document.getElementById('cancel-preferences');
-        
-        // Variables for markers
-        let userMarker = null;
-        let driverMarker = null;
-        let pickupMarker = null;
-        let dropoffMarker = null;
-        let routingControl = null;
-        
-        // Check for user location and center map
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                position => {
-                    const userCoords = [position.coords.latitude, position.coords.longitude];
-                    
-                    // Add user location marker
-                    userMarker = L.marker(userCoords).addTo(map);
-                    userMarker.bindPopup('Your current location').openPopup();
-                    
-                    // Center map on user location
-                    map.setView(userCoords, 14);
-                    
-                    // If there's an active ride, show pickup and dropoff markers and route
-                    @if($activeRide && $activeRide->pickup_latitude && $activeRide->pickup_longitude && $activeRide->dropoff_latitude && $activeRide->dropoff_longitude)
-                        showRideOnMap(
-                            {{ $activeRide->pickup_latitude }}, 
-                            {{ $activeRide->pickup_longitude }}, 
-                            {{ $activeRide->dropoff_latitude }}, 
-                            {{ $activeRide->dropoff_longitude }}, 
-                            "{{ $activeRide->pickup_location }}", 
-                            "{{ $activeRide->dropoff_location }}"
-                        );
-                        
-                        // If driver is assigned and has location, show driver marker
-                        @if($activeRide->driver && $activeRide->driver->driverLocation)
-                            updateDriverMarker(
-                                {{ $activeRide->driver->driverLocation->latitude }},
-                                {{ $activeRide->driver->driverLocation->longitude }}
-                            );
-                        @endif
-                    @endif
-                },
-                error => {
-                    console.error("Error getting location:", error);
-                    
-                    // If geolocation fails, still show ride if active
-                    @if($activeRide && $activeRide->pickup_latitude && $activeRide->pickup_longitude && $activeRide->dropoff_latitude && $activeRide->dropoff_longitude)
-                        showRideOnMap(
-                            {{ $activeRide->pickup_latitude }}, 
-                            {{ $activeRide->pickup_longitude }}, 
-                            {{ $activeRide->dropoff_latitude }}, 
-                            {{ $activeRide->dropoff_longitude }}, 
-                            "{{ $activeRide->pickup_location }}", 
-                            "{{ $activeRide->dropoff_location }}"
-                        );
-                    @endif
-                }
-            );
-        }
-        
-        // Function to show ride on map
-        function showRideOnMap(pickupLat, pickupLng, dropoffLat, dropoffLng, pickupName, dropoffName) {
-            const pickupCoords = [pickupLat, pickupLng];
-            const dropoffCoords = [dropoffLat, dropoffLng];
+        // Minimize the control sidebar
+        routingControl.hide();
+    }
+    
+    // Function to update driver marker on map
+    function updateDriverMarker(lat, lng) {
+        if (!driverMarker) {
+            // Create a custom icon for the driver
+            const driverIcon = L.divIcon({
+                className: 'custom-driver-marker',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                popupAnchor: [0, -12]
+            });
             
-            // Add pickup marker
-            pickupMarker = L.marker(pickupCoords, {
-                alt: 'Pickup Location'
+            driverMarker = L.marker([lat, lng], {
+                icon: driverIcon,
+                alt: 'Driver Location'
             }).addTo(map);
-            pickupMarker.bindPopup(`<strong>Pickup</strong><br>${pickupName}`);
-            
-            // Add dropoff marker
-            dropoffMarker = L.marker(dropoffCoords, {
-                alt: 'Dropoff Location'
-            }).addTo(map);
-            dropoffMarker.bindPopup(`<strong>Dropoff</strong><br>${dropoffName}`);
-            
-            // Create a bounds object and fit the map to show all markers
-            const bounds = L.latLngBounds(pickupCoords, dropoffCoords);
-            map.fitBounds(bounds, { padding: [50, 50] });
-            
-            // Add routing between pickup and dropoff
-            routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(pickupCoords[0], pickupCoords[1]),
-                    L.latLng(dropoffCoords[0], dropoffCoords[1])
-                ],
-                routeWhileDragging: false,
-                showAlternatives: false,
-                fitSelectedRoutes: false,
-                lineOptions: {
-                    styles: [
-                        { color: '#6366F1', opacity: 0.8, weight: 6 },
-                        { color: '#4F46E5', opacity: 0.5, weight: 2 }
-                    ]
-                },
-                createMarker: function() { return null; } // Don't create default markers
-            }).addTo(map);
-            
-            // Minimize the control sidebar
-            routingControl.hide();
-        }
-        
-        // Function to update driver marker on map
-        function updateDriverMarker(lat, lng) {
-            if (!driverMarker) {
-                // Create a custom icon for the driver
-                const driverIcon = L.divIcon({
-                    className: 'custom-driver-marker',
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12],
-                    popupAnchor: [0, -12]
-                });
-                
-                driverMarker = L.marker([lat, lng], {
-                    icon: driverIcon,
-                    alt: 'Driver Location'
-                }).addTo(map);
-                driverMarker.bindPopup('Driver Location').openPopup();
-            } else {
-                driverMarker.setLatLng([lat, lng]);
-            }
-        }
-        
-        // Open rate ride modal function
-        window.openRateRideModal = function(rideId) {
-            if (rateRideForm) {
-                rateRideForm.action = `{{ url('passenger/ride') }}/${rideId}/rate`;
-                rateRideModal.classList.remove('hidden');
-            }
-        }
-        
-        // Star rating functionality
-        if (ratingStars && ratingValue) {
-            ratingStars.forEach(star => {
-                star.addEventListener('click', function() {
-                    const value = this.getAttribute('data-value');
-                    ratingValue.value = value;
-                    
-                    // Update star visuals
-                    ratingStars.forEach(s => {
-                        const starValue = s.getAttribute('data-value');
-                        const svg = s.querySelector('svg');
-                        if (starValue <= value) {
-                            svg.classList.add('text-yellow-400');
-                            svg.classList.remove('text-gray-300');
-                        } else {
-                            svg.classList.add('text-gray-300');
-                            svg.classList.remove('text-yellow-400');
-                        }
-                    });
-                });
-            });
-        }
-        
-        // Cancel rating button
-        if (cancelRatingBtn) {
-            cancelRatingBtn.addEventListener('click', function() {
-                rateRideModal.classList.add('hidden');
-            });
-        }
-        
-        // Preferences modal functionality
-        if (openPreferencesBtn) {
-            openPreferencesBtn.addEventListener('click', function() {
-                preferencesModal.classList.remove('hidden');
-            });
-        }
-
-        if (closePreferencesBtn) {
-            closePreferencesBtn.addEventListener('click', function() {
-                preferencesModal.classList.add('hidden');
-            });
-        }
-        
-        if (cancelPreferencesBtn) {
-            cancelPreferencesBtn.addEventListener('click', function() {
-                preferencesModal.classList.add('hidden');
-            });
-        }
-        
-        // Close modals when clicking outside
-        window.addEventListener('click', function(event) {
-            if (event.target === rateRideModal) {
-                rateRideModal.classList.add('hidden');
-            }
-            if (event.target === preferencesModal) {
-                preferencesModal.classList.add('hidden');
-            }
-        });
-        
-        // Add CSS for driver marker
-        const style = document.createElement('style');
-        style.innerHTML = `
-            .custom-driver-marker {
-                background-color: rgb(59, 130, 246);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                height: 24px;
-                width: 24px;
-                border-radius: 50%;
-                box-shadow: rgba(0, 0, 0, 0.16) 0px 4px 16px;
-                position: relative;
-            }
-            
-            .custom-driver-marker::after {
-                content: "";
-                background-color: rgb(255, 255, 255);
-                height: 6px;
-                width: 6px;
-                border-radius: 50%;
-                position: absolute;
-            }
-        `;
-        document.head.appendChild(style);
-        
-        // Update driver location periodically for active rides
-        @if($activeRide && $activeRide->driver && $activeRide->reservation_status == 'accepted' && !$activeRide->dropoff_time)
-        setInterval(function() {
-            fetch(`/api/driver-location/{{ $activeRide->driver->id }}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.location) {
-                        updateDriverMarker(data.location.latitude, data.location.longitude);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching driver location:', error);
-                });
-        }, 5000); // Update every 5 seconds
-        @endif
-        
-        // Refresh map when the window is resized
-        window.addEventListener('resize', function() {
-            map.invalidateSize();
-        });
-
-       
-        // Add a refresh location button to force location refresh
-        const refreshLocationButton = document.createElement('button');
-        refreshLocationButton.textContent = 'Refresh Nearby Drivers';
-        refreshLocationButton.className = 'btn btn-primary btn-sm';
-        refreshLocationButton.style.marginBottom = '10px';
-        refreshLocationButton.addEventListener('click', function() {
-            // Get current location or use default test location
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(position) {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        window.location.href = `/passenger/nearby-drivers?latitude=${lat}&longitude=${lng}`;
-                    },
-                    function(error) {
-                        console.error('Geolocation error:', error);
-                        alert('Could not get your location. Using default location.');
-                        // Use a default location as fallback
-                        window.location.href = '/passenger/nearby-drivers?latitude=32.2603695&longitude=-9.2453128';
-                    }
-                );
-            } else {
-                alert('Geolocation is not supported by this browser. Using default location.');
-                window.location.href = '/passenger/nearby-drivers?latitude=32.2603695&longitude=-9.2453128';
-            }
-        });
-        debugPanel.appendChild(refreshLocationButton);
-        
-        // Add location status
-        const locationStatus = document.createElement('div');
-        locationStatus.style.fontSize = '12px';
-        locationStatus.style.marginTop = '10px';
-        locationStatus.textContent = 'Location: Getting status...';
-        debugPanel.appendChild(locationStatus);
-        
-        // Add session info
-        const sessionInfo = document.createElement('div');
-        sessionInfo.style.fontSize = '12px';
-        sessionInfo.style.marginTop = '5px'; 
-        sessionInfo.textContent = 'Session: Checking...';
-        debugPanel.appendChild(sessionInfo);
-        
-        // Add to body
-        document.body.appendChild(debugPanel);
-        
-        // Check for geolocation support
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    locationStatus.textContent = `Location: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-                },
-                function(error) {
-                    locationStatus.textContent = `Location error: ${error.message}`;
-                }
-            );
+            driverMarker.bindPopup('Driver Location').openPopup();
         } else {
-            locationStatus.textContent = 'Location: Geolocation not supported';
+            driverMarker.setLatLng([lat, lng]);
         }
-        
-        // Check session status
-        fetch('/api/server-time')
-            .then(response => response.json())
-            .then(data => {
-                sessionInfo.textContent = `Server time: ${new Date(data.server_time).toLocaleString()}`;
-            })
-            .catch(error => {
-                sessionInfo.textContent = 'Session: Error checking server';
-                console.error('Error fetching server time:', error);
-            });
-
-        // Preferences modal functionality
-        const openModalBtn = document.getElementById('open-preferences-modal');
-        const modal = document.getElementById('preferences-modal');
-        const closeModalBtn = document.getElementById('close-preferences-modal');
-        const modalBackdrop = document.getElementById('modal-backdrop');
-        const saveBtn = document.getElementById('save-preferences-btn');
-        const form = document.getElementById('preferences-form');
-        
-        // Toggle buttons
-        const womenOnlyToggle = document.getElementById('women-only-toggle');
-        const womenOnlyDot = document.getElementById('women-only-toggle-dot');
-        const womenOnlyInput = document.getElementById('women_only_rides');
-        
-        const quietRideToggle = document.getElementById('quiet-ride-toggle');
-        const quietRideDot = document.getElementById('quiet-ride-toggle-dot');
-        const quietRideInput = document.getElementById('quiet_ride');
-        
-        // Get CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        
-        // Open modal
-        if (openModalBtn) {
-            openModalBtn.addEventListener('click', function() {
-                modal.classList.remove('hidden');
-            });
+    }
+    
+    // Open rate ride modal function
+    window.openRateRideModal = function(rideId) {
+        if (rateRideForm) {
+            rateRideForm.action = `/passenger/ride/${rideId}/rate`;
+            rateRideModal.classList.remove('hidden');
         }
-        
-        // Close modal
-        if (closeModalBtn) {
-            closeModalBtn.addEventListener('click', function() {
-                modal.classList.add('hidden');
-            });
-        }
-        
-        // Close modal on outside click
-        if (modalBackdrop) {
-            modalBackdrop.addEventListener('click', function() {
-                modal.classList.add('hidden');
-            });
-        }
-        
-        // Toggle women-only rides
-        if (womenOnlyToggle) {
-            womenOnlyToggle.addEventListener('click', function() {
-                const isEnabled = womenOnlyToggle.classList.contains('bg-pink-500');
-                const newState = !isEnabled;
+    }
+    
+    // Star rating functionality
+    if (ratingStars && ratingValue) {
+        ratingStars.forEach(star => {
+            star.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                ratingValue.value = value;
                 
-                // Update UI immediately for better UX
-                if (isEnabled) {
-                    // Currently enabled, switching to disabled
-                    womenOnlyToggle.classList.remove('bg-pink-500');
-                    womenOnlyToggle.classList.add('bg-gray-300');
-                    womenOnlyDot.classList.remove('translate-x-5');
-                    womenOnlyDot.classList.add('translate-x-1');
-                    if (womenOnlyInput) {
-                        womenOnlyInput.value = '0';
-                    }
-                    if (document.getElementById('women-only-status')) {
-                        document.getElementById('women-only-status').innerHTML = 'Status: <span class="text-gray-600 font-medium">Disabled</span>';
-                    }
-                } else {
-                    // Currently disabled, switching to enabled
-                    womenOnlyToggle.classList.remove('bg-gray-300');
-                    womenOnlyToggle.classList.add('bg-pink-500');
-                    womenOnlyDot.classList.remove('translate-x-1');
-                    womenOnlyDot.classList.add('translate-x-5');
-                    if (womenOnlyInput) {
-                        womenOnlyInput.value = '1';
-                    }
-                    if (document.getElementById('women-only-status')) {
-                        document.getElementById('women-only-status').innerHTML = 'Status: <span class="text-pink-600 font-medium">Enabled</span>';
-                    }
-                }
-                
-                // Send direct AJAX request to update preference
-                fetch('/passenger/toggle-women-only', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({
-                        women_only_rides: newState
-                    })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Toggle successful:', data);
-                    showNotification('Preference updated successfully', 'success');
-                    // No need to update UI here since we already did
-                })
-                .catch(error => {
-                    console.error('Toggle error:', error);
-                    
-                    // Revert UI on error
-                    if (isEnabled) {
-                        // Revert back to enabled
-                        womenOnlyToggle.classList.add('bg-pink-500');
-                        womenOnlyToggle.classList.remove('bg-gray-300');
-                        womenOnlyDot.classList.add('translate-x-5');
-                        womenOnlyDot.classList.remove('translate-x-1');
-                        if (womenOnlyInput) {
-                            womenOnlyInput.value = '1';
-                        }
-                        if (document.getElementById('women-only-status')) {
-                            document.getElementById('women-only-status').innerHTML = 'Status: <span class="text-pink-600 font-medium">Enabled</span>';
-                        }
+                // Update star visuals
+                ratingStars.forEach(s => {
+                    const starValue = s.getAttribute('data-value');
+                    const svg = s.querySelector('svg');
+                    if (starValue <= value) {
+                        svg.classList.add('text-yellow-400');
+                        svg.classList.remove('text-gray-300');
                     } else {
-                        // Revert back to disabled
-                        womenOnlyToggle.classList.add('bg-gray-300');
-                        womenOnlyToggle.classList.remove('bg-pink-500');
-                        womenOnlyDot.classList.add('translate-x-1');
-                        womenOnlyDot.classList.remove('translate-x-5');
-                        if (womenOnlyInput) {
-                            womenOnlyInput.value = '0';
-                        }
-                        if (document.getElementById('women-only-status')) {
-                            document.getElementById('women-only-status').innerHTML = 'Status: <span class="text-gray-600 font-medium">Disabled</span>';
-                        }
+                        svg.classList.add('text-gray-300');
+                        svg.classList.remove('text-yellow-400');
                     }
-                    
-                    showNotification('Error updating preference', 'error');
                 });
             });
-        }
-        
-        // Toggle quiet ride
-        if (quietRideToggle) {
-            quietRideToggle.addEventListener('click', function() {
-                const isEnabled = quietRideToggle.classList.contains('bg-blue-500');
-                
-                // Update UI
-                if (isEnabled) {
-                    quietRideToggle.classList.remove('bg-blue-500');
-                    quietRideToggle.classList.add('bg-gray-300');
-                    quietRideDot.classList.remove('translate-x-5');
-                    quietRideDot.classList.add('translate-x-1');
-                    quietRideInput.value = '0';
-                } else {
-                    quietRideToggle.classList.remove('bg-gray-300');
-                    quietRideToggle.classList.add('bg-blue-500');
-                    quietRideDot.classList.remove('translate-x-1');
-                    quietRideDot.classList.add('translate-x-5');
-                    quietRideInput.value = '1';
-                }
-            });
-        }
-        
-        // Save preferences
-        if (saveBtn) {
-            saveBtn.addEventListener('click', function() {
-                // Get form data
-                const formData = new FormData(form);
-                const preferences = {};
-                
-                // Convert form data to JSON object
-                for (let entry of formData.entries()) {
-                    // Handle nested preferences object
-                    if (entry[0].startsWith('preferences[')) {
-                        const key = entry[0].match(/\[([^\]]+)\]/)[1];
-                        preferences[key] = entry[1];
-                    }
-                }
-                
-                // Convert string values to appropriate types
-                if (preferences.women_only_rides) {
-                    preferences.women_only_rides = preferences.women_only_rides === '1';
-                }
-                
-                if (preferences.quiet_ride) {
-                    preferences.quiet_ride = preferences.quiet_ride === '1';
-                }
-                
-                // Send AJAX request
-                fetch('{{ route("passenger.save.preferences") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({ preferences: preferences })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        // Show success message
-                        showNotification('Preferences saved successfully', 'success');
-                        
-                        // Update summary in dashboard
-                        updatePreferenceSummary(preferences);
-                        
-                        // Close modal
-                        modal.classList.add('hidden');
-                    } else {
-                        throw new Error(data.message || 'Failed to save preferences');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('Error saving preferences: ' + error.message, 'error');
-                });
-            });
-        }
-        
-        // Function to show notification
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            // Remove notification after 3 seconds
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-        
-        // Function to update preference summary in dashboard
-        function updatePreferenceSummary(preferences) {
-            const vehicleSummary = document.getElementById('preferred-vehicle-summary');
-            if (vehicleSummary) {
-                vehicleSummary.textContent = preferences.preferred_vehicle || 'Any';
-            }
-            
-            const womenOnlySummary = document.getElementById('women-only-summary');
-            if (womenOnlySummary && preferences.women_only_rides !== undefined) {
-                if (preferences.women_only_rides) {
-                    womenOnlySummary.innerHTML = '<span class="text-pink-600">Enabled</span>';
-                } else {
-                    womenOnlySummary.textContent = 'Disabled';
-                }
-            }
-            
-            const quietRideSummary = document.getElementById('quiet-ride-summary');
-            if (quietRideSummary && preferences.quiet_ride !== undefined) {
-                quietRideSummary.textContent = preferences.quiet_ride ? 'Enabled' : 'Disabled';
-            }
+        });
+    }
+    
+    // Cancel rating button
+    if (cancelRatingBtn) {
+        cancelRatingBtn.addEventListener('click', function() {
+            rateRideModal.classList.add('hidden');
+        });
+    }
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === rateRideModal) {
+            rateRideModal.classList.add('hidden');
         }
     });
+    
+    // Add CSS for driver marker
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .custom-driver-marker {
+            background-color: rgb(59, 130, 246);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            box-shadow: rgba(0, 0, 0, 0.16) 0px 4px 16px;
+            position: relative;
+        }
+        
+        .custom-driver-marker::after {
+            content: "";
+            background-color: rgb(255, 255, 255);
+            height: 6px;
+            width: 6px;
+            border-radius: 50%;
+            position: absolute;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Refresh map when the window is resized
+    window.addEventListener('resize', function() {
+        map.invalidateSize();
+    });
+
+    // Handle profile dropdown menu
+    const profileMenuButton = document.getElementById('profile-menu-button');
+    const profileDropdownMenu = document.getElementById('profile-dropdown-menu');
+    
+    if (profileMenuButton && profileDropdownMenu) {
+        profileMenuButton.addEventListener('click', function() {
+            profileDropdownMenu.classList.toggle('hidden');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!profileMenuButton.contains(event.target) && !profileDropdownMenu.contains(event.target)) {
+                profileDropdownMenu.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Women-only toggle functionality
+    const womenOnlyToggle = document.getElementById('women-only-toggle');
+    
+    if (womenOnlyToggle) {
+        womenOnlyToggle.addEventListener('click', function() {
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
+            // Send the AJAX request using the simple route
+            fetch('/simple-toggle-women-only', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Toggle successful:', data);
+                // Update UI based on the response
+                if (data.is_enabled) {
+                    womenOnlyToggle.classList.add('bg-pink-500');
+                    womenOnlyToggle.classList.remove('bg-gray-300');
+                    document.getElementById('women-only-toggle-dot').classList.add('translate-x-5');
+                    document.getElementById('women-only-toggle-dot').classList.remove('translate-x-1');
+                    document.getElementById('women-only-status').innerHTML = 'Status: <span class="text-pink-600 font-medium">Enabled</span>';
+                } else {
+                    womenOnlyToggle.classList.remove('bg-pink-500');
+                    womenOnlyToggle.classList.add('bg-gray-300');
+                    document.getElementById('women-only-toggle-dot').classList.remove('translate-x-5');
+                    document.getElementById('women-only-toggle-dot').classList.add('translate-x-1');
+                    document.getElementById('women-only-status').innerHTML = 'Status: <span class="text-gray-600 font-medium">Disabled</span>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to update preference. Please try again.');
+            });
+        });
+    }
+    
+    // Function to show notification
+    function showNotification(message, type = 'success') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Remove notification after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+    // Conditional code for active ride
+    if (document.getElementById('active-ride-map')) {
+        // Additional active ride functionality would go here
+    }
+});
     
 </script>
 </body>
