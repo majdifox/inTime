@@ -934,8 +934,8 @@ public function submitRating(Request $request, Ride $ride)
         
         // Give warning if vehicle type doesn't match
         $warning = null;
-        if ($driver->women_only_driver && $driver->vehicle && $driver->vehicle->type !== 'women') {
-            $warning = 'For best matching results, consider updating your vehicle type to "Women" in vehicle settings.';
+        if ($driver->women_only_driver && $driver->vehicle ) {
+            $warning = 'Visible to female passengers only';
         }
         
         return response()->json([

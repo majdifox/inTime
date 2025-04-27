@@ -26,8 +26,8 @@
 </head>
 <body class="bg-gray-50">
     <!-- Header/Navigation -->
-    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm sticky top-0 z-50">
-        <!-- Logo and navigation -->
+    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm fixed top-0 left-0 right-0 z-[9999]">
+    <!-- Logo and navigation -->
         <div class="flex items-center space-x-8">
             <!-- Logo -->
             <a href="{{ route('driver.dashboard') }}" class="text-2xl font-bold">inTime</a>
@@ -110,8 +110,8 @@
                 </button>
                 
                 <!-- Profile Dropdown -->
-                <div class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50" id="profile-dropdown">
-                    <!--  -->
+                <div class="hidden fixed right-4 top-16 z-[9999] w-48 bg-white rounded-md shadow-lg py-1" id="profile-dropdown">
+                <!--  -->
                     <a href="{{ route('driver.profile.private') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Profile</a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
@@ -161,8 +161,8 @@
     </div>
 
      <!-- Main Content -->
-     <main class="container mx-auto px-4 py-8">
-        @if(session('success'))
+     <main class="container mx-auto px-4 py-8 mt-20">
+     @if(session('success'))
             <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow" role="alert">
                 <p>{{ session('success') }}</p>
             </div>
@@ -182,64 +182,7 @@
 
 
 
-        <div class="card mb-4">
-    <div class="card-header">Driver Visibility Status</div>
-    <div class="card-body">
-        <div class="d-flex align-items-center mb-3">
-            <div id="status-indicator" class="mr-3" style="width: 20px; height: 20px; border-radius: 50%; 
-                background-color: {{ Auth::user()->is_online && $driver->driverLocation && $driver->driverLocation->last_updated->gt(now()->subMinutes(5)) ? 'green' : 'red' }};">
-            </div>
-            <span id="status-text" class="font-weight-bold ml-2">
-                @if(Auth::user()->is_online && $driver->driverLocation && $driver->driverLocation->last_updated->gt(now()->subMinutes(5)))
-                    You are visible to passengers
-                @else
-                    You are NOT visible to passengers
-                @endif
-            </span>
-        </div>
-        
-        <div class="visibility-details">
-            <ul class="list-group">
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    Online Status
-                    <span class="badge {{ Auth::user()->is_online ? 'badge-success' : 'badge-danger' }}">
-                        {{ Auth::user()->is_online ? 'Online' : 'Offline' }}
-                    </span>
-                </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    Location Sharing
-                    <span class="badge {{ $driver->driverLocation && $driver->driverLocation->last_updated->gt(now()->subMinutes(5)) ? 'badge-success' : 'badge-danger' }}">
-                        {{ $driver->driverLocation && $driver->driverLocation->last_updated->gt(now()->subMinutes(5)) ? 'Active' : 'Inactive' }}
-                    </span>
-                </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    Account Status
-                    <span class="badge {{ Auth::user()->account_status == 'activated' ? 'badge-success' : 'badge-warning' }}">
-                        {{ ucfirst(Auth::user()->account_status) }}
-                    </span>
-                </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    Vehicle Status
-                    <span class="badge {{ $driver->vehicle && $driver->vehicle->is_active ? 'badge-success' : 'badge-danger' }}">
-                        {{ $driver->vehicle && $driver->vehicle->is_active ? 'Active' : 'Inactive' }}
-                    </span>
-                </li>
-            </ul>
-        </div>
-        
-        <div class="mt-3">
-            <p>
-                <small>
-                    <strong>Note:</strong> To be visible to passengers, you must be online, have active location sharing, 
-                    an activated account, and an active vehicle.
-                </small>
-            </p>
-            @if($driver->driverLocation)
-                <p><small>Last location update: {{ $driver->driverLocation->last_updated->diffForHumans() }}</small></p>
-            @endif
-        </div>
-    </div>
-</div>
+       
         
         <div class="flex flex-col lg:flex-row gap-6">
             <!-- Left Column - Status, Stats, Vehicle -->
@@ -286,131 +229,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="card mb-4">
-    <div class="card-header">
-        <h5>Driver Visibility Status</h5>
-    </div>
-    <div class="card-body">
-        <div id="visibility-status" class="alert alert-warning">
-            Loading visibility status...
-        </div>
-        
-        <div class="row">
-            <div class="col-6 col-md-3 mb-3">
-                <span class="d-block fw-bold">Online Status</span>
-                <span id="status-online" class="badge bg-secondary">Loading...</span>
-            </div>
-            <div class="col-6 col-md-3 mb-3">
-                <span class="d-block fw-bold">Location Sharing</span>
-                <span id="status-location" class="badge bg-secondary">Loading...</span>
-            </div>
-            <div class="col-6 col-md-3 mb-3">
-                <span class="d-block fw-bold">Account Status</span>
-                <span id="status-account" class="badge bg-secondary">Loading...</span>
-            </div>
-            <div class="col-6 col-md-3 mb-3">
-                <span class="d-block fw-bold">Vehicle Status</span>
-                <span id="status-vehicle" class="badge bg-secondary">Loading...</span>
-            </div>
-        </div>
-        
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <span class="text-muted">Last location update:</span>
-                <span id="location-timestamp">Never</span>
-            </div>
-            <button id="debug-status" class="btn btn-sm btn-info">Debug Status</button>
-        </div>
-        
-        <div id="location-error" class="alert alert-danger mt-3 d-none"></div>
-    </div>
-</div>
-
-<div id="debug-info" class="mt-4 d-none"></div>
-                <!-- Incoming Ride Requests -->
-                @if(count($rideRequests) > 0)
-                    <div class="bg-white rounded-lg shadow-md p-6 animate-pulse">
-                        <h2 class="text-xl font-bold mb-4 flex items-center text-blue-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            New Ride Request
-                        </h2>
-                        
-                        @foreach($rideRequests as $request)
-                            <div class="border-l-4 border-blue-500 pl-4 py-4 mb-4 bg-blue-50 rounded-r-md">
-                                <div class="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h3 class="font-medium">{{ $request->ride->passenger->user->name }}
-                                            @if($request->ride->passenger->user->gender === 'female' && $request->ride->passenger->user->women_only_rides)
-                                                <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
-                                                    Women Only
-                                                </span>
-                                            @endif
-                                        </h3>
-                                        <p class="text-sm text-gray-500">Requested {{ \Carbon\Carbon::parse($request->requested_at)->diffForHumans() }}</p>
-                                    </div>
-                                    
-                                    <!-- Timer -->
-                                    <div class="text-sm text-red-600 font-semibold countdown" 
-                                         data-requested="{{ $request->requested_at }}" 
-                                         data-request-id="{{ $request->id }}">
-                                        15s
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-start mb-3">
-                                    <div class="mr-3 text-gray-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-medium">{{ $request->ride->pickup_location }}</p>
-                                        <p class="text-xs text-gray-500">
-                                            @if(isset($request->ride->distance_in_km))
-                                                {{ number_format($request->ride->distance_in_km, 1) }} km away
-                                            @endif
-                                        </p>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between mb-3">
-                                    <div class="flex items-center text-sm">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <span class="font-medium">
-                                            MAD {{ number_format($request->ride->price ?? $request->ride->ride_cost ?? 0, 2) }}
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="flex items-center text-sm">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <span>
-                                            {{ $request->ride->vehicle_type ? ucfirst($request->ride->vehicle_type) : (isset($driver->vehicle) ? ucfirst($driver->vehicle->type) : 'N/A') }}
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex space-x-3">
-                                    <button type="button" class="accept-request bg-green-500 text-white py-2 px-6 rounded-md font-medium hover:bg-green-600 transition w-1/2"
-                                            data-request-id="{{ $request->id }}">
-                                        Accept
-                                    </button>
-                                    
-                                    <button type="button" class="reject-request border border-gray-300 text-gray-700 py-2 px-6 rounded-md font-medium hover:bg-gray-50 transition w-1/2"
-                                            data-request-id="{{ $request->id }}">
-                                        Decline
-                                    </button>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
+               
                 
                 <!-- Driver Stats -->
                 <div class="bg-white rounded-lg shadow-md p-6">
@@ -433,37 +252,30 @@
                             <span class="text-gray-600">Total Income</span>
                             <span class="font-medium">MAD {{ number_format($stats['total_income'], 2) }}</span>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Response Time</span>
-                            <span class="font-medium">{{ $driver->driver_response_time ? number_format($driver->driver_response_time, 1) . 's' : 'N/A' }}</span>
-                        </div>
+                       
                     </div>
 
                     <!-- Women-Only Driver Toggle (only for female drivers) -->
                     @if(Auth::user()->gender === 'female')
                     <div class="mt-4 pt-4 border-t border-gray-200">
-                        <h3 class="font-medium mb-2">Women-Only Driver Settings</h3>
+                       
                         
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center">
+                                 <h3 class="font-medium mb-2 mr-4">Women-Only Driver Settings</h3>
                                 <button id="toggle-women-only" class="relative inline-flex h-6 w-11 items-center rounded-full {{ $driver->women_only_driver ? 'bg-pink-500' : 'bg-gray-300' }} transition-colors duration-300">
                                     <span id="women-only-circle" class="inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 {{ $driver->women_only_driver ? 'translate-x-5' : 'translate-x-1' }}"></span>
                                 </button>
-                                <span id="women-only-text" class="ml-2 font-medium">{{ $driver->women_only_driver ? 'Women-Only Mode On' : 'Women-Only Mode Off' }}</span>
+                                
+                                <!-- <span id="women-only-text" class="m-2 font-small">{{ $driver->women_only_driver ? 'Women-Only Mode On' : 'Women-Only Mode Off' }}</span> -->
                             </div>
                             
-                            <div class="px-2 py-1 rounded bg-pink-100 text-pink-800 text-xs">
-                                <span>Female Only</span>
-                            </div>
+                          
                         </div>
                         
                         <p class="text-sm text-gray-500 mb-2">When enabled, you'll only receive ride requests from female passengers.</p>
                         
-                        @if($driver->women_only_driver && $driver->vehicle && $driver->vehicle->type !== 'women')
-                            <div class="mt-2 bg-yellow-100 text-yellow-700 p-3 rounded-md text-sm">
-                                <span class="font-medium">Note:</span> For consistent matching, consider updating your vehicle type to "Women" in vehicle settings.
-                            </div>
-                        @endif
+                       
                     </div>
                     @endif
                 </div>
@@ -516,11 +328,7 @@
                           
                         </div>
                         
-                        @if($driver->vehicle->type === 'women' && !($driver->women_only_driver && Auth::user()->gender === 'female'))
-                            <div class="mt-3 bg-red-100 text-red-700 p-3 rounded-md text-sm">
-                                <span class="font-medium">Note:</span> Women-only vehicle type requires a female driver with women-only preference enabled.
-                            </div>
-                        @endif
+
                     @endif
 
                     @if($driver->vehicle && $driver->vehicle->features->count() > 0)

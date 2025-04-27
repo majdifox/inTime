@@ -92,10 +92,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        if (data.warning) {
-                            alert(data.warning);
-                        }
-                    } else {
+                       
                         // If the update failed, revert the UI changes
                         womenOnlyCircle.classList.toggle('translate-x-1', isCurrentlyEnabled);
                         womenOnlyCircle.classList.toggle('translate-x-5', !isCurrentlyEnabled);
