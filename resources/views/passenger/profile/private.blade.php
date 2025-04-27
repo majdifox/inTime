@@ -40,7 +40,7 @@
 
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
-        <div class="max-w-5xl mx-auto">
+        <div class="max-w-6xl mx-auto">
             <!-- User Info Section -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
                 <div class="relative bg-gray-800 text-white p-6">
