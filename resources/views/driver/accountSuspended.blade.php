@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>inTime - Account Under Review</title>
+    <title>inTime - Account Suspended</title>
     
     <!-- Vite Assets -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -44,8 +44,6 @@
             <!-- Navigation Links -->
             <nav class="hidden md:flex space-x-6">
                 <a href="#" class="font-medium hover:text-black transition duration-150">Home</a>
-                <a href="#" class="font-medium hover:text-black transition duration-150">Create Ride</a>
-                <a href="#" class="font-medium hover:text-black transition duration-150">My Rides</a>
                 <a href="#" class="font-medium hover:text-black transition duration-150">My Profile</a>
             </nav>
         </div>
@@ -67,88 +65,86 @@
                     <!-- Left Column (Status) -->
                     <div class="w-full md:w-1/3 bg-gray-50 p-8 flex flex-col items-center">
                         <div class="mb-6">
-                            <div class="bg-yellow-100 p-5 rounded-full">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <div class="bg-red-100 p-5 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                             </div>
                         </div>
                         
                         <h2 class="text-xl font-bold mb-2 text-center">Account Status</h2>
                         
-                        <div class="status-badge bg-yellow-50 text-yellow-800 px-4 py-2 rounded-full font-medium text-sm mb-6 flex items-center">
-                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                            {{ ucfirst($status ?? 'Under Review') }}
+                        <div class="status-badge bg-red-50 text-red-800 px-4 py-2 rounded-full font-medium text-sm mb-6 flex items-center">
+                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                            Suspended
                         </div>
                         
                         <div class="text-center mb-6">
-                            <p class="text-gray-600 text-sm">Your application was submitted</p>
+                            <p class="text-gray-600 text-sm">Last updated</p>
                             <p class="font-medium">{{ \Carbon\Carbon::now()->format('F j, Y') }}</p>
                         </div>
                         
                         <div class="border-t border-gray-200 pt-6 w-full">
-                            <h3 class="font-medium text-sm text-gray-500 uppercase tracking-wider mb-4 text-center">Est. Time Remaining</h3>
+                            <h3 class="font-medium text-sm text-gray-500 uppercase tracking-wider mb-4 text-center">To Resolve</h3>
                             <div class="flex justify-center">
-                                <div class="text-2xl font-bold">24-48<span class="text-sm font-normal text-gray-500 ml-1">hours</span></div>
+                                <div class="text-lg font-medium text-center text-gray-800">Contact Support</div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Right Column (Content) -->
                     <div class="w-full md:w-2/3 p-8">
-                        <h1 class="text-2xl font-bold mb-4">{{ $title ?? 'Your Application is Under Review' }}</h1>
+                        <h1 class="text-2xl font-bold mb-4">Your Account is Suspended</h1>
                         
                         <p class="text-gray-600 mb-6">
-                            {{ $message ?? 'Thank you for registering as a driver with inTime. Our team is currently reviewing your documents and vehicle information to ensure compliance with our standards and local regulations.' }}
+                            We regret to inform you that your account has been Suspended. This might be due to multiple ride cancellations, policy violations, or other issues with your account.
                         </p>
                         
-                        <!-- Application Timeline -->
+                        <!-- Suspension Reasons -->
                         <div class="mb-8">
-                            <h3 class="font-medium mb-4">Application Progress</h3>
+                            <h3 class="font-medium mb-4">Possible Reasons for Suspension</h3>
                             
-                            <div class="space-y-6">
-                                <!-- Step 1: Submitted -->
-                                <div class="timeline-step completed pl-10">
-                                    <div class="absolute left-0 top-0 bg-green-500 rounded-full w-7 h-7 flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                        </svg>
+                            <div class="space-y-4">
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 mt-0.5">
+                                            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h4 class="text-sm font-medium text-gray-900">Multiple Ride Cancellations</h4>
+                                            <p class="mt-1 text-sm text-gray-500">You've cancelled several rides recently, which may have triggered an automatic suspension.</p>
+                                        </div>
                                     </div>
-                                    <h4 class="font-medium">Application Submitted</h4>
-                                    <p class="text-sm text-gray-500">Your driver registration has been received.</p>
                                 </div>
                                 
-                                <!-- Step 2: Document Review -->
-                                <div class="timeline-step pl-10">
-                                    <div class="absolute left-0 top-0 bg-yellow-500 rounded-full w-7 h-7 flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-                                        </svg>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 mt-0.5">
+                                            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h4 class="text-sm font-medium text-gray-900">Low Ratings</h4>
+                                            <p class="mt-1 text-sm text-gray-500">Consistently low ratings from drivers or passengers may lead to account deactivation.</p>
+                                        </div>
                                     </div>
-                                    <h4 class="font-medium">Document Verification</h4>
-                                    <p class="text-sm text-gray-500">We're reviewing your license, insurance, and other documents.</p>
                                 </div>
                                 
-                                <!-- Step 3: Background Check -->
-                                <div class="timeline-step pl-10">
-                                    <div class="absolute left-0 top-0 bg-gray-300 rounded-full w-7 h-7 flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                        </svg>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 mt-0.5">
+                                            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h4 class="text-sm font-medium text-gray-900">Platform Policy Violation</h4>
+                                            <p class="mt-1 text-sm text-gray-500">Violating inTime's terms of service or community guidelines.</p>
+                                        </div>
                                     </div>
-                                    <h4 class="font-medium">Background Check</h4>
-                                    <p class="text-sm text-gray-500">We'll verify your driving record and background information.</p>
-                                </div>
-                                
-                                <!-- Step 4: Approved -->
-                                <div class="timeline-step pl-10">
-                                    <div class="absolute left-0 top-0 bg-gray-300 rounded-full w-7 h-7 flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <h4 class="font-medium">Application Approved</h4>
-                                    <p class="text-sm text-gray-500">Once approved, you can start accepting ride requests.</p>
                                 </div>
                             </div>
                         </div>
@@ -161,9 +157,9 @@
                                     </svg>
                                 </div>
                                 <div class="ml-3">
-                                    <h4 class="text-sm font-medium text-blue-800">Need to update your information?</h4>
+                                    <h4 class="text-sm font-medium text-blue-800">Need help reactivating your account?</h4>
                                     <p class="mt-1 text-sm text-blue-700">
-                                        If you need to make changes to your submitted information, please contact our support team.
+                                        Please contact our support team to discuss your account status and the steps you can take to reactivate it.
                                     </p>
                                 </div>
                             </div>
@@ -173,12 +169,9 @@
                             <a href="" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-150 font-medium">
                                 Back to Home
                             </a>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button type="submit" class="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition duration-150 font-medium">
-                                    Log Out
-                                </button>
-                            </form>
+                            <a href="mailto:support@intime-app.com" class="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition duration-150 font-medium">
+                                Contact Support
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -190,37 +183,37 @@
                 <div class="space-y-4">
                     <div class="border border-gray-200 rounded-lg overflow-hidden">
                         <button class="flex justify-between items-center w-full px-6 py-4 text-left font-medium text-gray-900 bg-white hover:bg-gray-50 transition duration-150 faq-toggle" aria-expanded="false">
-                            <span>How long does the review process take?</span>
+                            <span>How can I get my account reactivated?</span>
                             <svg class="h-5 w-5 text-gray-500 faq-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                             </svg>
                         </button>
                         <div class="hidden px-6 py-4 bg-gray-50 border-t border-gray-200 faq-content">
-                            <p class="text-gray-700">The review process typically takes 1-3 business days. During busy periods, it may take up to 5 business days. You'll receive an email notification as soon as your application is approved.</p>
+                            <p class="text-gray-700">To reactivate your account, please contact our support team. Depending on the reason for deactivation, you may need to wait a specific period, complete certain actions, or agree to specific terms before reactivation.</p>
                         </div>
                     </div>
                     
                     <div class="border border-gray-200 rounded-lg overflow-hidden">
                         <button class="flex justify-between items-center w-full px-6 py-4 text-left font-medium text-gray-900 bg-white hover:bg-gray-50 transition duration-150 faq-toggle" aria-expanded="false">
-                            <span>What if my application gets rejected?</span>
+                            <span>How long do temporary suspensions last?</span>
                             <svg class="h-5 w-5 text-gray-500 faq-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                             </svg>
                         </button>
                         <div class="hidden px-6 py-4 bg-gray-50 border-t border-gray-200 faq-content">
-                            <p class="text-gray-700">If your application is rejected, you'll receive an email with the specific reasons. In most cases, you can address the issues and reapply. Common reasons include expired documents, poor quality photos, or incomplete information.</p>
+                            <p class="text-gray-700">Temporary suspensions for ride cancellations typically last from 1 minute to 24 hours, depending on the frequency and pattern of cancellations. Other violations may result in longer suspensions.</p>
                         </div>
                     </div>
                     
                     <div class="border border-gray-200 rounded-lg overflow-hidden">
                         <button class="flex justify-between items-center w-full px-6 py-4 text-left font-medium text-gray-900 bg-white hover:bg-gray-50 transition duration-150 faq-toggle" aria-expanded="false">
-                            <span>Can I drive while my application is being reviewed?</span>
+                            <span>Will I lose my data or history after reactivation?</span>
                             <svg class="h-5 w-5 text-gray-500 faq-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                             </svg>
                         </button>
                         <div class="hidden px-6 py-4 bg-gray-50 border-t border-gray-200 faq-content">
-                            <p class="text-gray-700">No, you cannot accept ride requests until your application has been fully approved. This is to ensure the safety of our passengers and compliance with local regulations.</p>
+                            <p class="text-gray-700">No, your ride history, profile information, and account details will remain intact when your account is reactivated. Your rating may be affected by the events that led to deactivation.</p>
                         </div>
                     </div>
                 </div>

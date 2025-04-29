@@ -1,419 +1,358 @@
-<!-- passenger/dashboard.blade.php -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>inTime - Passenger Dashboard</title>
-    
-    <!-- Vite Assets -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
+@extends('passenger.layouts.passenger')
+
+@vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/passenger/passenger-dashboard.js', 'resources/js/passenger/women-only-toggle.js'])
+
+@section('title', 'inTime - Passenger Dashboard')
+
+@section('styles')
     <!-- OpenStreetMap with Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leafle    t.css" 
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
           crossorigin=""/>
+    <!-- Leaflet Routing Machine for directions -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+@endsection
+
+@section('head-scripts')
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
             crossorigin=""></script>
-
-            <script src="{{ asset('js/women-only-toggle.js') }}"></script>
-    
-    <!-- Add Leaflet Routing Machine for directions -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-</head>
-<body class="bg-gray-50">
-    <!-- Header/Navigation -->
-    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm">
-        <div class="flex items-center space-x-8">
-            <!-- Logo -->
-            <a href="{{ route('passenger.dashboard') }}" class="text-2xl font-bold">inTime</a>
+    <script src="{{ asset('js/women-only-toggle.js') }}"></script>
+@endsection
+
+@section('content')
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Left Column - Book a Ride, User Info -->
+        <div class="w-full lg:w-1/3 flex flex-col gap-6">
+            <!-- Book a Ride Card -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold mb-4">Book a Ride</h2>
+                
+                <form action="{{ route('passenger.book') }}" method="GET">
+                    <div class="space-y-4">
+                        <button type="submit" class="w-full bg-black text-white py-3 px-4 rounded-md font-medium hover:bg-gray-800 transition flex items-center justify-center">
+                            Book Now
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-.707-5.707a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
             
-            <!-- Navigation Links -->
-            <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('passenger.history') }}" class="font-medium">Ride History</a>
-                <a href="{{ route('passenger.profile.private') }}" class="font-medium">My Profile</a>
-            </nav>
-        </div>
-        
-        
-<!-- Profile Dropdown -->
-<div class="relative ml-3">
-    <div>
-        <button type="button" class="flex rounded-full bg-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2" id="profile-menu-button" aria-expanded="false" aria-haspopup="true">
-            <span class="sr-only">Open user menu</span>
-            <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
-                @if(Auth::user()->profile_picture)
-                    <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
-                @else
-                    <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
-                @endif
-            </div>
-        </button>
-    </div>
-
-    <!-- Dropdown menu with fixed positioning -->
-    <div class="hidden fixed top-16 right-4 z-[1000] w-48 rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="profile-menu-button" tabindex="-1" id="profile-dropdown-menu">
-        <!-- Active: "bg-gray-100", Not Active: "" -->
-        <a href="{{ route('passenger.profile.private') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">My Profile</a>
-        <form method="POST" action="{{ route('logout') }}" class="block">
-            @csrf
-            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                Log Out
-            </button>
-        </form>
-    </div>
-</div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
-        @if(session('success'))
-            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow" role="alert">
-                <p>{{ session('success') }}</p>
-            </div>
-        @endif
-        
-        @if(session('error'))
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow" role="alert">
-                <p>{{ session('error') }}</p>
-            </div>
-        @endif
-
-        <div class="flex flex-col lg:flex-row gap-6">
-            <!-- Left Column - Book a Ride, User Info -->
-            <div class="w-full lg:w-1/3 flex flex-col gap-6">
-                <!-- Book a Ride Card -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">Book a Ride</h2>
-                    
-                    <form action="{{ route('passenger.book') }}" method="GET">
-                        <div class="space-y-4">
-                            <button type="submit" class="w-full bg-black text-white py-3 px-4 rounded-md font-medium hover:bg-gray-800 transition flex items-center justify-center">
-                               
-                                Book Now
-                               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-.707-5.707a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293z" clip-rule="evenodd" />
-</svg>
-
-                            </button>
-                        </div>
-                    </form>
+            <!-- User Info Card -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center space-x-4 mb-4">
+                    <div class="h-16 w-16 rounded-full bg-gray-300 overflow-hidden">
+                        @if(Auth::user()->profile_picture)
+                            <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
+                        @else
+                            <div class="h-full w-full flex items-center justify-center bg-gray-400 text-white">
+                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                            </div>
+                        @endif
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold">{{ Auth::user()->name }}</h2>
+                        <p class="text-gray-600">{{ Auth::user()->email }}</p>
+                    </div>
                 </div>
                 
-                <!-- User Info Card -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="flex items-center space-x-4 mb-4">
-                        <div class="h-16 w-16 rounded-full bg-gray-300 overflow-hidden">
-                            @if(Auth::user()->profile_picture)
-                                <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
-                            @else
-                                <div class="h-full w-full flex items-center justify-center bg-gray-400 text-white">
-                                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                                </div>
-                            @endif
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Total Rides</span>
+                        <span class="font-medium">{{ $passenger->total_rides ?? 0 }}</span>
+                    </div>
+                    
+                    @if(isset($passenger->rating) && $passenger->rating > 0)
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Rating</span>
+                        <div class="flex items-center">
+                            <span class="font-medium mr-1">{{ number_format($passenger->rating, 1) }}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
                         </div>
-                        <div>
-                            <h2 class="text-xl font-bold">{{ Auth::user()->name }}</h2>
-                            <p class="text-gray-600">{{ Auth::user()->email }}</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            
+            <!-- Ride Preferences - Only Women-Only Rides -->
+            @if(Auth::user()->gender === 'female')
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Women-Only Rides</h2>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 mb-1">When enabled, you'll be matched only with female drivers.</p>
+                        <div class="text-sm text-gray-600" id="women-only-status">
+                            Status: 
+                            @if(Auth::user()->women_only_rides)
+                            <span class="text-pink-600 font-medium">Enabled</span>
+                            @else
+                            <span class="text-gray-600 font-medium">Disabled</span>
+                            @endif
                         </div>
                     </div>
                     
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Total Rides</span>
-                            <span class="font-medium">{{ $passenger->total_rides ?? 0 }}</span>
+                    <button type="button" id="women-only-toggle" class="relative inline-flex h-6 w-11 items-center rounded-full {{ Auth::user()->women_only_rides ? 'bg-pink-500' : 'bg-gray-300' }} transition-colors duration-300">
+                        <span id="women-only-toggle-dot" class="inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 {{ Auth::user()->women_only_rides ? 'translate-x-5' : 'translate-x-1' }}"></span>
+                    </button>
+                </div>
+            </div>
+            @endif
+        </div>
+        
+        <!-- Right Column - Map, Active/Recent Rides -->
+        <div class="w-full lg:w-2/3 flex flex-col gap-6">
+            <!-- Map Container - Enhanced size and better responsiveness -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="h-96 md:h-100 lg:h-120" id="map"></div>
+            </div>
+            
+            <!-- Active Ride -->
+            @if($activeRide)
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold mb-4">Active Ride</h2>
+                
+                <div class="border-l-4 border-blue-500 pl-4 py-2">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-medium">
+                                @if($activeRide->driver)
+                                    Ride with {{ $activeRide->driver->user->name }}
+                                @else
+                                    Finding a driver...
+                                @endif
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                @if($activeRide->pickup_time)
+                                    Started: {{ $activeRide->pickup_time->format('g:i A') }}
+                                @elseif($activeRide->reservation_status == 'matching')
+                                    Matching with a driver...
+                                @else
+                                    Scheduled: {{ $activeRide->reservation_date->format('M d, Y g:i A') }}
+                                @endif
+                            </p>
+                        </div>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            @if($activeRide->reservation_status == 'matching') 
+                                bg-yellow-100 text-yellow-800
+                            @elseif($activeRide->pickup_time && !$activeRide->dropoff_time) 
+                                bg-green-100 text-green-800
+                            @else 
+                                bg-blue-100 text-blue-800
+                            @endif
+                        ">
+                            @if($activeRide->reservation_status == 'matching')
+                                Finding Driver
+                            @elseif($activeRide->pickup_time && !$activeRide->dropoff_time)
+                                In Progress
+                            @elseif($activeRide->reservation_status == 'accepted' && !$activeRide->pickup_time)
+                                Driver En Route
+                            @else
+                                {{ ucfirst($activeRide->reservation_status) }}
+                            @endif
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-3 mb-4">
+                        <div class="flex items-start">
+                            <div class="mt-1 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <circle cx="12" cy="12" r="8" stroke-width="2" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">Pickup Location</p>
+                                <p class="text-sm text-gray-600">{{ $activeRide->pickup_location }}</p>
+                            </div>
                         </div>
                         
-                        @if(isset($passenger->rating) && $passenger->rating > 0)
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Rating</span>
-                            <div class="flex items-center">
-                                <span class="font-medium mr-1">{{ number_format($passenger->rating, 1) }}</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        <div class="flex items-start">
+                            <div class="mt-1 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">Dropoff Location</p>
+                                <p class="text-sm text-gray-600">{{ $activeRide->dropoff_location }}</p>
+                            </div>
+                        </div>
+                        
+                        @if($activeRide->price)
+                        <div class="flex items-start">
+                            <div class="mt-1 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">Price</p>
+                                <p class="text-sm text-gray-600">
+                                    MAD {{ number_format($activeRide->price, 2) }}
+                                    @if($activeRide->surge_multiplier > 1)
+                                        <span class="text-xs text-red-600 ml-1">(Surge x{{ $activeRide->surge_multiplier }})</span>
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                        @endif
+                        
+                        @if($activeRide->vehicle_type)
+                        <div class="flex items-start">
+                            <div class="mt-1 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">Vehicle Type</p>
+                                <p class="text-sm text-gray-600">{{ ucfirst($activeRide->vehicle_type) }}</p>
                             </div>
                         </div>
                         @endif
                     </div>
-                </div>
-                
-                <!-- Ride Preferences - Only Women-Only Rides -->
-                @if(Auth::user()->gender === 'female')
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">Women-Only Rides</h2>
-                    </div>
                     
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 mb-1">When enabled, you'll be matched only with female drivers.</p>
-                            <div class="text-sm text-gray-600" id="women-only-status">
-                                Status: 
-                                @if(Auth::user()->women_only_rides)
-                                <span class="text-pink-600 font-medium">Enabled</span>
-                                @else
-                                <span class="text-gray-600 font-medium">Disabled</span>
-                                @endif
-                            </div>
-                        </div>
+                    <div class="flex space-x-3">
+                        <a href="{{ route('passenger.active.ride') }}" class="bg-black text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-800 transition flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View Details
+                        </a>
                         
-                        <button type="button" id="women-only-toggle" class="relative inline-flex h-6 w-11 items-center rounded-full {{ Auth::user()->women_only_rides ? 'bg-pink-500' : 'bg-gray-300' }} transition-colors duration-300">
-                            <span id="women-only-toggle-dot" class="inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 {{ Auth::user()->women_only_rides ? 'translate-x-5' : 'translate-x-1' }}"></span>
-                        </button>
-                    </div>
-                </div>
-                @endif
-            </div>
-            
-            <!-- Right Column - Map, Active/Recent Rides -->
-            <div class="w-full lg:w-2/3 flex flex-col gap-6">
-                <!-- Map Container - Enhanced size and better responsiveness -->
-                <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="h-96 md:h-100 lg:h-120" id="map"></div>
-                </div>
-                
-                <!-- Active Ride -->
-                @if($activeRide)
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">Active Ride</h2>
-                    
-                    <div class="border-l-4 border-blue-500 pl-4 py-2">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 class="font-medium">
-                                    @if($activeRide->driver)
-                                        Ride with {{ $activeRide->driver->user->name }}
-                                    @else
-                                        Finding a driver...
-                                    @endif
-                                </h3>
-                                <p class="text-sm text-gray-500">
-                                    @if($activeRide->pickup_time)
-                                        Started: {{ $activeRide->pickup_time->format('g:i A') }}
-                                    @elseif($activeRide->reservation_status == 'matching')
-                                        Matching with a driver...
-                                    @else
-                                        Scheduled: {{ $activeRide->reservation_date->format('M d, Y g:i A') }}
-                                    @endif
-                                </p>
-                            </div>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                @if($activeRide->reservation_status == 'matching') 
-                                    bg-yellow-100 text-yellow-800
-                                @elseif($activeRide->pickup_time && !$activeRide->dropoff_time) 
-                                    bg-green-100 text-green-800
-                                @else 
-                                    bg-blue-100 text-blue-800
-                                @endif
-                            ">
-                                @if($activeRide->reservation_status == 'matching')
-                                    Finding Driver
-                                @elseif($activeRide->pickup_time && !$activeRide->dropoff_time)
-                                    In Progress
-                                @elseif($activeRide->reservation_status == 'accepted' && !$activeRide->pickup_time)
-                                    Driver En Route
-                                @else
-                                    {{ ucfirst($activeRide->reservation_status) }}
-                                @endif
-                            </span>
-                        </div>
-                        
-                        <div class="space-y-3 mb-4">
-                            <div class="flex items-start">
-                                <div class="mt-1 mr-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <circle cx="12" cy="12" r="8" stroke-width="2" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium">Pickup Location</p>
-                                    <p class="text-sm text-gray-600">{{ $activeRide->pickup_location }}</p>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-start">
-                                <div class="mt-1 mr-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                <p class="text-sm font-medium">Dropoff Location</p>
-                                    <p class="text-sm text-gray-600">{{ $activeRide->dropoff_location }}</p>
-                                </div>
-                            </div>
-                            
-                            @if($activeRide->price)
-                            <div class="flex items-start">
-                                <div class="mt-1 mr-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium">Price</p>
-                                    <p class="text-sm text-gray-600">
-                                        MAD {{ number_format($activeRide->price, 2) }}
-                                        @if($activeRide->surge_multiplier > 1)
-                                            <span class="text-xs text-red-600 ml-1">(Surge x{{ $activeRide->surge_multiplier }})</span>
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-                            @endif
-                            
-                            @if($activeRide->vehicle_type)
-                            <div class="flex items-start">
-                                <div class="mt-1 mr-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium">Vehicle Type</p>
-                                    <p class="text-sm text-gray-600">{{ ucfirst($activeRide->vehicle_type) }}</p>
-                                </div>
-                            </div>
-                            @endif
-                        </div>
-                        
-                        <div class="flex space-x-3">
-                            <a href="{{ route('passenger.active.ride') }}" class="bg-black text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-800 transition flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        @if($activeRide->driver && $activeRide->reservation_status == 'accepted')
+                            <a href="tel:{{ $activeRide->driver->user->phone }}" class="border border-gray-300 text-gray-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                                 </svg>
-                                View Details
+                                Call Driver
                             </a>
-                            
-                            @if($activeRide->driver && $activeRide->reservation_status == 'accepted')
-                                <a href="tel:{{ $activeRide->driver->user->phone }}" class="border border-gray-300 text-gray-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition flex items-center">
+                        @endif
+                        
+                        @if(in_array($activeRide->reservation_status, ['matching', 'pending', 'accepted']) && !$activeRide->pickup_time)
+                            <form action="{{ route('passenger.cancel.ride', $activeRide->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this ride?')">
+                                @csrf
+                                <button type="submit" class="border border-red-300 text-red-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-red-50 transition flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                                     </svg>
-                                    Call Driver
-                                </a>
-                            @endif
-                            
-                            @if(in_array($activeRide->reservation_status, ['matching', 'pending', 'accepted']) && !$activeRide->pickup_time)
-                                <form action="{{ route('passenger.cancel.ride', $activeRide->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this ride?')">
-                                    @csrf
-                                    <button type="submit" class="border border-red-300 text-red-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-red-50 transition flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                        </svg>
-                                        Cancel Ride
-                                    </button>
-                                </form>
-                            @endif
-                        </div>
+                                    Cancel Ride
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </div>
-                @endif
+            </div>
+            @endif
 
-                <!-- Recent Rides or Historical Rides -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">{{ $activeRide ? 'Recent Rides' : 'Your Rides' }}</h2>
-                    
-                    @if(count($rideHistory) === 0)
-                        <div class="bg-gray-50 rounded-md p-4 text-center">
-                            <p class="text-gray-500">You don't have any past rides yet</p>
-                            <p class="text-sm text-gray-400 mt-1">Book your first ride to get started</p>
-                        </div>
-                    @else
-                        <div class="space-y-4">
-                            @foreach($rideHistory as $ride)
-                                <div class="border rounded-md p-4">
-                                    <div class="flex justify-between items-start mb-3">
-                                        <div>
-                                            <h3 class="font-medium">
-                                                @if($ride->driver)
-                                                    Ride with {{ $ride->driver->user->name }}
-                                                @else
-                                                    Cancelled Ride
-                                                @endif
-                                            </h3>
-                                            <p class="text-sm text-gray-500">{{ $ride->dropoff_time ? $ride->dropoff_time->format('M d, Y g:i A') : $ride->reservation_date->format('M d, Y g:i A') }}</p>
-                                        </div>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                            @if($ride->ride_status == 'completed') 
-                                                bg-green-100 text-green-800
-                                            @elseif($ride->reservation_status == 'cancelled') 
-                                                bg-red-100 text-red-800
-                                            @else 
-                                                bg-gray-100 text-gray-800
-                                            @endif
-                                        ">
-                                            @if($ride->ride_status == 'completed')
-                                                Completed
-                                            @elseif($ride->reservation_status == 'cancelled')
-                                                Cancelled
+            <!-- Recent Rides or Historical Rides -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold mb-4">{{ $activeRide ? 'Recent Rides' : 'Your Rides' }}</h2>
+                
+                @if(count($rideHistory) === 0)
+                    <div class="bg-gray-50 rounded-md p-4 text-center">
+                        <p class="text-gray-500">You don't have any past rides yet</p>
+                        <p class="text-sm text-gray-400 mt-1">Book your first ride to get started</p>
+                    </div>
+                @else
+                    <div class="space-y-4">
+                        @foreach($rideHistory as $ride)
+                            <div class="border rounded-md p-4">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h3 class="font-medium">
+                                            @if($ride->driver)
+                                                Ride with {{ $ride->driver->user->name }}
                                             @else
-                                                {{ ucfirst($ride->reservation_status) }}
+                                                Cancelled Ride
                                             @endif
-                                        </span>
+                                        </h3>
+                                        <p class="text-sm text-gray-500">{{ $ride->dropoff_time ? $ride->dropoff_time->format('M d, Y g:i A') : $ride->reservation_date->format('M d, Y g:i A') }}</p>
+                                    </div>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                        @if($ride->ride_status == 'completed') 
+                                            bg-green-100 text-green-800
+                                        @elseif($ride->reservation_status == 'cancelled') 
+                                            bg-red-100 text-red-800
+                                        @else 
+                                            bg-gray-100 text-gray-800
+                                        @endif
+                                    ">
+                                        @if($ride->ride_status == 'completed')
+                                            Completed
+                                        @elseif($ride->reservation_status == 'cancelled')
+                                            Cancelled
+                                        @else
+                                            {{ ucfirst($ride->reservation_status) }}
+                                        @endif
+                                    </span>
+                                </div>
+                                
+                                <div class="space-y-2 mb-3">
+                                    <div class="flex items-start">
+                                        <div class="mt-0.5 mr-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-sm text-gray-600">{{ $ride->pickup_location }} → {{ $ride->dropoff_location }}</p>
                                     </div>
                                     
-                                    <div class="space-y-2 mb-3">
-                                        <div class="flex items-start">
-                                            <div class="mt-0.5 mr-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                            </div>
-                                            <p class="text-sm text-gray-600">{{ $ride->pickup_location }} → {{ $ride->dropoff_location }}</p>
+                                    @if($ride->price)
+                                    <div class="flex items-start">
+                                        <div class="mt-0.5 mr-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
                                         </div>
-                                        
-                                        @if($ride->price)
-                                        <div class="flex items-start">
-                                            <div class="mt-0.5 mr-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                            </div>
-                                            <p class="text-sm text-gray-600">MAD {{ number_format($ride->price, 2) }}</p>
-                                        </div>
-                                        @endif
-                                        
-                                        @if($ride->vehicle_type)
-                                        <div class="flex items-start">
-                                            <div class="mt-0.5 mr-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                                </svg>
-                                            </div>
-                                            <p class="text-sm text-gray-600">{{ ucfirst($ride->vehicle_type) }}</p>
-                                        </div>
-                                        @endif
+                                        <p class="text-sm text-gray-600">MAD {{ number_format($ride->price, 2) }}</p>
                                     </div>
+                                    @endif
                                     
-                                    @if($ride->ride_status == 'completed' && !$ride->is_reviewed)
-                                        <button type="button" class="text-blue-600 text-sm font-medium hover:text-blue-800" 
-                                                onclick="openRateRideModal({{ $ride->id }})">
-                                            Rate this ride
-                                        </button>
+                                    @if($ride->vehicle_type)
+                                    <div class="flex items-start">
+                                        <div class="mt-0.5 mr-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-sm text-gray-600">{{ ucfirst($ride->vehicle_type) }}</p>
+                                    </div>
                                     @endif
                                 </div>
-                            @endforeach
-                            
-                            <div class="text-center mt-4">
-                                <a href="{{ route('passenger.history') }}" class="text-blue-600 text-sm font-medium hover:text-blue-800">
-                                    View all rides
-                                </a>
+                                
+                                @if($ride->ride_status == 'completed' && !$ride->is_reviewed)
+                                    <button type="button" class="text-blue-600 text-sm font-medium hover:text-blue-800" 
+                                            onclick="openRateRideModal({{ $ride->id }})">
+                                        Rate this ride
+                                    </button>
+                                @endif
                             </div>
+                        @endforeach
+                        
+                        <div class="text-center mt-4">
+                            <a href="{{ route('passenger.history') }}" class="text-blue-600 text-sm font-medium hover:text-blue-800">
+                                View all rides
+                            </a>
                         </div>
-                    @endif
-                </div>
+                    </div>
+                @endif
             </div>
         </div>
-    </main>
+    </div>
+@endsection
 
+@section('modals')
     <!-- Rate Ride Modal -->
     <div id="rate-ride-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
@@ -454,7 +393,7 @@
                     
                     <div class="mb-4">
                         <label for="comment" class="block text-sm font-medium text-gray-700">Comment (Optional)</label>
-                        <div class="mt-1">
+                        div class="mt-1">
                             <textarea id="comment" name="comment" rows="3" class="shadow-sm focus:ring-black focus:border-black block w-full sm:text-sm border-gray-300 rounded-md"></textarea>
                         </div>
                     </div>
@@ -471,10 +410,7 @@
             </div>
         </div>
     </div>
-
-    <!-- JavaScript for functionality -->
-  <!-- Add this right before the closing </body> tag in dashboard.blade.php -->
-<script>
+    <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map
     const map = L.map('map').setView([31.63, -8.0], 13); // Default center on Marrakech, Morocco
@@ -737,5 +673,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
     
 </script>
-</body>
-</html>
+@endsection
+

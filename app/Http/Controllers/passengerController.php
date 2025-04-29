@@ -143,38 +143,43 @@ public function activeRide()
      * Show the book ride page
      */
     public function bookRide()
-    {
-        // Check if user is suspended from requesting rides
-        if (Auth::user()->isRideSuspended()) {
-            $suspensionEnd = Auth::user()->ride_suspension_until->diffForHumans();
-            return redirect()->route('passenger.dashboard')->with('error', "You are temporarily suspended from requesting rides. Suspension ends $suspensionEnd");
-        }
-        
-        // Get vehicle types for selection
-        $vehicleTypes = Vehicle::select('type')->distinct()->get()->pluck('type');
-        
-        // Get all fare options
-        $fareOptions = FareSetting::all();
-        
-        // Get or create passenger record
-        $passenger = Passenger::firstOrCreate(
-            ['user_id' => Auth::id()],
-            [
-                'rating' => 5.0,
-                'total_rides' => 0,
-                'preferences' => null,
-                'ride_preferences' => null
-            ]
-        );
-        
-        // Get saved locations from passenger preferences
-        $savedLocations = [];
-        if ($passenger->preferences && isset($passenger->preferences['favorite_locations'])) {
-            $savedLocations = $passenger->preferences['favorite_locations'];
-        }
-        
-        return view('passenger.bookRide', compact('vehicleTypes', 'fareOptions', 'savedLocations'));
+{
+    // Check if user is suspended from requesting rides
+    if (Auth::user()->isRideSuspended()) {
+        $suspensionEnd = Auth::user()->ride_suspension_until->diffForHumans();
+        return redirect()->route('passenger.dashboard')->with('error', "You are temporarily suspended from requesting rides. Suspension ends $suspensionEnd");
     }
+    
+    // Check if user's account is not activated
+    if (Auth::user()->account_status !== 'activated') {
+        return redirect()->route('passenger.dashboard')->with('error', 'Your account needs to be activated before you can book rides. Please contact support.');
+    }
+    
+    // Get vehicle types for selection
+    $vehicleTypes = Vehicle::select('type')->distinct()->get()->pluck('type');
+    
+    // Get all fare options
+    $fareOptions = FareSetting::all();
+    
+    // Get or create passenger record
+    $passenger = Passenger::firstOrCreate(
+        ['user_id' => Auth::id()],
+        [
+            'rating' => 5.0,
+            'total_rides' => 0,
+            'preferences' => null,
+            'ride_preferences' => null
+        ]
+    );
+    
+    // Get saved locations from passenger preferences
+    $savedLocations = [];
+    if ($passenger->preferences && isset($passenger->preferences['favorite_locations'])) {
+        $savedLocations = $passenger->preferences['favorite_locations'];
+    }
+    
+    return view('passenger.bookRide', compact('vehicleTypes', 'fareOptions', 'savedLocations'));
+}
     
     /**
      * Calculate ride options based on location
@@ -400,7 +405,15 @@ public function activeRide()
     
     // Check if user is suspended from requesting rides
     if (Auth::user()->isRideSuspended()) {
-        return redirect()->route('passenger.dashboard')->with('error', 'You are temporarily suspended from requesting rides.');
+        $suspensionEnd = Auth::user()->ride_suspension_until->diffForHumans();
+        return redirect()->route('passenger.dashboard')
+            ->with('error', "You are temporarily suspended from requesting rides. Suspension ends $suspensionEnd");
+    }
+    
+    // Check if user's account is not activated
+    if (Auth::user()->account_status !== 'activated') {
+        return redirect()->route('passenger.dashboard')
+            ->with('error', 'Your account needs to be activated before you can request rides.');
     }
     
     // Get ride search params from session
@@ -411,7 +424,6 @@ public function activeRide()
     
     $passenger = Passenger::where('user_id', Auth::id())->first();
     $user = Auth::user();
-    
     
     // Calculate fare
     $fare = $this->calculateFare(
@@ -583,6 +595,7 @@ public function activeRide()
     {
         $ride = Ride::findOrFail($rideId);
         $passenger = Passenger::where('user_id', Auth::id())->first();
+        $user = Auth::user();
         
         // Check if ride belongs to passenger
         if ($ride->passenger_id !== $passenger->id) {
@@ -608,12 +621,20 @@ public function activeRide()
             // We may want to add a cancellation fee here
         }
         
-        // Check if passenger has multiple recent cancellations
-        if (Auth::user()->shouldBeSuspendedForCancellations()) {
-            // Suspend for 6 hours
-            Auth::user()->suspendRidesFor(6);
+        // Count recent cancellations (in the last hour)
+        $recentCancellations = Ride::where('passenger_id', $passenger->id)
+            ->where('reservation_status', 'cancelled')
+            ->where('updated_at', '>', now()->subHour())
+            ->count();
+        
+        \Log::info("Passenger #{$passenger->id} cancelled ride #{$ride->id}. Recent cancellations: {$recentCancellations}");
+        
+        // Check if passenger has 5 or more recent cancellations
+        if ($recentCancellations >= 5) {
+            // Suspend for 1 minute (for testing purposes)
+            $user->suspendRidesFor(1);
             
-            return back()->with('warning', 'You have cancelled too many rides recently. Your ability to request rides has been temporarily suspended for 6 hours.');
+            return back()->with('warning', 'You have cancelled too many rides recently. Your ability to request rides has been temporarily suspended for 1 minute.');
         }
         
         return back()->with('success', 'Ride cancelled successfully.');

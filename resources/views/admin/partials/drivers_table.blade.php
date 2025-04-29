@@ -63,6 +63,7 @@
                         <a href="{{ route('admin.user.status', ['id' => $driver->id, 'status' => 'activated']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Activate</a>
                         <a href="{{ route('admin.user.status', ['id' => $driver->id, 'status' => 'deactivated']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Deactivate</a>
                         <a href="{{ route('admin.user.status', ['id' => $driver->id, 'status' => 'suspended']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Suspend</a>
+                        <a href="{{ route('admin.user.status', ['id' => $driver->id, 'status' => 'pending']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pending</a>
                         <a href="{{ route('admin.user.delete', ['id' => $driver->id]) }}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100" onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">Delete</a>
                     </div>
                 </div>

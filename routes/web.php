@@ -41,6 +41,16 @@ Route::middleware('auth')->group(function () {
 
 // Driver routes - all protected by authentication and driver middleware
 Route::middleware(['auth', 'isdriver'])->group(function () {
+
+    Route::get('/driver/check-status', [DriverController::class, 'checkAccountStatus'])->name('driver.check.status');
+    Route::get('/driver/account/status', [DriverController::class, 'checkAccountStatus'])->name('account.status');
+    Route::get('/driver/account/suspended', function() {
+        $user = Auth::user();
+        return view('driver.accountSuspended', [
+            'reason' => 'Your account has been suspended due to policy violations or safety concerns.',
+            'status' => 'suspended'
+        ]);
+    })->middleware(['auth'])->name('driver.account.suspended');
     // Main dashboard
     Route::get('/driver/dashboard', [DriverController::class, 'dashboard'])->name('driver.dashboard');
     

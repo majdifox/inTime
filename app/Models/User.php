@@ -132,11 +132,15 @@ class User extends Authenticatable
     /**
      * Suspend the user from requesting rides for a specified number of hours
      */
-    public function suspendRidesFor($hours)
-    {
-        $this->ride_suspension_until = now()->addHours($hours);
-        $this->save();
-    }
+    public function suspendRidesFor($minutes)
+{
+    $this->ride_suspension_until = now()->addMinutes($minutes);
+    $this->save();
+    
+    \Log::info("User {$this->id} suspended from rides until {$this->ride_suspension_until}");
+    
+    return $this->ride_suspension_until;
+}
     
     /**
      * Get recent cancelled rides for this passenger
@@ -177,4 +181,6 @@ class User extends Authenticatable
     {
         return $this->gender === 'female' && $this->isDriver();
     }
+
+    
 }

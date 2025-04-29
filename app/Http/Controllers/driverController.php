@@ -287,6 +287,57 @@ class DriverController extends Controller
             'inProgressRides'
         ));
     }
+    public function checkAccountStatus()
+{
+    // Get current authenticated user's status
+    $user = Auth::user();
+    
+    if ($user->isRideSuspended()) {
+        $suspensionEnd = $user->ride_suspension_until->diffForHumans();
+        return view('driver.accountDeactivated', [
+            'suspensionEnd' => $suspensionEnd,
+            'reason' => 'You have been temporarily suspended due to multiple ride cancellations.',
+            'status' => 'suspended'
+        ]);
+    }
+
+    switch ($user->account_status) {
+        case 'deactivated':
+            // Show deactivated account page
+            return view('driver.accountDeactivated', [
+                'reason' => 'Your account is currently deactivated.',
+                'status' => 'deactivated'
+            ]);
+        
+        case 'pending':
+            // User with pending status should see "under review" page
+            return view('driver.underReview', [
+                'title' => 'Your Account is Under Review',
+                'message' => 'Thank you for registering as a driver with inTime. Our team is currently reviewing your documents and vehicle information.',
+                'status' => 'pending'
+            ]);
+        
+        case 'suspended':
+            // User with suspended status should see account suspended page with suspension info
+            return view('driver.accountSuspended', [
+                'reason' => 'Your account has been suspended due to policy violations or safety concerns.',
+                'status' => 'suspended'
+            ]);
+        
+        case 'deleted':
+            // User with deleted status should be logged out
+            Auth::logout();
+            return redirect()->route('login')->with('error', 'Your account has been deleted. Please contact support for assistance.');
+        
+        case 'activated':
+            // User with activated status should proceed to dashboard
+            return redirect()->route('driver.dashboard');
+        
+        default:
+            // Unknown status
+            return redirect()->route('home')->with('error', 'Your account has an unknown status. Please contact support.');
+    }
+}
     
     /**
      * Show incoming ride requests
