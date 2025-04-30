@@ -1,456 +1,408 @@
-<!-- passenger/activeRide.blade.php -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>inTime - Active Ride</title>
-    
-    <!-- Vite Assets -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
-    <!-- OpenStreetMap with Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-          crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-            crossorigin=""></script>
-</head>
-<body class="bg-gray-50">
-    <!-- Header/Navigation -->
-    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm">
-        <div class="flex items-center space-x-8">
-            <!-- Logo -->
-            <a href="{{ route('passenger.dashboard') }}" class="text-2xl font-bold">inTime</a>
-            
-            <!-- Navigation Links -->
-            <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('passenger.history') }}" class="font-medium">Ride History</a>
-                <a href="{{ route('passenger.profile.private') }}" class="font-medium">My Profile</a>
-            </nav>
-        </div>
-        
-        
-        
-        <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
-            @if(Auth::user()->profile_picture)
-                <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
-            @else
-                <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
-            @endif
-        </div>
-    </header>
+@extends('passenger.layouts.passenger')
 
-    <!-- Main Content -->
-<main class="container mx-auto px-4 py-8">
-    <div class="flex flex-col lg:flex-row gap-6">
-        <!-- Left Column - Ride Info and Driver Details -->
-        <div class="w-full lg:w-1/3 flex flex-col gap-6">
-            <!-- Ride Status Card -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex justify-between items-start mb-4">
-                    <h2 class="text-xl font-bold">Your Ride</h2>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        @if($activeRide->reservation_status == 'matching') 
-                            bg-yellow-100 text-yellow-800
-                        @elseif($activeRide->pickup_time && !$activeRide->dropoff_time) 
-                            bg-green-100 text-green-800
-                        @else 
-                            bg-blue-100 text-blue-800
-                        @endif
-                    ">
-                        @if($activeRide->reservation_status == 'matching')
-                            Finding Driver
-                        @elseif($activeRide->pickup_time && !$activeRide->dropoff_time)
-                            In Progress
-                        @elseif($activeRide->reservation_status == 'accepted' && !$activeRide->pickup_time)
-                            Driver En Route
-                        @else
-                            {{ ucfirst($activeRide->reservation_status) }}
-                        @endif
-                    </span>
+@section('title', 'inTime - Active Ride')
+
+@section('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+      crossorigin=""/>
+@endsection
+
+@section('head-scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+        crossorigin=""></script>
+@endsection
+
+@section('content')
+<div class="flex flex-col lg:flex-row gap-6">
+    <!-- Left Column - Ride Info and Driver Details -->
+    <div class="w-full lg:w-1/3 flex flex-col gap-6">
+        <!-- Ride Status Card -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-start mb-4">
+                <h2 class="text-xl font-bold">Your Ride</h2>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                    @if($activeRide->reservation_status == 'matching') 
+                        bg-yellow-100 text-yellow-800
+                    @elseif($activeRide->pickup_time && !$activeRide->dropoff_time) 
+                        bg-green-100 text-green-800
+                    @else 
+                        bg-blue-100 text-blue-800
+                    @endif
+                ">
+                    @if($activeRide->reservation_status == 'matching')
+                        Finding Driver
+                    @elseif($activeRide->pickup_time && !$activeRide->dropoff_time)
+                        In Progress
+                    @elseif($activeRide->reservation_status == 'accepted' && !$activeRide->pickup_time)
+                        Driver En Route
+                    @else
+                        {{ ucfirst($activeRide->reservation_status) }}
+                    @endif
+                </span>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <circle cx="12" cy="12" r="8" stroke-width="2" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">Pickup Location</p>
+                        <p class="text-sm text-gray-600">{{ $activeRide->pickup_location }}</p>
+                    </div>
                 </div>
                 
-                <div class="space-y-4">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 mt-1">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mt-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <circle cx="12" cy="12" r="8" stroke-width="2" />
-                            </svg>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">Destination</p>
+                        <p class="text-sm text-gray-600">{{ $activeRide->dropoff_location }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">Fare</p>
+                        <p class="text-sm text-gray-600">
+                            MAD {{ number_format($activeRide->price, 2) }}
+                            @if($activeRide->surge_multiplier > 1)
+                                <span class="text-xs text-red-600 ml-1">(Surge x{{ $activeRide->surge_multiplier }})</span>
+                            @endif
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">Scheduled Time</p>
+                        <p class="text-sm text-gray-600">{{ $activeRide->reservation_date->format('M d, Y g:i A') }}</p>
+                    </div>
+                </div>
+                
+                @if($activeRide->pickup_time)
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">Pickup Time</p>
+                        <p class="text-sm text-gray-600">{{ $activeRide->pickup_time->format('g:i A') }}</p>
+                    </div>
+                </div>
+                @else
+                <div class="flex items-start" id="eta-container">
+                    <div class="flex-shrink-0 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">Estimated Arrival</p>
+                        <p class="text-sm text-gray-600" id="eta-time">Calculating...</p>
+                    </div>
+                </div>
+                @endif
+                
+                @if($activeRide->vehicle_type)
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">Vehicle Type</p>
+                        <p class="text-sm text-gray-600">{{ ucfirst($activeRide->vehicle_type) }}</p>
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+        
+        <!-- Driver Card -->
+        @if($activeRide->driver)
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4">Your Driver</h2>
+            
+            <div class="flex items-start">
+                <div class="h-16 w-16 rounded-full bg-gray-200 overflow-hidden mr-4">
+                    @if($activeRide->driver->user->profile_picture)
+                        <img src="{{ asset('storage/' . $activeRide->driver->user->profile_picture) }}" alt="Driver" class="h-full w-full object-cover">
+                    @else
+                        <div class="h-full w-full flex items-center justify-center bg-gray-400 text-white">
+                            {{ strtoupper(substr($activeRide->driver->user->name, 0, 1)) }}
                         </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium">Pickup Location</p>
-                            <p class="text-sm text-gray-600">{{ $activeRide->pickup_location }}</p>
+                    @endif
+                </div>
+                <div>
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-medium text-lg">{{ $activeRide->driver->user->name }}</h3>
+                        <div class="flex items-center">
+                            @if($activeRide->driver->women_only_driver)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800 mr-2">
+                                    Women Only
+                                </span>
+                            @endif
+                            <span class="text-sm">{{ number_format($activeRide->driver->rating, 1) }} 
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="text-sm text-gray-600">{{ ucfirst($activeRide->driver->user->gender) }}</span>
+                        
+                        <span class="mx-2 text-gray-300">|</span>
+                        
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                        </svg>
+                        <span class="text-sm text-gray-600">{{ $activeRide->driver->completed_rides }} rides</span>
+                    </div>
+                </div>
+            </div>
+            <br>
+            
+            <!-- Driver Profile Link -->
+            <a href="{{ route('driver.profile', $activeRide->driver->id) }}" class="text-blue-600 hover:text-blue-800 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                </svg>
+                Driver Profile
+            </a>
+            
+            <div class="mt-4 border-t border-gray-200 pt-4">
+                <h3 class="font-medium mb-2">Vehicle Information</h3>
+                <div class="flex items-center space-x-4">
+                    <div class="h-12 w-12 bg-gray-200 rounded-md overflow-hidden">
+                        @if($activeRide->driver->vehicle && $activeRide->driver->vehicle->vehicle_photo)
+                            <img src="{{ asset('storage/' . $activeRide->driver->vehicle->vehicle_photo) }}" alt="Vehicle" class="h-full w-full object-cover">
+                        @else
+                            <div class="h-full w-full flex items-center justify-center text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m-8 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
+                            </div>
+                        @endif
+                    </div>
+                    <div>
+                        <p class="font-medium">{{ $activeRide->driver->vehicle->make }} {{ $activeRide->driver->vehicle->model }}</p>
+                        <p class="text-sm text-gray-600">{{ $activeRide->driver->vehicle->color }} · {{ $activeRide->driver->vehicle->plate_number }}</p>
+                        <div class="mt-1">
+                            <span class="px-2 py-0.5 rounded text-xs font-medium 
+                                @if($activeRide->driver->vehicle->type === 'women')
+                                    bg-pink-100 text-pink-800
+                                @elseif($activeRide->driver->vehicle->type === 'share')
+                                    bg-blue-100 text-blue-800
+                                @elseif($activeRide->driver->vehicle->type === 'comfort')
+                                    bg-green-100 text-green-800
+                                @elseif($activeRide->driver->vehicle->type === 'wav')
+                                    bg-purple-100 text-purple-800
+                                @elseif($activeRide->driver->vehicle->type === 'black')
+                                    bg-gray-800 text-white
+                                @endif
+                            ">
+                                {{ ucfirst($activeRide->driver->vehicle->type) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <div class="flex space-x-3">
+                    <a href="tel:{{ $activeRide->driver->user->phone }}" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                        </svg>
+                        Call Driver
+                    </a>
+                    <button type="button" id="message-driver-btn" class="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium hover:bg-gray-50 transition flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd" />
+                        </svg>
+                        Message
+                    </button>
+                </div>
+            </div>
+        </div>
+        @endif
+        
+        <!-- Ride Actions -->
+        <div class="">
+            <h2 class="text-xl font-bold mb-4"></h2>
+            
+            <div class="space-y-3">
+              
+                
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column - Map and Trip Progress -->
+    <div class="w-full lg:w-2/3 flex flex-col gap-6">
+        <!-- Map Container -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="h-96" id="map"></div>
+        </div>
+        
+        <!-- Trip Progress -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4">Trip Progress</h2>
+            
+            <div class="relative">
+                <!-- Timeline -->
+                <div class="border-l-2 border-blue-500 ml-4 py-2">
+                    <!-- Driver Matched -->
+                    <div class="relative mb-8">
+                        <div class="absolute -left-4 mt-1">
+                            <div class="bg-blue-500 h-6 w-6 rounded-full flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-8">
+                            <h3 class="font-medium">Driver Matched</h3>
+                            <p class="text-sm text-gray-500">{{ $activeRide->updated_at->format('g:i A') }}</p>
                         </div>
                     </div>
                     
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 mt-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
+                    <!-- Driver En Route -->
+                    <div class="relative mb-8" id="driver-en-route-status">
+                        <div class="absolute -left-4 mt-1">
+                            <div class="h-6 w-6 rounded-full flex items-center justify-center
+                                @if($activeRide->pickup_time)
+                                    bg-blue-500
+                                @else
+                                    bg-blue-500 animate-pulse
+                                @endif
+                            ">
+                                @if($activeRide->pickup_time)
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                @else
+                                    <div class="h-2 w-2 bg-white rounded-full"></div>
+                                @endif
+                            </div>
                         </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium">Destination</p>
-                            <p class="text-sm text-gray-600">{{ $activeRide->dropoff_location }}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 mt-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium">Fare</p>
-                            <p class="text-sm text-gray-600">
-                                MAD {{ number_format($activeRide->price, 2) }}
-                                @if($activeRide->surge_multiplier > 1)
-                                    <span class="text-xs text-red-600 ml-1">(Surge x{{ $activeRide->surge_multiplier }})</span>
+                        <div class="ml-8">
+                            <h3 class="font-medium">Driver En Route</h3>
+                            <p class="text-sm text-gray-500">
+                                @if($activeRide->pickup_time)
+                                    Completed
+                                @else
+                                    In progress...
                                 @endif
                             </p>
                         </div>
                     </div>
                     
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 mt-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium">Scheduled Time</p>
-                            <p class="text-sm text-gray-600">{{ $activeRide->reservation_date->format('M d, Y g:i A') }}</p>
-                        </div>
-                    </div>
-                    
-                    @if($activeRide->pickup_time)
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 mt-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium">Pickup Time</p>
-                            <p class="text-sm text-gray-600">{{ $activeRide->pickup_time->format('g:i A') }}</p>
-                        </div>
-                    </div>
-                    @else
-                    <div class="flex items-start" id="eta-container">
-                        <div class="flex-shrink-0 mt-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium">Estimated Arrival</p>
-                            <p class="text-sm text-gray-600" id="eta-time">Calculating...</p>
-                        </div>
-                    </div>
-                    @endif
-                    
-                    @if($activeRide->vehicle_type)
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 mt-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium">Vehicle Type</p>
-                            <p class="text-sm text-gray-600">{{ ucfirst($activeRide->vehicle_type) }}</p>
-                        </div>
-                    </div>
-                    @endif
-                </div>
-            </div>
-            
-            <!-- Driver Card -->
-            @if($activeRide->driver)
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold mb-4">Your Driver</h2>
-                
-                <div class="flex items-start">
-                    <div class="h-16 w-16 rounded-full bg-gray-200 overflow-hidden mr-4">
-                        @if($activeRide->driver->user->profile_picture)
-                            <img src="{{ asset('storage/' . $activeRide->driver->user->profile_picture) }}" alt="Driver" class="h-full w-full object-cover">
-                        @else
-                            <div class="h-full w-full flex items-center justify-center bg-gray-400 text-white">
-                                {{ strtoupper(substr($activeRide->driver->user->name, 0, 1)) }}
-                            </div>
-                        @endif
-                    </div>
-                    <div>
-                        <div class="flex justify-between items-start">
-                            <h3 class="font-medium text-lg">{{ $activeRide->driver->user->name }}</h3>
-                            <div class="flex items-center">
-                                @if($activeRide->driver->women_only_driver)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800 mr-2">
-                                        Women Only
-                                    </span>
-                                @endif
-                                <span class="text-sm">{{ number_format($activeRide->driver->rating, 1) }} 
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                    </svg>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="flex items-center mt-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                            </svg>
-                            <span class="text-sm text-gray-600">{{ ucfirst($activeRide->driver->user->gender) }}</span>
-                            
-                            <span class="mx-2 text-gray-300">|</span>
-                            
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                            </svg>
-                            <span class="text-sm text-gray-600">{{ $activeRide->driver->completed_rides }} rides</span>
-                        </div>
-                    </div>
-                    
-                </div>
-                <br>
-                
-                        <!-- In passenger/activeRide.blade.php in the driver info section -->
-        <a href="{{ route('driver.profile', $activeRide->driver->id) }}" class="text-blue-600 hover:text-blue-800 flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-</svg>
-    Driver Profile
-</a>
-                
-                <div class="mt-4 border-t border-gray-200 pt-4">
-                    <h3 class="font-medium mb-2">Vehicle Information</h3>
-                    <div class="flex items-center space-x-4">
-                        <div class="h-12 w-12 bg-gray-200 rounded-md overflow-hidden">
-                            @if($activeRide->driver->vehicle && $activeRide->driver->vehicle->vehicle_photo)
-                                <img src="{{ asset('storage/' . $activeRide->driver->vehicle->vehicle_photo) }}" alt="Vehicle" class="h-full w-full object-cover">
-                            @else
-                                <div class="h-full w-full flex items-center justify-center text-gray-400">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m-8 6H4m0 0l4 4m-4-4l4-4" />
-                                    </svg>
-                                </div>
-                            @endif
-                        </div>
-                        <div>
-                            <p class="font-medium">{{ $activeRide->driver->vehicle->make }} {{ $activeRide->driver->vehicle->model }}</p>
-                            <p class="text-sm text-gray-600">{{ $activeRide->driver->vehicle->color }} · {{ $activeRide->driver->vehicle->plate_number }}</p>
-                            <div class="mt-1">
-                                <span class="px-2 py-0.5 rounded text-xs font-medium 
-                                    @if($activeRide->driver->vehicle->type === 'women')
-                                        bg-pink-100 text-pink-800
-                                    @elseif($activeRide->driver->vehicle->type === 'share')
-                                        bg-blue-100 text-blue-800
-                                    @elseif($activeRide->driver->vehicle->type === 'comfort')
-                                        bg-green-100 text-green-800
-                                    @elseif($activeRide->driver->vehicle->type === 'wav')
-                                        bg-purple-100 text-purple-800
-                                    @elseif($activeRide->driver->vehicle->type === 'black')
-                                        bg-gray-800 text-white
-                                    @endif
-                                ">
-                                    {{ ucfirst($activeRide->driver->vehicle->type) }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                    <div class="flex space-x-3">
-                        <a href="tel:{{ $activeRide->driver->user->phone }}" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                            </svg>
-                            Call Driver
-                        </a>
-                        <button type="button" id="message-driver-btn" class="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium hover:bg-gray-50 transition flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd" />
-                            </svg>
-                            Message
-                        </button>
-                    </div>
-                </div>
-            </div>
-            @endif
-            
-            <!-- Ride Actions -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold mb-4">Actions</h2>
-                
-                <div class="space-y-3">
-                    <button type="button" id="change-destination-btn" class="w-full bg-gray-100 text-gray-800 py-2 px-4 rounded-md font-medium hover:bg-gray-200 transition flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                        </svg>
-                        Change Destination
-                    </button>
-                    
-                    <button type="button" id="report-issue-btn" class="w-full bg-gray-100 text-gray-800 py-2 px-4 rounded-md font-medium hover:bg-gray-200 transition flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                        </svg>
-                        Report an Issue
-                    </button>
-                </div>
-            </div>
-        </div>
-
-
-        
-        <!-- Right Column - Map and Trip Progress -->
-        <div class="w-full lg:w-2/3 flex flex-col gap-6">
-            <!-- Map Container -->
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                <div class="h-96" id="map"></div>
-            </div>
-            
-            <!-- Trip Progress -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold mb-4">Trip Progress</h2>
-                
-                <div class="relative">
-                    <!-- Timeline -->
-                    <div class="border-l-2 border-blue-500 ml-4 py-2">
-                        <!-- Driver Matched -->
-                        <div class="relative mb-8">
-                            <div class="absolute -left-4 mt-1">
-                                <div class="bg-blue-500 h-6 w-6 rounded-full flex items-center justify-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="ml-8">
-                                <h3 class="font-medium">Driver Matched</h3>
-                                <p class="text-sm text-gray-500">{{ $activeRide->updated_at->format('g:i A') }}</p>
-                            </div>
-                        </div>
-                        
-                        
-                        <!-- Driver En Route -->
-                        <div class="relative mb-8" id="driver-en-route-status">
-                            <div class="absolute -left-4 mt-1">
-                                <div class="h-6 w-6 rounded-full flex items-center justify-center
-                                    @if($activeRide->pickup_time)
+                    <!-- Pickup -->
+                    <div class="relative mb-8" id="pickup-status">
+                        <div class="absolute -left-4 mt-1">
+                            <div class="h-6 w-6 rounded-full flex items-center justify-center
+                                @if($activeRide->pickup_time)
+                                    @if($activeRide->dropoff_time)
                                         bg-blue-500
                                     @else
                                         bg-blue-500 animate-pulse
                                     @endif
-                                ">
-                                    @if($activeRide->pickup_time)
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                        </svg>
-                                    @else
-                                        <div class="h-2 w-2 bg-white rounded-full"></div>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="ml-8">
-                                <h3 class="font-medium">Driver En Route</h3>
-                                <p class="text-sm text-gray-500">
-                                    @if($activeRide->pickup_time)
-                                        Completed
-                                    @else
-                                        In progress...
-                                    @endif
-                                </p>
+                                @else
+                                    bg-gray-300
+                                @endif
+                            ">
+                                @if($activeRide->pickup_time && $activeRide->dropoff_time)
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                @elseif($activeRide->pickup_time)
+                                    <div class="h-2 w-2 bg-white rounded-full"></div>
+                                @endif
                             </div>
                         </div>
-                        
-                        <!-- Pickup -->
-                        <div class="relative mb-8" id="pickup-status">
-                            <div class="absolute -left-4 mt-1">
-                                <div class="h-6 w-6 rounded-full flex items-center justify-center
-                                    @if($activeRide->pickup_time)
-                                        @if($activeRide->dropoff_time)
-                                            bg-blue-500
-                                        @else
-                                            bg-blue-500 animate-pulse
-                                        @endif
-                                    @else
-                                        bg-gray-300
-                                    @endif
-                                ">
-                                    @if($activeRide->pickup_time && $activeRide->dropoff_time)
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                        </svg>
-                                    @elseif($activeRide->pickup_time)
-                                        <div class="h-2 w-2 bg-white rounded-full"></div>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="ml-8">
-                                <h3 class="font-medium @if(!$activeRide->pickup_time) text-gray-400 @endif">Pickup</h3>
-                                <p class="text-sm @if(!$activeRide->pickup_time) text-gray-400 @else text-gray-500 @endif">
-                                    @if($activeRide->pickup_time)
-                                        {{ $activeRide->pickup_time->format('g:i A') }}
-                                    @else
-                                        Pending...
-                                    @endif
-                                </p>
+                        <div class="ml-8">
+                            <h3 class="font-medium @if(!$activeRide->pickup_time) text-gray-400 @endif">Pickup</h3>
+                            <p class="text-sm @if(!$activeRide->pickup_time) text-gray-400 @else text-gray-500 @endif">
+                            @if($activeRide->pickup_time)
+                                    {{ $activeRide->pickup_time->format('g:i A') }}
+                                @else
+                                    Pending...
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Drop-off -->
+                    <div class="relative" id="dropoff-status">
+                        <div class="absolute -left-4 mt-1">
+                            <div class="h-6 w-6 rounded-full flex items-center justify-center
+                                @if($activeRide->dropoff_time)
+                                    bg-blue-500
+                                @else
+                                    bg-gray-300
+                                @endif
+                            ">
+                                @if($activeRide->dropoff_time)
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                @endif
                             </div>
                         </div>
-                        
-                        <!-- Drop-off -->
-                        <div class="relative" id="dropoff-status">
-                            <div class="absolute -left-4 mt-1">
-                                <div class="h-6 w-6 rounded-full flex items-center justify-center
-                                    @if($activeRide->dropoff_time)
-                                        bg-blue-500
-                                    @else
-                                        bg-gray-300
-                                    @endif
-                                ">
-                                    @if($activeRide->dropoff_time)
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                        </svg>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="ml-8">
-                                <h3 class="font-medium @if(!$activeRide->dropoff_time) text-gray-400 @endif">Drop-off</h3>
-                                <p class="text-sm @if(!$activeRide->dropoff_time) text-gray-400 @else text-gray-500 @endif">
-                                    @if($activeRide->dropoff_time)
-                                        {{ $activeRide->dropoff_time->format('g:i A') }}
-                                    @else
-                                        Pending...
-                                    @endif
-                                </p>
-                            </div>
+                        <div class="ml-8">
+                            <h3 class="font-medium @if(!$activeRide->dropoff_time) text-gray-400 @endif">Drop-off</h3>
+                            <p class="text-sm @if(!$activeRide->dropoff_time) text-gray-400 @else text-gray-500 @endif">
+                                @if($activeRide->dropoff_time)
+                                    {{ $activeRide->dropoff_time->format('g:i A') }}
+                                @else
+                                    Pending...
+                                @endif
+                            </p>
                         </div>
                     </div>
                 </div>
-                <div class="flex justify-center space-x-4">
-            @if(!$activeRide->pickup_time)
-            <form id="cancel-ride-form" action="{{ route('passenger.cancel.ride', $activeRide->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this ride?');">
-                @csrf
-                <button type="submit" class="bg-red-500 text-white py-2 px-6 rounded-md font-medium hover:bg-red-600 transition">
-                    Cancel Ride
-                </button>
-            </form>
-            @endif
-        </div>
             </div>
-            
+            <div class="flex justify-center space-x-4 mt-6">
+                @if(!$activeRide->pickup_time)
+                <form id="cancel-ride-form" action="{{ route('passenger.cancel.ride', $activeRide->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this ride?');">
+                    @csrf
+                    <button type="submit" class="bg-red-500 text-white py-2 px-6 rounded-md font-medium hover:bg-red-600 transition">
+                        Cancel Ride
+                    </button>
+                </form>
+                @endif
+            </div>
         </div>
-        
     </div>
-    
-</main>
+</div>
 
 <!-- Change Destination Modal -->
 <div id="change-destination-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
@@ -547,6 +499,7 @@
             </form>
         </div>
     </div>
+    
 </div>
 
 <!-- Message Modal -->
@@ -928,3 +881,4 @@ checkRideStatus();
 </script>
 </body>
 </html>
+@endsection

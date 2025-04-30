@@ -8,9 +8,7 @@ use App\Http\Controllers\PassengerController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DriverProfileController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\Auth\LogoutController;
+
 
 
 use App\Http\Controllers\Auth\GoogleLoginController;
@@ -26,24 +24,6 @@ use App\Http\Controllers\Auth\GoogleLoginController;
 |
 */
 require __DIR__.'/auth.php';
-
-// Authentication Routes
-Route::middleware('guest')->group(function () {
-    // Login
-    Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [LoginController::class, 'login']);
-    
-    // Registration
-    Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-    Route::post('register', [RegisterController::class, 'register']);
-    
-    // Google OAuth
-    Route::get('auth/google', [GoogleLoginController::class, 'redirectToGoogle'])->name('auth.google');
-    Route::get('auth/google/callback', [GoogleLoginController::class, 'handleGoogleCallback']);
-});
-
-// Logout Route
-Route::post('logout', [LogoutController::class, 'logout'])->name('logout')->middleware('auth');
 
 // Default route to home controller
 Route::get('/', [HomeController::class, 'index'])->name('home');

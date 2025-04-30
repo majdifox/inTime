@@ -145,28 +145,14 @@
                 </div>
                   <!-- Profile Navigation -->
                   <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">Profile Settings</h2>
                     
-                    <nav class="space-y-2">
-                        <a href="#profile-section" class="block px-3 py-2 rounded-md bg-blue-50 text-blue-600 font-medium">
-                            Driver Profile
-                        </a>
-                        <a href="#vehicle-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
-                            Vehicle Information
-                        </a>
-                        <a href="#stats-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
-                            Statistics & Earnings
-                        </a>
-                        <a href="#documents-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
-                            Documents & Verification
-                        </a>
-                        <a href="#password-section" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition">
-                            Change Password
-                        </a>
-                        <a href="{{ route('driver.public.profile', $driver->id) }}" class="block px-3 py-2 rounded-md hover:bg-gray-50 transition text-blue-600">
+                    <a href="{{ route('driver.public.profile', $driver->id) }}" class="text-xl font-bold  mb-4 block px-3 py-2 rounded-md hover:bg-gray-50 transition text-blue-600">
                             View Public Profile
                         </a>
-                    </nav>
+                
+                       
+                        
+                 
                 </div>
             </div>
             

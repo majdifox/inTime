@@ -1,240 +1,261 @@
+@extends('passenger.layouts.passenger')
 
-<!-- passenger/bookRide.blade.php -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>inTime - Book a Ride</title>
-    
-    <!-- Vite Assets -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
-    <!-- OpenStreetMap with Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-          crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-            crossorigin=""></script>
-    
-    <!-- Add Leaflet Routing Machine for directions -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-</head>
-<body class="bg-gray-50">
-    <!-- Header/Navigation -->
-    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm">
-        <div class="flex items-center space-x-8">
-            <!-- Logo -->
-            <a href="{{ route('passenger.dashboard') }}" class="text-2xl font-bold">inTime</a>
+@section('title', 'inTime - Book a Ride')
+
+@section('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+      crossorigin=""/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+@endsection
+
+@section('content')
+<div class="flex flex-col lg:flex-row gap-6">
+    <!-- Left Column -- Search Form -->
+    <div class="w-full lg:w-1/3 flex flex-col gap-6">
+        <!-- Ride Search Card -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4">Where are you going?</h2>
             
-            <!-- Navigation Links -->
-            <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('passenger.history') }}" class="font-medium">Ride History</a>
-                <a href="{{ route('passenger.profile.private') }}" class="font-medium">My Profile</a>
-            </nav>
-        </div>
-        
-        
-        <div class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
-            @if(Auth::user()->profile_picture)
-                <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
-            @else
-                <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
-            @endif
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
-        @if(session('success'))
-            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow" role="alert">
-                <p>{{ session('success') }}</p>
-            </div>
-        @endif
-        
-        @if(session('error'))
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow" role="alert">
-                <p>{{ session('error') }}</p>
-            </div>
-        @endif
-        
-                                <div class="flex flex-col lg:flex-row gap-6">
-                                    <!-- Left Column -- Search Form -->
-                                    <div class="w-full lg:w-1/3 flex flex-col gap-6">
-                                        <!-- Ride Search Card -->
-                                        <div class="bg-white rounded-lg shadow-md p-6">
-                                            <h2 class="text-xl font-bold mb-4">Where are you going?</h2>
-                                            
-                                            <div id="search-form" class="space-y-4">
-                                            <div>
-                            <label for="pickup_location" class="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
-                            <div class="relative">
-                                <input type="text" id="pickup_location" name="pickup_location" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" placeholder="Enter pickup location">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <circle cx="10" cy="10" r="8" stroke-width="1" />
-                                    </svg>
-                                </div>
-                                
-
-                                 <!-- Add the locate me button -->
-                                <div class="absolute inset-y-0 right-0 flex items-center">
-                                    
-                                
-                                <!-- Saved Locations Dropdown -->
-                                @if(isset($savedLocations) && count($savedLocations) > 0)
-                                <div class="absolute right-2 top-2">
-                                    <button type="button" id="saved-pickup-btn" class="text-gray-500 hover:text-gray-700">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <div id="saved-pickup-dropdown" class="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                                        <div class="py-1" role="menu" aria-orientation="vertical">
-                                            @foreach($savedLocations as $location)
-                                            <button type="button" class="saved-location-item block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" 
-                                                    data-address="{{ $location['address'] }}" 
-                                                    data-lat="{{ $location['latitude'] }}" 
-                                                    data-lng="{{ $location['longitude'] }}"
-                                                    data-target="pickup">
-                                                <span class="font-medium">{{ $location['name'] }}</span> - {{ $location['type'] }}
-                                            </button>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
-                                @endif
-                            </div>
-                            <input type="hidden" id="pickup_latitude" name="pickup_latitude">
-                            <input type="hidden" id="pickup_longitude" name="pickup_longitude">
-                        </div>
-                        
-                        <div>
-                            <label for="dropoff_location" class="block text-sm font-medium text-gray-700 mb-1">Destination</label>
-                            <div class="relative">
-                                <input type="text" id="dropoff_location" name="dropoff_location" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" placeholder="Enter destination">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                
-                                <!-- Saved Locations Dropdown -->
-                                @if(isset($savedLocations) && count($savedLocations) > 0)
-                                <div class="absolute right-2 top-2">
-                                    <button type="button" id="saved-dropoff-btn" class="text-gray-500 hover:text-gray-700">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <div id="saved-dropoff-dropdown" class="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                                        <div class="py-1" role="menu" aria-orientation="vertical">
-                                            @foreach($savedLocations as $location)
-                                            <button type="button" class="saved-location-item block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" 
-                                                    data-address="{{ $location['address'] }}" 
-                                                    data-lat="{{ $location['latitude'] }}" 
-                                                    data-lng="{{ $location['longitude'] }}"
-                                                    data-target="dropoff">
-                                                <span class="font-medium">{{ $location['name'] }}</span> - {{ $location['type'] }}
-                                            </button>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
-                                @endif
-                            </div>
-                            <input type="hidden" id="dropoff_latitude" name="dropoff_latitude">
-                            <input type="hidden" id="dropoff_longitude" name="dropoff_longitude">
-                        </div>
-                        
-                        <button type="button" id="search-rides-btn" class="w-full bg-black text-white py-3 px-4 rounded-md font-medium hover:bg-gray-800 transition flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+            <div id="search-form" class="space-y-4">
+                <div>
+                    <label for="pickup_location" class="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
+                    <div class="relative">
+                        <input type="text" id="pickup_location" name="pickup_location" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" placeholder="Enter pickup location">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <circle cx="10" cy="10" r="8" stroke-width="1" />
                             </svg>
-                            Find Rides
-                        </button>
+                        </div>
+                        
+                        <!-- Saved Locations Dropdown -->
+                        @if(isset($savedLocations) && count($savedLocations) > 0)
+                        <div class="absolute right-2 top-2">
+                            <button type="button" id="saved-pickup-btn" class="text-gray-500 hover:text-gray-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <div id="saved-pickup-dropdown" class="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                                <div class="py-1" role="menu" aria-orientation="vertical">
+                                    @foreach($savedLocations as $location)
+                                    <button type="button" class="saved-location-item block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" 
+                                            data-address="{{ $location['address'] }}" 
+                                            data-lat="{{ $location['latitude'] }}" 
+                                            data-lng="{{ $location['longitude'] }}"
+                                            data-target="pickup">
+                                        <span class="font-medium">{{ $location['name'] }}</span> - {{ $location['type'] }}
+                                    </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                    <input type="hidden" id="pickup_latitude" name="pickup_latitude">
+                    <input type="hidden" id="pickup_longitude" name="pickup_longitude">
+                </div>
+                
+                <div>
+                    <label for="dropoff_location" class="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+                    <div class="relative">
+                        <input type="text" id="dropoff_location" name="dropoff_location" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" placeholder="Enter destination">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        
+                        <!-- Saved Locations Dropdown -->
+                        @if(isset($savedLocations) && count($savedLocations) > 0)
+                        <div class="absolute right-2 top-2">
+                            <button type="button" id="saved-dropoff-btn" class="text-gray-500 hover:text-gray-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <div id="saved-dropoff-dropdown" class="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                                <div class="py-1" role="menu" aria-orientation="vertical">
+                                    @foreach($savedLocations as $location)
+                                    <button type="button" class="saved-location-item block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" 
+                                            data-address="{{ $location['address'] }}" 
+                                            data-lat="{{ $location['latitude'] }}" 
+                                            data-lng="{{ $location['longitude'] }}"
+                                            data-target="dropoff">
+                                        <span class="font-medium">{{ $location['name'] }}</span> - {{ $location['type'] }}
+                                    </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                    <input type="hidden" id="dropoff_latitude" name="dropoff_latitude">
+                    <input type="hidden" id="dropoff_longitude" name="dropoff_longitude">
+                </div>
+                
+                <button type="button" id="search-rides-btn" class="w-full bg-black text-white py-3 px-4 rounded-md font-medium hover:bg-gray-800 transition flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                    </svg>
+                    Find Rides
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Location Card (Hidden by default) -->
+    <div id="save-location-card" class="bg-white rounded-lg shadow-md p-6 hidden">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Save Location</h2>
+            <button type="button" id="close-save-location" class="text-gray-400 hover:text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <form action="{{ route('passenger.save.location') }}" method="POST" class="space-y-4">
+            @csrf
+            <div>
+                <label for="location_name" class="block text-sm font-medium text-gray-700 mb-1">Location Name</label>
+                <input type="text" id="location_name" name="name" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" placeholder="E.g., Home, Office, Gym">
+            </div>
+            
+            <div>
+                <label for="location_type" class="block text-sm font-medium text-gray-700 mb-1">Location Type</label>
+                <select id="location_type" name="type" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm">
+                    <option value="home">Home</option>
+                    <option value="work">Work</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="location_address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <input type="text" id="location_address" name="address" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" readonly>
+                <input type="hidden" id="location_latitude" name="latitude">
+                <input type="hidden" id="location_longitude" name="longitude">
+            </div>
+            
+            <button type="submit" class="w-full bg-black text-white py-2 px-4 rounded-md font-medium hover:bg-gray-800 transition">
+                Save Location
+            </button>
+        </form>
+    </div>
+    
+    <!-- Ride Options Card (Hidden by default) -->
+    <div id="ride-options-card" class="bg-white rounded-lg shadow-md p-6 hidden">
+        <h2 class="text-xl font-bold mb-4">Available Rides</h2>
+        
+        <div id="ride-options-container" class="space-y-4">
+            <!-- Ride options will be populated here by JavaScript -->
+        </div>
+    </div>
+    
+    <!-- Right Column - Map, Distance Info -->
+    <div class="w-full lg:w-2/3 flex flex-col gap-6">
+        <!-- Map Container -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="h-96" id="map"></div>
+        </div>
+        
+        <!-- Distance and Time Info (Hidden by default) -->
+        <div id="route-info-card" class="bg-white rounded-lg shadow-md p-6 hidden">
+            <h2 class="text-xl font-bold mb-4">Trip Details</h2>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="border rounded-md p-4 text-center">
+                    <p class="text-sm text-gray-500 mb-1">Distance</p>
+                    <p class="text-lg font-bold" id="distance-value">- km</p>
+                </div>
+                
+                <div class="border rounded-md p-4 text-center">
+                    <p class="text-sm text-gray-500 mb-1">Estimated Time</p>
+                    <p class="text-lg font-bold" id="duration-value">- min</p>
+                </div>
+            </div>
+            
+            <div class="mt-4 space-y-3">
+                <div class="flex items-start">
+                    <div class="mt-1 mr-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <circle cx="12" cy="12" r="8" stroke-width="2" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium">Pickup Location</p>
+                        <p class="text-sm text-gray-600" id="route-pickup-location">-</p>
                     </div>
                 </div>
-               
+                
+                <div class="flex items-start">
+                    <div class="mt-1 mr-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium">Destination</p>
+                        <p class="text-sm text-gray-600" id="route-dropoff-location">-</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="button" id="save-locations-btn" class="text-blue-600 text-sm font-medium hover:text-blue-800">
+                    Save these locations for future rides
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-                
-                <!-- Save Location Card (Hidden by default) -->
-                <div id="save-location-card" class="bg-white rounded-lg shadow-md p-6 hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">Save Location</h2>
-                        <button type="button" id="close-save-location" class="text-gray-400 hover:text-gray-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                    
-                    <form action="{{ route('passenger.save.location') }}" method="POST" class="space-y-4">
-                        @csrf
-                        <div>
-                            <label for="location_name" class="block text-sm font-medium text-gray-700 mb-1">Location Name</label>
-                            <input type="text" id="location_name" name="name" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" placeholder="E.g., Home, Office, Gym">
-                        </div>
-                        
-                        <div>
-                            <label for="location_type" class="block text-sm font-medium text-gray-700 mb-1">Location Type</label>
-                            <select id="location_type" name="type" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm">
-                                <option value="home">Home</option>
-                                <option value="work">Work</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label for="location_address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                            <input type="text" id="location_address" name="address" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" readonly>
-                            <input type="hidden" id="location_latitude" name="latitude">
-                            <input type="hidden" id="location_longitude" name="longitude">
-                        </div>
-                        
-                        <button type="submit" class="w-full bg-black text-white py-2 px-4 rounded-md font-medium hover:bg-gray-800 transition">
-                            Save Location
-                        </button>
-                    </form>
+
+<!-- Hidden input to store selected vehicle type -->
+<input type="hidden" name="selected_driver_id" id="selected-driver-id">
+
+<!-- Ride Confirmation Modal -->
+<div id="ride-confirmation-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        
+        <div class="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div>
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
                 </div>
-                
-                <!-- Ride Options Card (Hidden by default) -->
-                <div id="ride-options-card" class="bg-white rounded-lg shadow-md p-6 hidden">
-                    <h2 class="text-xl font-bold mb-4">Available Rides</h2>
-                    
-                    <div id="ride-options-container" class="space-y-4">
-                        <!-- Ride options will be populated here by JavaScript -->
+                <div class="mt-3 text-center sm:mt-5">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Confirm Your Ride</h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500">
+                            Please review your ride details before confirming.
+                        </p>
                     </div>
                 </div>
             </div>
             
-            <!-- Right Column - Map, Distance Info -->
-            <div class="w-full lg:w-2/3 flex flex-col gap-6">
-                <!-- Map Container -->
-                <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="h-96" id="map"></div>
-                </div>
-                
-                <!-- Distance and Time Info (Hidden by default) -->
-                <div id="route-info-card" class="bg-white rounded-lg shadow-md p-6 hidden">
-                    <h2 class="text-xl font-bold mb-4">Trip Details</h2>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="border rounded-md p-4 text-center">
-                            <p class="text-sm text-gray-500 mb-1">Distance</p>
-                            <p class="text-lg font-bold" id="distance-value">- km</p>
+            <div class="mt-4">
+                <div class="border rounded-md p-4">
+                    <div class="flex items-center mb-4">
+                        <div id="confirm-vehicle-icon" class="h-12 w-12 bg-gray-200 rounded-full mr-4 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m-4 4H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
                         </div>
-                        
-                        <div class="border rounded-md p-4 text-center">
-                            <p class="text-sm text-gray-500 mb-1">Estimated Time</p>
-                            <p class="text-lg font-bold" id="duration-value">- min</p>
+                        <div>
+                            <h4 class="font-bold text-lg" id="confirm-vehicle-type">-</h4>
+                            <p class="text-sm text-gray-600" id="confirm-vehicle-details">-</p>
+                        </div>
+                        <div class="ml-auto">
+                            <p class="font-bold text-lg" id="confirm-fare">-</p>
+                            <p class="text-xs text-gray-500" id="confirm-surge">-</p>
                         </div>
                     </div>
                     
-                    <div class="mt-4 space-y-3">
+                    <div class="space-y-3">
                         <div class="flex items-start">
                             <div class="mt-1 mr-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -243,7 +264,7 @@
                             </div>
                             <div>
                                 <p class="text-sm font-medium">Pickup Location</p>
-                                <p class="text-sm text-gray-600" id="route-pickup-location">-</p>
+                                <p class="text-sm text-gray-600" id="confirm-pickup-location">-</p>
                             </div>
                         </div>
                         
@@ -256,194 +277,108 @@
                             </div>
                             <div>
                                 <p class="text-sm font-medium">Destination</p>
-                                <p class="text-sm text-gray-600" id="route-dropoff-location">-</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <button type="button" id="save-locations-btn" class="text-blue-600 text-sm font-medium hover:text-blue-800">
-                            Save these locations for future rides
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-    {{-- Add this HTML to your book ride page, after the ride options section --}}
-
-<div class="card mt-4 mb-4" id="available-drivers-section" style="display: none;">
-    <div class="card-header">
-        <h5 class="mb-0">Available Drivers</h5>
-    </div>
-    <div class="card-body">
-        <div id="available-drivers-container">
-            <div class="text-center py-3">
-                <p class="text-muted">Select a pickup and drop-off location to see available drivers</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- Add this hidden input to your form --}}
-<input type="hidden" name="driver_id" id="selected-driver-id">
-    <!-- Ride Confirmation Modal -->
-    <div id="ride-confirmation-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-            
-            <div class="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                <div>
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                    </div>
-                    <div class="mt-3 text-center sm:mt-5">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">Confirm Your Ride</h3>
-                        <div class="mt-2">
-                            <p class="text-sm text-gray-500">
-                                Please review your ride details before confirming.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mt-4">
-                    <div class="border rounded-md p-4">
-                        <div class="flex items-center mb-4">
-                            <div id="confirm-vehicle-icon" class="h-12 w-12 bg-gray-200 rounded-full mr-4 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m-4 4H4m0 0l4 4m-4-4l4-4" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-lg" id="confirm-vehicle-type">-</h4>
-                                <p class="text-sm text-gray-600" id="confirm-vehicle-details">-</p>
-                            </div>
-                            <div class="ml-auto">
-                                <p class="font-bold text-lg" id="confirm-fare">-</p>
-                                <p class="text-xs text-gray-500" id="confirm-surge">-</p>
+                                <p class="text-sm text-gray-600" id="confirm-dropoff-location">-</p>
                             </div>
                         </div>
                         
-                        <div class="space-y-3">
-                            <div class="flex items-start">
-                                <div class="mt-1 mr-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <circle cx="12" cy="12" r="8" stroke-width="2" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium">Pickup Location</p>
-                                    <p class="text-sm text-gray-600" id="confirm-pickup-location">-</p>
-                                </div>
+                        <div class="flex items-start">
+                            <div class="mt-1 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
                             </div>
-                            
-                            <div class="flex items-start">
-                                <div class="mt-1 mr-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium">Destination</p>
-                                    <p class="text-sm text-gray-600" id="confirm-dropoff-location">-</p>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-start">
-                                <div class="mt-1 mr-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium">Estimated Arrival</p>
-                                    <p class="text-sm text-gray-600" id="confirm-eta">-</p>
-                                </div>
+                            <div>
+                                <p class="text-sm font-medium">Estimated Arrival</p>
+                                <p class="text-sm text-gray-600" id="confirm-eta">-</p>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <form id="request-ride-form" action="{{ route('passenger.request.ride') }}" method="POST" class="mt-5">
+                @csrf
+                <input type="hidden" id="confirm-vehicle-type-input" name="vehicle_type">
                 
-                <form id="request-ride-form" action="{{ route('passenger.request.ride') }}" method="POST" class="mt-5">
-                    @csrf
-                    <input type="hidden" id="confirm-vehicle-type-input" name="vehicle_type">
-                    
-                    <div class="mt-4 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                        <!-- Ride Preferences Section -->
-                        <div class="ride-preferences-section mt-4 border-t border-gray-200 pt-4">
-                            <h3 class="text-lg font-medium mb-3">Ride Preferences</h3>
-                            
-                            <!-- Women-Only Preference (visible only to female passengers) -->
-                            @if(Auth::user()->gender === 'female')
-                            <div class="mb-4">
-                                <div class="flex items-start">
-                                    <div class="flex items-center">
-                                        <button type="button" id="women-only-toggle" class="relative inline-flex h-6 w-11 items-center rounded-full {{ Auth::user()->women_only_rides ? 'bg-pink-500' : 'bg-gray-300' }} transition-colors duration-300">
-                                            <span id="women-only-toggle-dot" class="inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 {{ Auth::user()->women_only_rides ? 'translate-x-5' : 'translate-x-1' }}"></span>
-                                        </button>
-                                        <span id="women-only-text" class="ml-2 font-medium">Women-Only Rides {{ Auth::user()->women_only_rides ? 'On' : 'Off' }}</span>
-                                    </div>
-                                    
-                                    @if(Auth::user()->women_only_rides)
-                                        <div class="ml-auto px-2 py-1 rounded bg-pink-100 text-pink-800 text-xs">
-                                            Active
-                                        </div>
-                                    @endif
+                <div class="mt-4 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                    <!-- Ride Preferences Section -->
+                    <div class="ride-preferences-section mt-4 border-t border-gray-200 pt-4">
+                        <h3 class="text-lg font-medium mb-3">Ride Preferences</h3>
+                        
+                        <!-- Women-Only Preference (visible only to female passengers) -->
+                        @if(Auth::user()->gender === 'female')
+                        <div class="mb-4">
+                            <div class="flex items-start">
+                                <div class="flex items-center">
+                                    <button type="button" id="women-only-toggle" class="relative inline-flex h-6 w-11 items-center rounded-full {{ Auth::user()->women_only_rides ? 'bg-pink-500' : 'bg-gray-300' }} transition-colors duration-300">
+                                        <span id="women-only-toggle-dot" class="inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 {{ Auth::user()->women_only_rides ? 'translate-x-5' : 'translate-x-1' }}"></span>
+                                    </button>
+                                    <span id="women-only-text" class="ml-2 font-medium">Women-Only Rides {{ Auth::user()->women_only_rides ? 'On' : 'Off' }}</span>
                                 </div>
-                                <p class="text-sm text-gray-500 mt-1">When enabled, you'll be matched only with female drivers for added safety and comfort.</p>
                                 
-                                <!-- Hidden checkbox that will be submitted with the form -->
-                                <input id="women_only_rides" name="ride_preferences[women_only_rides]" type="checkbox" 
-                                    class="hidden"
-                                    {{ isset($passenger->ride_preferences['women_only_rides']) && $passenger->ride_preferences['women_only_rides'] ? 'checked' : '' }}
-                                    {{ Auth::user()->women_only_rides ? 'checked' : '' }}>
+                                @if(Auth::user()->women_only_rides)
+                                    <div class="ml-auto px-2 py-1 rounded bg-pink-100 text-pink-800 text-xs">
+                                        Active
+                                    </div>
+                                @endif
                             </div>
-                        @endif
+                            <p class="text-sm text-gray-500 mt-1">When enabled, you'll be matched only with female drivers for added safety and comfort.</p>
                             
-                            <!-- Other ride preferences can go here -->
-                            <div class="mb-4">
-                                <div class="flex items-start">
-                                    <div class="flex items-center h-5">
-                                        <input id="quiet_ride" name="ride_preferences[quiet_ride]" type="checkbox" 
-                                            class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                                            {{ isset($passenger->ride_preferences['quiet_ride']) && $passenger->ride_preferences['quiet_ride'] ? 'checked' : '' }}>
-                                    </div>
-                                    <div class="ml-3 text-sm">
-                                        <label for="quiet_ride" class="font-medium text-gray-700">Quiet Ride</label>
-                                        <p class="text-gray-500">Prefer minimal conversation during your ride.</p>
-                                    </div>
+                            <!-- Hidden checkbox that will be submitted with the form -->
+                            <input id="women_only_rides" name="ride_preferences[women_only_rides]" type="checkbox" 
+                                class="hidden"
+                                {{ isset($passenger->ride_preferences['women_only_rides']) && $passenger->ride_preferences['women_only_rides'] ? 'checked' : '' }}
+                                {{ Auth::user()->women_only_rides ? 'checked' : '' }}>
+                        </div>
+                    @endif
+                        
+                        <!-- Other ride preferences can go here -->
+                        <div class="mb-4">
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input id="quiet_ride" name="ride_preferences[quiet_ride]" type="checkbox" 
+                                        class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                                        {{ isset($passenger->ride_preferences['quiet_ride']) && $passenger->ride_preferences['quiet_ride'] ? 'checked' : '' }}>
                                 </div>
-                            </div>
-                            
-                            <div class="mb-4">
-                                <div class="flex items-start">
-                                    <div class="flex items-center h-5">
-                                        <input id="temperature_control" name="ride_preferences[temperature_control]" type="checkbox" 
-                                            class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                                            {{ isset($passenger->ride_preferences['temperature_control']) && $passenger->ride_preferences['temperature_control'] ? 'checked' : '' }}>
-                                    </div>
-                                    <div class="ml-3 text-sm">
-                                        <label for="temperature_control" class="font-medium text-gray-700">Temperature Control</label>
-                                        <p class="text-gray-500">Let the driver know you prefer to control the AC/heating.</p>
-                                    </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="quiet_ride" class="font-medium text-gray-700">Quiet Ride</label>
+                                    <p class="text-gray-500">Prefer minimal conversation during your ride.</p>
                                 </div>
                             </div>
                         </div>
-                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-black text-base font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black sm:col-start-2 sm:text-sm">
-                            Confirm Ride
-                        </button>
-                        <button type="button" id="select-driver-btn" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:mt-0 sm:col-start-1 sm:text-sm">
-                            Select Driver
-                        </button>
+                        
+                        <div class="mb-4">
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input id="temperature_control" name="ride_preferences[temperature_control]" type="checkbox" 
+                                        class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                                        {{ isset($passenger->ride_preferences['temperature_control']) && $passenger->ride_preferences['temperature_control'] ? 'checked' : '' }}>
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="temperature_control" class="font-medium text-gray-700">Temperature Control</label>
+                                    <p class="text-gray-500">Let the driver know you prefer to control the AC/heating.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </form>
-            </div>
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-black text-base font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black sm:col-start-2 sm:text-sm">
+                        Confirm Ride
+                    </button>
+                    <button type="button" id="select-driver-btn" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                        Select Driver
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
+@endsection
+
+@section('head-scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+        crossorigin=""></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <!-- JavaScript -->
     <script>
@@ -1555,5 +1490,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
     </script>
-</body>
-</html>
+@endsection

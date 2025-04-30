@@ -594,22 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
         map.invalidateSize();
     });
 
-    // Handle profile dropdown menu
-    const profileMenuButton = document.getElementById('profile-menu-button');
-    const profileDropdownMenu = document.getElementById('profile-dropdown-menu');
     
-    if (profileMenuButton && profileDropdownMenu) {
-        profileMenuButton.addEventListener('click', function() {
-            profileDropdownMenu.classList.toggle('hidden');
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!profileMenuButton.contains(event.target) && !profileDropdownMenu.contains(event.target)) {
-                profileDropdownMenu.classList.add('hidden');
-            }
-        });
-    }
     
     // Women-only toggle functionality
     const womenOnlyToggle = document.getElementById('women-only-toggle');
