@@ -1,109 +1,9 @@
-<!-- driver/earnings.blade.php -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>inTime - Driver Earnings</title>
-    
-    <!-- Vite Assets -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
-    <!-- Chart.js for earnings visualization - use defer to prevent blocking -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-</head>
-<body class="bg-gray-50">
-    <!-- Header/Navigation -->
-    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm sticky top-0 z-50">
-        <!-- Logo and navigation -->
-        <div class="flex items-center space-x-8">
-            <!-- Logo -->
-            <a href="{{ route('driver.dashboard') }}" class="text-2xl font-bold">inTime</a>
-            
-            <!-- Navigation Links -->
-            <nav class="hidden md:flex space-x-6">
-           
-                <a href="{{ route('driver.active.rides') }}" class="font-medium hover:text-blue-600 transition">Active Rides</a>
-                <a href="{{ route('driver.history') }}" class="font-medium hover:text-blue-600 transition">History</a>
-                <a href="{{ route('driver.earnings') }}" class="font-medium text-blue-600 transition">Earnings</a>
-            </nav>
-        </div>
-        
-        <!-- Mobile Menu Button -->
-        <button type="button" class="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100" id="mobile-menu-button">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-        </button>
-        
-        <!-- User Profile -->
-        <div class="flex items-center space-x-4">
-            <!-- Online/Offline Status -->
-            <div class="flex items-center bg-gray-100 rounded-full px-3 py-1">
-                <span id="status-indicator" class="w-3 h-3 rounded-full {{ Auth::user()->is_online ? 'bg-green-500' : 'bg-red-500' }} mr-2"></span>
-                <span id="status-text" class="text-sm font-medium">{{ Auth::user()->is_online ? 'Online' : 'Offline' }}</span>
-            </div>
-            
-            <div class="relative">
-                <button type="button" class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden" id="profile-button">
-                    @if(Auth::user()->profile_picture)
-                        <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
-                    @else
-                        <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
-                    @endif
-                </button>
-                
-                <!-- Profile Dropdown -->
-                <div class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50" id="profile-dropdown">
-                    <a href="{{ route('driver.profile.private') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile Settings</a>
-                    <a href="{{ route('driver.reviews') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Reviews</a>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                            {{ __('Log Out') }}
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </header>
+<!-- resources/views/driver/earnings.blade.php -->
+@extends('driver.layouts.driver')
 
-    <!-- Mobile Navigation Menu (Hidden by default) -->
-    <div class="fixed inset-0 flex z-40 md:hidden transform translate-x-full transition-transform duration-300 ease-in-out" id="mobile-menu">
-        <div class="relative flex-1 flex flex-col max-w-xs w-full bg-white">
-            <div class="px-4 pt-5 pb-4">
-                <div class="flex items-center justify-between">
-                    <div class="text-2xl font-bold">inTime</div>
-                    <button type="button" class="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none" id="close-mobile-menu">
-                        <span class="sr-only">Close menu</span>
-                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                
-                <div class="mt-6">
-                    <nav class="grid gap-y-4">
-                        <a href="{{ route('driver.dashboard') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Dashboard</a>
-                        <a href="{{ route('driver.active.rides') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Active Rides</a>
-                        <a href="{{ route('driver.history') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">History</a>
-                        <a href="{{ route('driver.earnings') }}" class="font-medium px-3 py-2 rounded-md bg-blue-50 text-blue-600">Earnings</a>
-                        <a href="{{ route('driver.profile.private') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Profile Settings</a>
-                        <a href="{{ route('driver.reviews') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">My Reviews</a>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="w-full text-left font-medium px-3 py-2 rounded-md text-red-600 hover:bg-gray-100">
-                                {{ __('Log Out') }}
-                            </button>
-                        </form>
-                    </nav>
-                </div>
-            </div>
-        </div>
-    </div>
+@section('title', 'Driver Earnings')
 
-    <!-- Main Content -->
+@section('content')
     <main class="container mx-auto px-4 py-8">
         @if(session('success'))
             <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow" role="alert">
@@ -273,21 +173,24 @@
                     <div>
                         <canvas id="earningsChart" height="300"></canvas>
                     </div>
-                </div>
-                
-                <!-- Earnings by Day of Week -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-6">Earnings by Day of Week</h2>
-                    
-                    <div>
-                        <canvas id="weekdayChart" height="200"></canvas>
                     </div>
-                </div>
+            <!-- Earnings by Day of Week -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold mb-6">Earnings by Day of Week</h2>
                 
-       
+                <div>
+                    <canvas id="weekdayChart" height="200"></canvas>
+                </div>
             </div>
         </div>
-    </main>
+    </div>
+</main>
+@endsection
+@section('scripts')
+<!-- Chart.js for earnings visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
 
     <!-- JavaScript for functionality with performance optimizations -->
     <script>
@@ -535,5 +438,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
                     </script>
-</body>
-</html>
+@endsection
