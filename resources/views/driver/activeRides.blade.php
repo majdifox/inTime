@@ -1,117 +1,9 @@
-<!-- driver/activeRides.blade.php -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>inTime - Active Rides</title>
-    
-    <!-- Vite Assets -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
-    <!-- OpenStreetMap with Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-          crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-            crossorigin=""></script>
-    
-    <!-- Add Leaflet Routing Machine for directions -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-</head>
-<body class="bg-gray-50">
-    <!-- Header/Navigation -->
-    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm sticky top-0 z-50">
-        <!-- Logo and navigation -->
-        <div class="flex items-center space-x-8">
-            <!-- Logo -->
-            <a href="{{ route('driver.dashboard') }}" class="text-2xl font-bold">inTime</a>
-            
-            <!-- Navigation Links -->
-            <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('driver.active.rides') }}" class="font-medium text-blue-600 transition">Active Rides</a>
-                <a href="{{ route('driver.history') }}" class="font-medium hover:text-blue-600 transition">History</a>
-                <a href="{{ route('driver.earnings') }}" class="font-medium hover:text-blue-600 transition">Earnings</a>
-            </nav>
-        </div>
-        
-        <!-- Mobile Menu Button -->
-        <button type="button" class="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100" id="mobile-menu-button">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-        </button>
-        
-        <!-- User Profile -->
-        <div class="flex items-center space-x-4">
-            <!-- Online/Offline Status -->
-            <div class="flex items-center bg-gray-100 rounded-full px-3 py-1">
-                <span id="status-indicator" class="w-3 h-3 rounded-full {{ Auth::user()->is_online ? 'bg-green-500' : 'bg-red-500' }} mr-2"></span>
-                <span id="status-text" class="text-sm font-medium">{{ Auth::user()->is_online ? 'Online' : 'Offline' }}</span>
-            </div>
-            
-            <div class="relative">
-                <button type="button" class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden" id="profile-button">
-                    @if(Auth::user()->profile_picture)
-                        <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
-                    @else
-                        <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
-                    @endif
-                </button>
-                
-                <!-- Profile Dropdown -->
-                <div class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50" id="profile-dropdown">
-                    <a href="{{ route('driver.profile.private') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile Settings</a>
-                    <a href="{{ route('driver.reviews') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Reviews</a>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                            {{ __('Log Out') }}
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </header>
+<!-- resources/views/driver/activeRides.blade.php -->
+@extends('driver.layouts.driver')
 
-    <!-- Mobile Navigation Menu (Hidden by default) -->
-    <div class="fixed inset-0 flex z-40 md:hidden transform translate-x-full transition-transform duration-300 ease-in-out" id="mobile-menu">
-        <div class="relative flex-1 flex flex-col max-w-xs w-full bg-white">
-            <div class="px-4 pt-5 pb-4">
-                <div class="flex items-center justify-between">
-                    <div class="text-2xl font-bold">inTime</div>
-                    <button type="button" class="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none" id="close-mobile-menu">
-                        <span class="sr-only">Close menu</span>
-                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                
-                <div class="mt-6">
-                    <nav class="grid gap-y-4">
-                        <a href="{{ route('driver.dashboard') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Dashboard</a>
-                        <a href="{{ route('driver.active.rides') }}" class="font-medium px-3 py-2 rounded-md bg-blue-50 text-blue-600">Active Rides</a>
-                        <a href="{{ route('driver.history') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">History</a>
-                        <a href="{{ route('driver.earnings') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Earnings</a>
-                        <a href="{{ route('driver.profile.private') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Profile Settings</a>
-                        <a href="{{ route('driver.reviews') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">My Reviews</a>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="w-full text-left font-medium px-3 py-2 rounded-md text-red-600 hover:bg-gray-100">
-                                {{ __('Log Out') }}
-                            </button>
-                        </form>
-                    </nav>
-                </div>
-            </div>
-        </div>
-    </div>
+@section('title', 'Active Rides')
 
-    <!-- Main Content -->
+@section('content')
     <main class="container mx-auto px-4 py-8">
         @if(session('success'))
             <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow" role="alert">
@@ -129,12 +21,10 @@
             <!-- Left Column - Map -->
             <div class="w-full lg:w-1/2 flex flex-col gap-6">
                 <!-- Map Container -->
-                 
                 <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                    
                     <div class="h-96" id="map"></div>
-                                 <!-- Location tracking status info -->
-                                 <div id="location-info" class="hidden mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                    <!-- Location tracking status info -->
+                    <div id="location-info" class="hidden mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
                         <div class="flex">
                             <div class="flex-shrink-0">
                                 <svg class="h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -150,49 +40,28 @@
                     </div>
                 </div>
                 
-                <!-- Location Sharing Toggle -->
-         <!-- Online/Offline Toggle and Location Sharing -->
-         <div class="bg-white rounded-lg shadow-md p-6">
-         <div class="flex items-center space-x-2">
-
-         <svg width="32px" height="32px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M12 10V13" stroke="red" stroke-width="2" stroke-linecap="round"/>
-  <path d="M12 16V15.9888" stroke="red" stroke-width="2" stroke-linecap="round"/>
-  <path d="M10.2518 5.147L3.6508 17.0287C2.91021 18.3618 3.87415 20 5.39912 20H18.6011C20.126 20 21.09 18.3618 20.3494 17.0287L13.7484 5.147C12.9864 3.77538 11.0138 3.77538 10.2518 5.147Z" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-
-                            <h2 class="text-2xl font-medium">Pro Tips for a Great Ride</h2>
-                            </div>
+                <!-- Online/Offline Toggle and Location Sharing -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center space-x-2">
+                        <svg width="32px" height="32px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 10V13" stroke="red" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M12 16V15.9888" stroke="red" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M10.2518 5.147L3.6508 17.0287C2.91021 18.3618 3.87415 20 5.39912 20H18.6011C20.126 20 21.09 18.3618 20.3494 17.0287L13.7484 5.147C12.9864 3.77538 11.0138 3.77538 10.2518 5.147Z" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <h2 class="text-2xl font-medium">Pro Tips for a Great Ride</h2>
+                    </div>
                     <div class="flex flex-col space-y-4">
-                        
-                        <div>
-                                <!-- Warning Triangle Icon -->
-                                
-                        </div>
-                        
                         <div class="flex items-center justify-between">
-                            <!-- Online/Offline Toggle Button -->
-                            <div class="flex items-center">
-                                <!-- <button id="toggle-status" class="relative inline-flex h-6 w-11 items-center rounded-full {{ Auth::user()->is_online ? 'bg-green-500' : 'bg-gray-300' }} transition-colors duration-300">
-                                    <span id="toggle-circle" class="inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 {{ Auth::user()->is_online ? 'translate-x-5' : 'translate-x-1' }}"></span>
-                                </button> -->
-                                <!-- <span id="toggle-text" class="ml-2 font-medium">{{ Auth::user()->is_online ? 'Go Offline' : 'Go Online' }}</span> -->
-                            </div>
-                            
-                            <!-- Location Sharing Button -->
                             <div id="driver-message-container" class="bg-red-500 rounded-md text-black py-2 px-4 rounded-md font-medium hover:bg-yellow-400 transition">
-    <span id="driver-message">Drive with kindness, stay professional, and treat every passenger with respect — it all comes back to you. Stay focused, stay safe, and take pride in every ride.</span>
-</div>
-
+                                <span id="driver-message">Drive with kindness, stay professional, and treat every passenger with respect — it all comes back to you. Stay focused, stay safe, and take pride in every ride.</span>
+                            </div>
                         </div>
                     </div>
                     <div id="location-sharing-container" class="{{ Auth::user()->is_online ? '' : 'hidden' }}" style="display: none;">
-    <button id="share-location" class="bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition {{ Auth::user()->is_online ? '' : 'opacity-50 cursor-not-allowed' }}" {{ Auth::user()->is_online ? '' : 'disabled' }}>
-        <span id="location-status">Share Location</span>
-    </button>
-</div>
-
-                   
+                        <button id="share-location" class="bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition {{ Auth::user()->is_online ? '' : 'opacity-50 cursor-not-allowed' }}" {{ Auth::user()->is_online ? '' : 'disabled' }}>
+                            <span id="location-status">Share Location</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -200,7 +69,6 @@
             <div class="w-full lg:w-1/2 flex flex-col gap-6">
                 <!-- En Route Rides -->
                 <div class="bg-white rounded-lg shadow-md p-6">
-                    
                     <h2 class="text-xl font-bold mb-4">En Route to Pickup</h2>
                     
                     @if(count($enRouteRides) === 0)
@@ -217,35 +85,33 @@
                                 <div class="border rounded-md p-4 hover:border-blue-200 transition-colors duration-200 border-l-4 border-l-blue-500">
                                     <div class="flex justify-between items-start mb-3">
                                         <div>
-                                            
-                                          
                                             <div class="flex items-center space-x-3">
-    <div class="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
-        @if($ride->passenger->user->profile_picture)
-            <img src="{{ asset('storage/' . $ride->passenger->user->profile_picture) }}" alt="Passenger" class="h-full w-full object-cover">
-        @else
-            <div class="h-full w-full flex items-center justify-center text-gray-500 bg-gray-300">
-                {{ substr($ride->passenger->user->name, 0, 1) }}
-            </div>
-        @endif
-    </div>
-    <div>
-        <p class="font-medium">{{ $ride->passenger->user->name }}</p>
-        <div class="flex items-center">
-            @if($ride->passenger->rating)
-                <div class="flex items-center text-sm">
-                    <span class="mr-1">{{ number_format($ride->passenger->rating, 1) }}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                </div>
-            @endif
-            <a href="{{ route('passenger.public.profile', $ride->passenger->id) }}" class="text-blue-600 hover:text-blue-800 text-sm ml-2">
-                View Profile
-            </a>
-        </div>
-    </div>
-</div>
+                                                <div class="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                                                    @if($ride->passenger->user->profile_picture)
+                                                        <img src="{{ asset('storage/' . $ride->passenger->user->profile_picture) }}" alt="Passenger" class="h-full w-full object-cover">
+                                                    @else
+                                                        <div class="h-full w-full flex items-center justify-center text-gray-500 bg-gray-300">
+                                                            {{ substr($ride->passenger->user->name, 0, 1) }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">{{ $ride->passenger->user->name }}</p>
+                                                    <div class="flex items-center">
+                                                        @if($ride->passenger->rating)
+                                                            <div class="flex items-center text-sm">
+                                                                <span class="mr-1">{{ number_format($ride->passenger->rating, 1) }}</span>
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                                </svg>
+                                                            </div>
+                                                        @endif
+                                                        <a href="{{ route('passenger.public.profile', $ride->passenger->id) }}" class="text-blue-600 hover:text-blue-800 text-sm ml-2">
+                                                            View Profile
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <p class="text-sm text-gray-500">Reserved: {{ $ride->reservation_date->format('M d, Y g:i A') }}</p>
                                         </div>
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -335,42 +201,40 @@
                             </svg>
                             <p class="text-gray-500 font-medium">You don't have any rides in progress</p>
                             <p class="text-sm text-gray-400 mt-1">When you start a ride, it will appear here</p>
-                        </div>
+                            </div>
                     @else
                         <div class="space-y-4">
                             @foreach($inProgressRides as $ride)
-                            <div class="border rounded-md p-4 hover:border-blue-200 transition-colors duration-200 border-l-4 border-l-blue-500">
+                                <div class="border rounded-md p-4 hover:border-blue-200 transition-colors duration-200 border-l-4 border-l-blue-500">
                                     <div class="flex justify-between items-start mb-3">
                                         <div>
-                                            
-                                          
                                             <div class="flex items-center space-x-3">
-    <div class="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
-        @if($ride->passenger->user->profile_picture)
-            <img src="{{ asset('storage/' . $ride->passenger->user->profile_picture) }}" alt="Passenger" class="h-full w-full object-cover">
-        @else
-            <div class="h-full w-full flex items-center justify-center text-gray-500 bg-gray-300">
-                {{ substr($ride->passenger->user->name, 0, 1) }}
-            </div>
-        @endif
-    </div>
-    <div>
-        <p class="font-medium">{{ $ride->passenger->user->name }}</p>
-        <div class="flex items-center">
-            @if($ride->passenger->rating)
-                <div class="flex items-center text-sm">
-                    <span class="mr-1">{{ number_format($ride->passenger->rating, 1) }}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                </div>
-            @endif
-            <a href="{{ route('passenger.public.profile', $ride->passenger->id) }}" class="text-blue-600 hover:text-blue-800 text-sm ml-2">
-                View Profile
-            </a>
-        </div>
-    </div>
-</div>
+                                                <div class="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                                                    @if($ride->passenger->user->profile_picture)
+                                                        <img src="{{ asset('storage/' . $ride->passenger->user->profile_picture) }}" alt="Passenger" class="h-full w-full object-cover">
+                                                    @else
+                                                        <div class="h-full w-full flex items-center justify-center text-gray-500 bg-gray-300">
+                                                            {{ substr($ride->passenger->user->name, 0, 1) }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">{{ $ride->passenger->user->name }}</p>
+                                                    <div class="flex items-center">
+                                                        @if($ride->passenger->rating)
+                                                            <div class="flex items-center text-sm">
+                                                                <span class="mr-1">{{ number_format($ride->passenger->rating, 1) }}</span>
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                                </svg>
+                                                            </div>
+                                                        @endif
+                                                        <a href="{{ route('passenger.public.profile', $ride->passenger->id) }}" class="text-blue-600 hover:text-blue-800 text-sm ml-2">
+                                                            View Profile
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <p class="text-sm text-gray-500">Started: {{ $ride->pickup_time->format('M d, Y g:i A') }}</p>
                                         </div>
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -420,7 +284,7 @@
                                     </div>
                                     
                                     <div class="flex flex-wrap gap-3">
-                                     <button type="button" class="complete-ride-btn bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition flex-1"
+                                        <button type="button" class="complete-ride-btn bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition flex-1"
                                                 data-ride-id="{{ $ride->id }}">
                                             Complete Ride
                                         </button>
@@ -575,6 +439,7 @@
             </div>
         </div>
     </div>
+
 
     <!-- JavaScript for functionality -->
 <script>
@@ -1256,9 +1121,7 @@ setInterval(checkRidesPaymentStatus, 30000);
 // Also check immediately
 document.addEventListener('DOMContentLoaded', checkRidesPaymentStatus);
 </script>
-</body>
-</html>
-
+@endsection
 
 
 
