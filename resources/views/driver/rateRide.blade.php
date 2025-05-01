@@ -1,5 +1,5 @@
 <!-- resources/views/driver/rateRide.blade.php -->
-@extends('layouts.driver')
+@extends('driver.layouts.driver')
 
 @section('title', 'Rate Your Passenger')
 

@@ -1,105 +1,9 @@
-<!-- driver/rideHistory.blade.php -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>inTime - Ride History</title>
-    
-    <!-- Vite Assets -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="bg-gray-50">
-    <!-- Header/Navigation -->
-    <header class="px-4 py-4 flex items-center justify-between bg-white shadow-sm sticky top-0 z-50">
-        <!-- Logo and navigation -->
-        <div class="flex items-center space-x-8">
-            <!-- Logo -->
-            <a href="{{ route('driver.dashboard') }}" class="text-2xl font-bold">inTime</a>
-            
-            <!-- Navigation Links -->
-            <nav class="hidden md:flex space-x-6">
-                <a href="{{ route('driver.active.rides') }}" class="font-medium hover:text-blue-600 transition">Active Rides</a>
-                <a href="{{ route('driver.history') }}" class="font-medium text-blue-600 transition">History</a>
-                <a href="{{ route('driver.earnings') }}" class="font-medium hover:text-blue-600 transition">Earnings</a>
-            </nav>
-        </div>
-        
-        <!-- Mobile Menu Button -->
-        <button type="button" class="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100" id="mobile-menu-button">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-        </button>
-        
-        <!-- User Profile -->
-        <div class="flex items-center space-x-4">
-            <!-- Online/Offline Status -->
-            <div class="flex items-center bg-gray-100 rounded-full px-3 py-1">
-                <span id="status-indicator" class="w-3 h-3 rounded-full {{ Auth::user()->is_online ? 'bg-green-500' : 'bg-red-500' }} mr-2"></span>
-                <span id="status-text" class="text-sm font-medium">{{ Auth::user()->is_online ? 'Online' : 'Offline' }}</span>
-            </div>
-            
-            <div class="relative">
-                <button type="button" class="h-10 w-10 rounded-full bg-gray-300 overflow-hidden" id="profile-button">
-                    @if(Auth::user()->profile_picture)
-                        <img src="{{ asset('storage/' . Auth::user()->profile_picture) }}" alt="Profile" class="h-full w-full object-cover">
-                    @else
-                        <img src="/api/placeholder/40/40" alt="Profile" class="h-full w-full object-cover">
-                    @endif
-                </button>
-                
-                <!-- Profile Dropdown -->
-                <div class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50" id="profile-dropdown">
-                    <a href="{{ route('driver.profile.private') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile Settings</a>
-                    <a href="{{ route('driver.reviews') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Reviews</a>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                            {{ __('Log Out') }}
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </header>
+<!-- resources/views/driver/rideHistory.blade.php -->
+@extends('driver.layouts.driver')
 
-    <!-- Mobile Navigation Menu (Hidden by default) -->
-    <div class="fixed inset-0 flex z-40 md:hidden transform translate-x-full transition-transform duration-300 ease-in-out" id="mobile-menu">
-        <div class="relative flex-1 flex flex-col max-w-xs w-full bg-white">
-            <div class="px-4 pt-5 pb-4">
-                <div class="flex items-center justify-between">
-                    <div class="text-2xl font-bold">inTime</div>
-                    <button type="button" class="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none" id="close-mobile-menu">
-                        <span class="sr-only">Close menu</span>
-                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                
-                <div class="mt-6">
-                    <nav class="grid gap-y-4">
-                        <a href="{{ route('driver.dashboard') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Dashboard</a>
-                        <a href="{{ route('driver.active.rides') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Active Rides</a>
-                        <a href="{{ route('driver.history') }}" class="font-medium px-3 py-2 rounded-md bg-blue-50 text-blue-600">History</a>
-                        <a href="{{ route('driver.earnings') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Earnings</a>
-                        <a href="{{ route('driver.profile.private') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">Profile Settings</a>
-                        <a href="{{ route('driver.reviews') }}" class="font-medium px-3 py-2 rounded-md hover:bg-gray-100">My Reviews</a>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="w-full text-left font-medium px-3 py-2 rounded-md text-red-600 hover:bg-gray-100">
-                                {{ __('Log Out') }}
-                            </button>
-                        </form>
-                    </nav>
-                </div>
-            </div>
-        </div>
-    </div>
+@section('title', 'Ride History')
 
-    <!-- Main Content -->
+@section('content')
     <main class="container mx-auto px-4 py-8">
         @if(session('success'))
             <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow" role="alert">
@@ -183,38 +87,38 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-    <div class="flex items-center">
-        <div class="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
-            @if($ride->passenger->user->profile_picture)
-                <img src="{{ asset('storage/' . $ride->passenger->user->profile_picture) }}" alt="Passenger" class="h-full w-full object-cover">
-            @else
-                <div class="h-full w-full flex items-center justify-center text-gray-500 bg-gray-300">
-                    {{ substr($ride->passenger->user->name, 0, 1) }}
-                </div>
-            @endif
-        </div>
-        <div class="ml-4">
-            <div class="text-sm font-medium text-gray-900">
-                {{ $ride->passenger->user->name }}
-            </div>
-            <div class="text-sm text-gray-500">
-                @if($ride->passenger->rating)
-                    <div class="flex items-center">
-                        <span class="mr-1">{{ number_format($ride->passenger->rating, 1) }}</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                    </div>
-                @else
-                    No rating
-                @endif
-                <a href="{{ route('passenger.public.profile', $ride->passenger->id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
-                    View Profile
-                </a>
-            </div>
-        </div>
-    </div>
-</td>
+                                        <div class="flex items-center">
+                                            <div class="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                                                @if($ride->passenger->user->profile_picture)
+                                                    <img src="{{ asset('storage/' . $ride->passenger->user->profile_picture) }}" alt="Passenger" class="h-full w-full object-cover">
+                                                @else
+                                                    <div class="h-full w-full flex items-center justify-center text-gray-500 bg-gray-300">
+                                                        {{ substr($ride->passenger->user->name, 0, 1) }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">
+                                                    {{ $ride->passenger->user->name }}
+                                                </div>
+                                                <div class="text-sm text-gray-500">
+                                                    @if($ride->passenger->rating)
+                                                        <div class="flex items-center">
+                                                            <span class="mr-1">{{ number_format($ride->passenger->rating, 1) }}</span>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                            </svg>
+                                                        </div>
+                                                    @else
+                                                        No rating
+                                                    @endif
+                                                    <a href="{{ route('passenger.public.profile', $ride->passenger->id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
+                                                        View Profile
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-gray-900 max-w-xs">
                                             <div class="flex items-start mb-1">
@@ -287,6 +191,7 @@
             @endif
         </div>
     </main>
+
 
     <!-- JavaScript for functionality -->
     <script>
@@ -377,5 +282,4 @@
             }
         });
     </script>
-</body>
-</html>
+@endsection
