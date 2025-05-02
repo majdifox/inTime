@@ -418,11 +418,7 @@
                                             </div>
                                         </div>
                                     @endif
-                                </div>
-                                </div>
-                                </div>
-                            @endif
-                        </div>
+                             
                                 
                         <div class="flex space-x-3">
                             @if(!$ride->pickup_time)
