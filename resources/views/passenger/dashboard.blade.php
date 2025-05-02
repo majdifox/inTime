@@ -6,11 +6,44 @@
 
 @section('styles')
     <!-- OpenStreetMap with Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leafle    t.css" 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
           crossorigin=""/>
     <!-- Leaflet Routing Machine for directions -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <style>
+        /* Ensure the map container has proper dimensions */
+        #map {
+            height: 500px;
+            width: 100%;
+            z-index: 1;
+        }
+        /* Custom markers */
+        .custom-driver-marker {
+            background-color: #3B82F6;
+            border: 3px solid #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .custom-user-marker {
+            background-color: #10B981;
+            border: 3px solid #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .custom-pickup-marker {
+            background-color: #3B82F6;
+            border: 3px solid #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .custom-dropoff-marker {
+            background-color: #EF4444;
+            border: 3px solid #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+    </style>
 @endsection
 
 @section('head-scripts')
@@ -18,7 +51,6 @@
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
             crossorigin=""></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-    <script src="{{ asset('js/women-only-toggle.js') }}"></script>
 @endsection
 
 @section('content')
@@ -111,7 +143,7 @@
         <div class="w-full lg:w-2/3 flex flex-col gap-6">
             <!-- Map Container - Enhanced size and better responsiveness -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                <div class="h-96 md:h-100 lg:h-120" id="map"></div>
+                <div id="map"></div>
             </div>
             
             <!-- Active Ride -->
