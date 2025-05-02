@@ -213,25 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Profile dropdown toggle with optimized event handling
-    const profileButton = document.getElementById('profile-button');
-    const profileDropdown = document.getElementById('profile-dropdown');
-    
-    if (profileButton && profileDropdown) {
-        profileButton.addEventListener('click', function(event) {
-            profileDropdown.classList.toggle('hidden');
-            event.stopPropagation(); // Prevent document click from immediately closing it
-        });
-        
-        // Use a single document click handler
-        document.addEventListener('click', function(event) {
-            if (profileButton && profileDropdown && 
-                !profileButton.contains(event.target) && 
-                !profileDropdown.contains(event.target)) {
-                profileDropdown.classList.add('hidden');
-            }
-        });
-    }
+
     
     // Chart initialization using requestAnimationFrame for better performance
     requestAnimationFrame(() => {

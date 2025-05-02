@@ -213,22 +213,7 @@
                 });
             }
             
-            // Profile dropdown toggle
-            const profileButton = document.getElementById('profile-button');
-            const profileDropdown = document.getElementById('profile-dropdown');
-            
-            if (profileButton) {
-                profileButton.addEventListener('click', function() {
-                    profileDropdown.classList.toggle('hidden');
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(event) {
-                    if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
-                        profileDropdown.classList.add('hidden');
-                    }
-                });
-            }
+\
             
             // Search functionality
             const searchInput = document.getElementById('search-input');

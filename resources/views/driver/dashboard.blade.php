@@ -606,22 +606,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Profile dropdown toggle
-        const profileButton = document.getElementById('profile-button');
-        const profileDropdown = document.getElementById('profile-dropdown');
-        
-        if (profileButton && profileDropdown) {
-            profileButton.addEventListener('click', function() {
-                profileDropdown.classList.toggle('hidden');
-            });
-            
-            // Close profile dropdown when clicking outside
-            document.addEventListener('click', function(event) {
-                if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
-                    profileDropdown.classList.add('hidden');
-                }
-            });
-        }
+       
         
         // Women-only toggle (for female drivers only)
         const toggleWomenOnly = document.getElementById('toggle-women-only');
