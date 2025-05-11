@@ -431,7 +431,9 @@ Route::get('/test-ride-complete', function() {
 });
 
 
-// Payment Status Check Route
+
+
+// Payment Status Check Route Stripe
 Route::get('/passenger/ride/{ride}/payment-status', function(App\Models\Ride $ride) {
     // Security check - ensure the ride belongs to this passenger
     $passenger = App\Models\Passenger::where('user_id', Auth::id())->first();

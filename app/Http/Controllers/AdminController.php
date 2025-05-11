@@ -216,6 +216,8 @@ public function deleteUserDirect($id)
     }
 
     
+
+
     /**
      * Get drivers list (for AJAX)
      *
@@ -733,7 +735,7 @@ public function showPassengerDetails($id)
         \Log::error('Error trace: ' . $e->getTraceAsString());
         
         return redirect()->route('admin.users')
-            ->with('error', 'Error loading passenger details: ' . $e->getMessage());
+            ->with('error', 'Error loading the passenger details: ' . $e->getMessage());
     }
 }
 }
